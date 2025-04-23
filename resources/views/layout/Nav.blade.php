@@ -415,7 +415,7 @@
                                             <a class="nav-link" href="{{ route('transaksi.penjualan') }}"><i class="fas fa-circle-plus"></i> Tambah Penjualan</a>
                                         </li>
                                         <li class="nav-item">
-                                        <a class="nav-link" href="{{ route('transaksi.displaypenjualan') }}"><i class="fas fa-clock-rotate-left"></i> Display Penjualan</a>
+                                        <a class="nav-link" href="{{ route('transaksi.listnota') }}"><i class="fas fa-clock-rotate-left"></i> Display Penjualan</a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('transaksi.datapenjualanpercustomer') }}"><i class="fas fa-file-invoice-dollar mr-2"></i>Data Penjualan Per Customer</a>
@@ -440,10 +440,6 @@
                                     </ul>
                                 </div>
                             </li>
-                            <!-- Lihat Nota Transaksi -->
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('transaksi.listnota') }}"><i class="fas fa-file-invoice"></i> Lihat Nota Penjualan</a>
-                            </li>
                         </ul>
                     </div>
                 </li>
@@ -457,10 +453,10 @@
                         <ul class="nav flex-column ml-3">
                             <!-- Add the new Panel Management menu item here -->
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('suratjalan.form') }}"><i class="fas fa-cut"></i> Tambah Surat Jalan</a>
+                                <a class="nav-link" href="{{ route('suratjalan.create') }}"><i class="fas fa-circle-plus"></i> Tambah Surat Jalan</a>
                             </li>
                             <li class="nav-item">
-                            <a class="nav-link" href="{{ route('suratjalan.historysuratjalan') }}"><i class="fas fa-cut"></i> Display Surat Jalan</a>
+                            <a class="nav-link" href="{{ route('suratjalan.history') }}"><i class="fas fa-clock-rotate-left"></i> Display Surat Jalan</a>
                             </li>
                         </ul>
                     </div> 

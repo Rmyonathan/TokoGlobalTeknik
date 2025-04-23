@@ -80,4 +80,15 @@ class CustomerController extends Controller
 
         return response()->json($customers);
     }
+
+    public function searchsuratjalan(Request $request)
+    {
+        $query = $request->get('query');
+
+        $customers = Customer::where('nama', 'like', "%{$query}%")
+            ->orWhere('kode_customer', 'like', "%{$query}%")
+            ->get(['kode_customer', 'nama', 'alamat']); // Ambil kolom yang diperlukan saja
+
+        return response()->json($customers);
+    }
 }

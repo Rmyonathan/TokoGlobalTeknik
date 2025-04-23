@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hotel Dwipas - Sign In</title>
+    <title>Alumka - Sign In</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha1/css/bootstrap.min.css" integrity="sha384-r4NyP46KrjDleawBgD5tp8Y7UzmLA05oM1iAEQ17CSuDqnUK2+k9luXQOfXJCJ4I" crossorigin="anonymous">
     <style>
         body {
@@ -79,9 +79,9 @@
         </div>
     @endif
 
-    <img src="/storage/image/hotel-welcome.jpg" alt="Hotel Dwipas">
+    <img src="/storage/image/hotel-welcome.jpg" alt="Alumka Store">
     <div class="signin-container">
-        <p class="title">JayJo Management System</p>
+        <p class="title">SDI Management System</p>
         <div class="signin-form">
             <h2 class="text-center">Sign In</h2>
             <form action="/signin" method="POST" enctype="multipart/form-data">

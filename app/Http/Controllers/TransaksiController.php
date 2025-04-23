@@ -8,6 +8,7 @@ use App\Models\Transaksi;
 use App\Models\TransaksiItem;
 use App\Models\Customer;
 use App\Models\Panel;
+use App\Models\SuratJalanItem;
 
 class TransaksiController extends Controller
 {
@@ -82,6 +83,7 @@ class TransaksiController extends Controller
             // Create transaction items
             foreach ($request->items as $item) {
                 TransaksiItem::create([
+                    'transaksi_id' => $transaksi->id, // Gunakan id transaksi sebagai foreign key
                     'no_transaksi' => $request->no_transaksi, // Gunakan no_transaksi sebagai foreign key
                     'kode_barang' => $item['kodeBarang'],
                     'nama_barang' => Panel::find($item['kodeBarang'])->name,
@@ -190,6 +192,59 @@ class TransaksiController extends Controller
     }
 
     /**
+     * Get transaksi data by kode_customer for surat jalan autocomplete
+     */
+    public function getTransaksi(Request $request)
+    {
+        $query = $request->get('query');
+        $kodeCustomer = $request->get('kode_customer');
+    
+        try {
+            $transaksi = Transaksi::when($kodeCustomer, function ($queryBuilder) use ($kodeCustomer) {
+                    $queryBuilder->where('kode_customer', $kodeCustomer);
+                })
+                ->when($query, function ($queryBuilder) use ($query) {
+                    $queryBuilder->where('no_transaksi', 'like', "%{$query}%");
+                })
+                ->get(['id', 'no_transaksi', 'tanggal']); // Hanya ambil kolom yang diperlukan
+    
+            return response()->json($transaksi);
+        } catch (\Exception $e) {
+            \Log::error('Error in getTransaksi:', ['message' => $e->getMessage()]);
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }
+    }
+
+    // Mencari transaksi berdasarkan id untuk surat jalan
+    public function getTransaksiItems($transaksiId)
+    {
+        try {
+            $transaksiItems = TransaksiItem::where('transaksi_id', $transaksiId)
+                ->get()
+                ->map(function ($item) {
+                    // Hitung jumlah "Pernah Ambil" dari surat_jalan_items
+                    $pernahAmbil = SuratJalanItem::where('transaksi_item_id', $item->id)->sum('qty_dibawa');
+    
+                    return [
+                        'id' => $item->id,
+                        'kode_barang' => $item->kode_barang,
+                        'nama_barang' => $item->nama_barang,
+                        'keterangan' => $item->keterangan,
+                        'panjang' => $item->panjang,
+                        'lebar' => $item->lebar,
+                        'qty' => $item->qty,
+                        'pernah_ambil' => $pernahAmbil ?? 0, // Jika tidak ada data, isi dengan 0
+                    ];
+                });
+    
+            return response()->json($transaksiItems);
+        } catch (\Exception $e) {
+            \Log::error('Error in getTransaksiItems:', ['message' => $e->getMessage()]);
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }
+    }
+
+    /**
      * Get transaction data from customers
      */
     public function datapenjualanpercustomer(Request $request)
@@ -235,5 +290,7 @@ class TransaksiController extends Controller
 
         return view('transaksi.lihat_nota', compact('transactions'));
     }
+
+
 
 }

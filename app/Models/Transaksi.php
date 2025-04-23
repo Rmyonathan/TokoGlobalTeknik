@@ -45,6 +45,7 @@ class Transaksi extends Model
     public function items()
     {
         return $this->hasMany(TransaksiItem::class, 'no_transaksi', 'no_transaksi');
+        return $this->hasMany(TransaksiItem::class, 'transaksi_id', 'id');
     }
 
     public function customer()
@@ -56,4 +57,5 @@ class Transaksi extends Model
     {
         return $this->belongsTo(StokOwner::class, 'sales', 'kode_stok_owner');
     }
+    
 }
