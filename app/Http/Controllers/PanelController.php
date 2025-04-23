@@ -36,10 +36,20 @@ class PanelController extends Controller
     public function search(Request $request)
     {
         $keyword = $request->get('keyword');
+        // $panels = Panel::where('name', 'like', "%{$keyword}%")
+        //     ->orWhere('group_id', 'like', "%{$keyword}%")
+        //     ->limit(10)
+        //     ->get();
+
         $panels = Panel::where('name', 'like', "%{$keyword}%")
-            ->orWhere('id', 'like', "%{$keyword}%")
-            ->limit(10)
-            ->get();
+        ->orWhere('group_id', 'like', "%{$keyword}%")
+        ->orderBy('group_id')  // optional for grouping clarity
+        ->get()
+        ->groupBy('group_id')
+        ->map(function ($group) {
+            return $group->first(); // only return one panel per group
+        })
+        ->values();
 
         return response()->json($panels);
     }
@@ -215,13 +225,15 @@ class PanelController extends Controller
 
                         // Create a new panel for leftover length if usable
                         if ($remainingLength >= 0.5) {
-                            Panel::create([
-                                'name' => $requestedName,
-                                'price' => $panel->price,
-                                'length' => $remainingLength,
-                                'available' => true,
-                                'parent_panel_id' => $panel->id
-                            ]);
+                            // Panel::create([
+                            //     'name' => $requestedName,
+                            //     'price' => $panel->price,
+                            //     'length' => $remainingLength,
+                            //     'available' => true,
+                            //     'parent_panel_id' => $panel->id
+                            // ]);
+
+                            $panel = $this->createPanel($requestedName, $panel->price, $remainingLength, true, $panel->id);
                         }
                     }
                 }
@@ -264,7 +276,7 @@ class PanelController extends Controller
             });
 
             return $result;
-            
+
         } catch (Exception $e) {
             return [
                 'success' => false,
@@ -276,7 +288,7 @@ class PanelController extends Controller
 
     /**
      * Execute a callback within a transaction
-     * 
+     *
      * @param callable $callback
      * @return mixed
      */
@@ -284,7 +296,7 @@ class PanelController extends Controller
     {
         // Get the connection from an Eloquent model
         $connection = app('db')->connection();
-        
+
         try {
             $connection->beginTransaction();
             $result = $callback();
@@ -305,28 +317,29 @@ class PanelController extends Controller
     {
         // Using Eloquent to get all available panels
         $panels = Panel::where('available', true)->get();
-        
+
         // Manually group the panels
         $groupedPanels = [];
         foreach ($panels as $panel) {
-            $key = $panel->length . '-' . $panel->name . '-' . $panel->price;
-            
+            $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->group_id;
+
             if (!isset($groupedPanels[$key])) {
                 $groupedPanels[$key] = [
                     'id' => $panel->id,
                     'length' => $panel->length,
                     'name' => $panel->name,
                     'price' => $panel->price,
+                    'group_id' => $panel->group_id,
                     'quantity' => 1
                 ];
             } else {
                 $groupedPanels[$key]['quantity']++;
             }
         }
-        
+
         // Convert to array values
         $inventory = array_values($groupedPanels);
-        
+
         // Sort by length
         usort($inventory, function($a, $b) {
             return $a['length'] <=> $b['length'];
@@ -350,18 +363,43 @@ class PanelController extends Controller
         $panels = [];
 
         for ($i = 0; $i < $quantity; $i++) {
-            $panels[] = Panel::create([
-                'name' => $name,
-                'price' => $price,
-                'length' => $length,
-                'available' => true
-            ]);
+            $panel = $this->createPanel($name, $price, $length);
+            $panels[] = $panel;
         }
 
         return [
             'success' => true,
             'message' => "Added {$quantity} panels of {$length}m length to inventory.",
             'panels' => $panels
+        ];
+    }
+
+    private function createPanel(string $name, float $price, float $length, bool $available = true, ?int $parent_panel_id = NULL): array
+    {
+        $existingPanel = Panel::where('name', $name)
+                          ->where('length', $length)
+                          ->where('available', true)
+                          ->first();
+
+        $panel = Panel::create([
+            'name' => $name,
+            'price' => $price,
+            'length' => $length,
+            'available' => $available,
+            'parent_panel_id' => $parent_panel_id
+        ]);
+
+        if ($existingPanel){
+            $panel['group_id'] = $existingPanel->id;
+            $panel->save();
+        }
+        else{
+            $panel['group_id'] = $panel->id;
+            $panel->save();
+        }
+
+        return [
+            'panels' => $panel
         ];
     }
 }

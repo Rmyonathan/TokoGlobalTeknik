@@ -19,7 +19,7 @@
                             <label for="no_transaksi">No. Transaksi</label>
                             <input type="text" class="form-control" id="no_transaksi" name="no_transaksi" value="{{ $noTransaksi ?? 'KP/WS/0147' }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="tanggal">Tanggal</label>
                             <div class="input-group">
@@ -29,7 +29,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="customer">Customer</label>
                             <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan kode atau nama customer">
@@ -45,7 +45,7 @@
                         </div>
 
                     </div>
-                    
+
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="lokasi">Lokasi</label>
@@ -55,7 +55,7 @@
                                 <option value="BANDUNG">BANDUNG</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="pembayaran">Pembayaran</label>
                             <select class="form-control" id="pembayaran" name="pembayaran">
@@ -64,7 +64,7 @@
                                 <option value="Kredit">Kredit</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="cara_bayar">Cara Bayar</label>
                             <select class="form-control" id="cara_bayar" name="cara_bayar">
@@ -74,7 +74,7 @@
                                 <option value="Cicilan">Cicilan</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="tanggal_jadi">Tanggal Jadi</label>
                             <div class="input-group">
@@ -107,8 +107,7 @@
                             <th>Nama Barang</th>
                             <th>Keterangan</th>
                             <th>Harga</th>
-                            <th>P</th>
-                            <th>L</th>
+                            <th>Length</th>
                             <th>Qty</th>
                             <th>Total</th>
                             <th>Diskon</th>
@@ -424,33 +423,32 @@ $(document).ready(function() {
     $('#findCustomer').click(function () {
         $('#addCustomerModal').modal('show');
     });
-    
+
     // Toggle discount and DP inputs
     $('#discount_checkbox').change(function() {
         $('#discount_percent').prop('disabled', !this.checked);
         calculateTotals();
     });
-    
+
     $('#disc_rp_checkbox').change(function() {
         $('#disc_rp').prop('disabled', !this.checked);
         calculateTotals();
     });
-    
+
     $('#ppn_checkbox').change(function() {
         calculateTotals();
     });
-    
+
     $('#dp_checkbox').change(function() {
         $('#dp_amount').prop('disabled', !this.checked);
         calculateTotals();
     });
-    
+
     // Calculate input changes
     $('#discount_percent, #disc_rp, #dp_amount').on('input', function() {
         calculateTotals();
     });
-    
-    // Add item to the table
+
     $('#saveItemBtn').click(function() {
         const kodeBarang = $('#kode_barang').val();
         const namaBarang = $('#nama_barang').val();
@@ -460,34 +458,53 @@ $(document).ready(function() {
         const lebar = parseInt($('#lebar').val()) || 0;
         const qty = parseInt($('#quantity').val()) || 0;
         const diskon = parseInt($('#diskon').val()) || 0;
-        
+
         if (!kodeBarang || !namaBarang || !harga || !qty) {
             alert('Mohon lengkapi data barang!');
             return;
         }
-        
-        const total = harga * qty;
-        
-        const newItem = {
-            kodeBarang, namaBarang, keterangan, harga, panjang, lebar, qty, diskon, total
-        };
-        
-        items.push(newItem);
-        renderItems();
-        calculateTotals();
-        
-        // Reset form and close modal
-        $('#addItemForm')[0].reset();
-        $('#addItemModal').modal('hide');
-        $('body').removeClass('modal-open'); // Hapus kelas modal-open
-        $('.modal-backdrop').remove(); // Hapus backdrop
+
+        $.ajax({
+            url: `/panel/${kodeBarang}`,
+            method: 'GET',
+            success: function(panel) {
+                const proporsi = (panjang / panel.length);
+                const price = panel.price * proporsi
+                const total = price * qty;
+
+                const newItem = {
+                    kodeBarang,
+                    namaBarang,
+                    keterangan,
+                    harga: panel.price,
+                    panjang,
+                    lebar,
+                    qty,
+                    diskon,
+                    total
+                };
+
+                items.push(newItem);
+                renderItems();
+                calculateTotals();
+
+                // Reset form and close modal
+                $('#addItemForm')[0].reset();
+                $('#addItemModal').modal('hide');
+                $('body').removeClass('modal-open');
+                $('.modal-backdrop').remove();
+            },
+            error: function() {
+                alert('Gagal mengambil data panel.');
+            }
+        });
     });
-    
+
     // Function to render items table
     function renderItems() {
         const tbody = $('#itemsList');
         tbody.empty();
-        
+
         items.forEach((item, index) => {
             tbody.append(`
                 <tr>
@@ -496,7 +513,6 @@ $(document).ready(function() {
                     <td>${item.keterangan}</td>
                     <td class="text-right">${formatCurrency(item.harga)}</td>
                     <td>${item.panjang}</td>
-                    <td>${item.lebar}</td>
                     <td>${item.qty}</td>
                     <td class="text-right">${formatCurrency(item.total)}</td>
                     <td class="text-right">${item.diskon}%</td>
@@ -508,7 +524,7 @@ $(document).ready(function() {
                 </tr>
             `);
         });
-        
+
         // Remove item handling
         $('.remove-item').click(function() {
             const index = $(this).data('index');
@@ -519,13 +535,13 @@ $(document).ready(function() {
 
         $('#addItemModal').modal('hide');
     }
-    
+
     // Calculate all totals
     function calculateTotals() {
         // Calculate subtotal
         const subtotal = items.reduce((sum, item) => sum + item.total, 0);
         $('#total').val(formatCurrency(subtotal));
-        
+
         // Calculate discount
         let discountAmount = 0;
         if ($('#discount_checkbox').is(':checked')) {
@@ -533,38 +549,38 @@ $(document).ready(function() {
             discountAmount = (subtotal * discountPercent) / 100;
         }
         $('#discount_amount').val(formatCurrency(discountAmount));
-        
+
         // Calculate additional discount
         let discRp = 0;
         if ($('#disc_rp_checkbox').is(':checked')) {
             discRp = parseFloat($('#disc_rp').val()) || 0;
         }
-        
+
         // Calculate PPN
         let ppnAmount = 0;
         if ($('#ppn_checkbox').is(':checked')) {
             ppnAmount = ((subtotal - discountAmount - discRp) * 11) / 100; // Using 11% for PPN
         }
         $('#ppn_amount').val(ppnAmount.toFixed(2));
-        
+
         // Calculate DP
         let dpAmount = 0;
         if ($('#dp_checkbox').is(':checked')) {
             dpAmount = parseFloat($('#dp_amount').val()) || 0;
         }
-        
+
         // Calculate grand total
         grandTotal = subtotal - discountAmount - discRp + ppnAmount - dpAmount;
         $('#grand_total').val(formatCurrency(grandTotal));
     }
-    
+
     // Format currency
     function formatCurrency(amount) {
         return new Intl.NumberFormat('id-ID').format(amount);
     }
-    
+
     // Save transaction
-    $('#saveTransaction').click(function() { 
+    $('#saveTransaction').click(function() {
         if (confirm('Apakah Anda Yakin ingin menyimpan?')){
             if (!$('#kode_customer').val()) {
                 alert('Pilih customer dari daftar yang tersedia!');
@@ -575,7 +591,7 @@ $(document).ready(function() {
                 alert('Tidak ada barang yang ditambahkan!');
                 return;
             }
-            
+
             const transactionData = {
                 no_transaksi: $('#no_transaksi').val(),
                 tanggal: $('#tanggal').val(),
@@ -604,7 +620,7 @@ $(document).ready(function() {
                     $('#invoiceTanggal').text(response.tanggal);
                     $('#invoiceCustomer').text(response.customer);
                     $('#invoiceGrandTotal').text('Rp ' + new Intl.NumberFormat('id-ID').format(response.grand_total || 0));
-                    
+
                     // Simpan ID transaksi untuk tombol Print
                     const transactionId = response.id;
 
@@ -619,7 +635,7 @@ $(document).ready(function() {
                     alert('Terjadi kesalahan: ' + xhr.responseJSON.message);
                 }
             });
-            
+
             // Tombol Kembali
             $('#backToFormBtn').click(function() {
                 $('#invoiceModal').modal('hide');
@@ -628,12 +644,12 @@ $(document).ready(function() {
                 renderItems();
                 calculateTotals();
             });
-            
+
             // You would typically send this data to your backend using AJAX
-            console.log('Transaction data:', transactionData);        
+            console.log('Transaction data:', transactionData);
         }
     });
-    
+
     // Cancel transaction
     $('#cancelTransaction').click(function() {
         if (confirm('Batalkan transaksi? Semua data akan hilang.')) {
