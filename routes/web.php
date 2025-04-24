@@ -55,7 +55,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/update_kas',
     [KasController::class, 'update_kas']);
 
-  
+
 
     Route::get('/addtransaction', function () {
         return view('addtransaction');
@@ -72,12 +72,12 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/hutangbelumlunas', [KasController::class, 'hutangBelumLunas']);
 
 
-   
+
 
     Route::post('/addTransaction', [KasController::class, 'addTransaction']);
-    
 
-   
+
+
     Route::post('/editAccount', [AccountsController::class, 'editAccount']);
     Route::post('/updateProfile', [AccountsController::class, 'updateProfile']);
     Route::post('/switchDatabase', [AccountsController::class, 'switchDatabase']);
@@ -110,7 +110,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('master/customers', [CustomerController::class, 'store'])->name('customers.store');
     Route::put('master/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
     Route::delete('master/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
-    
+
     Route::get('master/customers/search', [CustomerController::class, 'getCustomers'])->name('customers.search');
 
     Route::get('master/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
@@ -126,24 +126,36 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/transaksi/penjualan', [TransaksiController::class, 'penjualan'])->name('transaksi.penjualan');
     Route::post('/transaksi/store', [TransaksiController::class, 'store'])->name('transaksi.store');
     Route::get('/transaksi/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
-    Route::get('/transaksi/nota/{no_transaksi}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
+    Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
     // Penjualan Per Customer
     Route::get('/transaksi/datapenjualanpercustomer', [TransaksiController::class, 'datapenjualanpercustomer'])->name('transaksi.datapenjualanpercustomer');
 
     // Display Transaksi Penjualan
     Route::get('transaksi.penjualan', function () {
-        return view('transaksi.displaypenjualan'); 
+        return view('transaksi.displaypenjualan');
         })->name('transaksi.displaypenjualan');
 
     // Lihat Nota
     Route::get('/transaksi/lihatnota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.lihatnota');
     Route::get('/lihat_nota', [TransaksiController::class, 'listNota'])->name('transaksi.listnota');
 
+    // Surat Jalan
+    Route::get('/suratjalan', function () {
+        return view('suratjalan.suratjalan');
+        })->name('suratjalan.form');
+
+    // History Surat Jalan
+    Route::get('/suratjalan/historysuratjalan', function () {
+        return view('suratjalan.historysuratjalan');
+        })->name('suratjalan.historysuratjalan');
+
     // Pembelian
     // Pembelian Barang (dummy atau real)
     Route::get('/pembelian', function () {
         return view('pembelian.addpembelian'); // karena file-nya langsung di views/
     })->name('pembelian.form');
+
+    Route::get('/panel/{group_id}', [TransaksiController::class, 'getByGroupId'])->name('api.panel.get');
 
     // History Pembelian
     Route::get('/pembelian/historypembelian', function () {
