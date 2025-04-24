@@ -437,6 +437,9 @@
                                         <li class="nav-item">
                                         <a class="nav-link" href="{{ route('pembelian.historypembelian') }}"><i class="fas fa-clock-rotate-left"></i> History Pembelian</a>
                                         </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-clock-rotate-left"></i> List Nota Pembelian</a>
+                                            </li>
                                     </ul>
                                 </div>
                             </li>

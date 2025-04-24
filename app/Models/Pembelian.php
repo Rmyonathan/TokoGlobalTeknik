@@ -24,7 +24,9 @@ class Pembelian extends Model
     protected $fillable = [
         'nota',
         'tanggal',
-        'supplier',
+        'kode_supplier',
+        'cabang',
+        'pembayaran',
         'cara_bayar',
         'subtotal',
         'diskon',

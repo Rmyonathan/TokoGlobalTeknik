@@ -91,6 +91,7 @@
                             <th>Keterangan</th>
                             <th>Harga</th>
                             <th>Qty</th>
+                            <th>Panjang</th>
                             <th>Total</th>
                             <th>Diskon</th>
                             <th>Aksi</th>
@@ -267,6 +268,11 @@
                                 <label for="quantity">Quantity</label>
                                 <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" required>
                             </div>
+
+                            <div class="form-group">
+                                <label for="panjang">Panjang</label>
+                                <input type="number" class="form-control" id="panjang" name="panjang" value="0" min="0" step="0.01">
+                            </div>
                             
                             <div class="form-group">
                                 <label for="diskon">Diskon (%)</label>
@@ -296,6 +302,7 @@
                                             <th>Keterangan</th>
                                             <th>Harga</th>
                                             <th>Qty</th>
+                                            <th>Panjang</th>
                                             <th>Total</th>
                                             <th>Satuan</th>
                                             <th>Disc(%)</th>
@@ -354,296 +361,17 @@
 @endsection
 
 @section('scripts')
+{{-- IMPORTANT: Define global variables here that will be used in the external JS file --}}
 <script>
-$(document).ready(function() {
-    // Initialize variables
-    let items = [];
-    let grandTotal = 0;
+    // Expose Laravel routes as global window variables
+    window.supplierSearchUrl = "{{ route('api.suppliers.search') }}";
+    window.storeTransactionUrl = "{{ route('pembelian.store') }}";
+    window.printInvoiceUrl = "{{ url('pembelian/lihatnota') }}/";
+    window.csrfToken = "{{ csrf_token() }}";
+</script>
 
-    // Search suppliers - Now using the API route
-    // Search suppliers
-$('#supplier').on('input', function () {
-    console.log('Supplier input changed:', $(this).val());
-    const keyword = $(this).val();
-    if (keyword.length > 0) {
-        console.log('About to send AJAX request to:', "{{ route('api.suppliers.search') }}");
-        $.ajax({
-            url: "{{ route('api.suppliers.search') }}",
-            method: "GET",
-            data: { keyword },
-            success: function (data) {
-                console.log('Supplier search results:', data);
-                let dropdown = '';
-                if (data.length > 0) {
-                    data.forEach(supplier => {
-                        dropdown += `<a class="dropdown-item supplier-item" data-kode="${supplier.kode_supplier}" data-name="${supplier.nama}">${supplier.kode_supplier} - ${supplier.nama}</a>`;
-                    });
-                } else {
-                    dropdown = '<a class="dropdown-item disabled">Tidak ada supplier ditemukan</a>';
-                }
-                $('#supplierDropdown').html(dropdown).show();
-            },
-            error: function (xhr, status, error) {
-                console.error('Error searching suppliers:', xhr.responseText);
-                console.error('Status:', status);
-                console.error('Error:', error);
-                alert('Terjadi kesalahan saat mencari supplier.');
-            }
-        });
-    } else {
-        $('#supplierDropdown').hide();
-    }
-});
-
-    // Select Supplier
-    $(document).on('click', '.supplier-item', function () {
-        const kodeSupplier = $(this).data('kode');
-        const namaSupplier = $(this).data('name');
-        $('#kode_supplier').val(kodeSupplier); // Isi input hidden dengan kode supplier
-        $('#supplier').val(`${kodeSupplier} - ${namaSupplier}`); // Tampilkan kode dan nama supplier di input utama
-        $('#supplierDropdown').hide();
-    });
-
-    // Hide dropdown when clicking outside
-    $(document).click(function (e) {
-        if (!$(e.target).closest('#supplier, #supplierDropdown').length) {
-            $('#supplierDropdown').hide();
-        }
-    });
-
-    // Modified to use standard form submission instead of AJAX
-    $('#addSupplierForm').on('submit', function (e) {
-        // Form submission handled by normal POST - the form now has action and method attributes
-        // We don't need to prevent default here, as we want the normal form submission
-        // The page will redirect to suppliers.index after submission
-    });
-    
-    // Toggle discount inputs
-    $('#discount_checkbox').change(function() {
-        $('#discount_percent').prop('disabled', !this.checked);
-        calculateTotals();
-    });
-    
-    $('#ppn_checkbox').change(function() {
-        calculateTotals();
-    });
-    
-    // Calculate input changes
-    $('#discount_percent').on('input', function() {
-        calculateTotals();
-    });
-    
-    // Preview item in modal
-    $('#harga, #quantity, #diskon').on('input', function() {
-        updateItemPreview();
-    });
-    
-    function updateItemPreview() {
-        const kodeBarang = $('#kode_barang').val() || '-';
-        const keterangan = $('#keterangan').val() || '-';
-        const harga = parseInt($('#harga').val()) || 0;
-        const quantity = parseInt($('#quantity').val()) || 0;
-        const satuan = $('#satuan').val();
-        const diskon = parseInt($('#diskon').val()) || 0;
-        
-        // Calculate values
-        const total = harga * quantity;
-        const diskonAmount = (total * diskon) / 100;
-        const subTotal = total - diskonAmount;
-        
-        // Update preview
-        const tbody = $('#itemPreview');
-        tbody.empty();
-        
-        tbody.append(`
-            <tr>
-                <td>${kodeBarang}</td>
-                <td>${keterangan}</td>
-                <td class="text-right">${formatCurrency(harga)}</td>
-                <td>${quantity}</td>
-                <td class="text-right">${formatCurrency(total)}</td>
-                <td>${satuan}</td>
-                <td>${diskon}%</td>
-                <td class="text-right">${formatCurrency(subTotal)}</td>
-            </tr>
-        `);
-    }
-    
-    // Add item to the table
-    $('#saveItemBtn').click(function() {
-        const kodeBarang = $('#kode_barang').val();
-        const namaBarang = $('#nama_barang').val();
-        const keterangan = $('#keterangan').val();
-        const harga = parseInt($('#harga').val()) || 0;
-        const qty = parseInt($('#quantity').val()) || 0;
-        const diskon = parseInt($('#diskon').val()) || 0;
-        
-        if (!kodeBarang || !namaBarang || !harga || !qty) {
-            alert('Mohon lengkapi data barang!');
-            return;
-        }
-        
-        const total = harga * qty;
-        
-        const newItem = {
-            kodeBarang, namaBarang, keterangan, harga, qty, diskon, total
-        };
-        
-        items.push(newItem);
-        renderItems();
-        calculateTotals();
-        
-        // Reset form and close modal
-        $('#addItemForm')[0].reset();
-        $('#itemPreview').empty();
-        $('#addItemModal').modal('hide');
-    });
-    
-    // Item search functionality
-    $('#findItem').click(function() {
-        // Here you would typically have a function to search for items
-        alert('Fitur pencarian barang akan diimplementasikan');
-    });
-    
-    // Function to render items table
-    function renderItems() {
-        const tbody = $('#itemsList');
-        tbody.empty();
-        
-        items.forEach((item, index) => {
-            tbody.append(`
-                <tr>
-                    <td>${item.kodeBarang}</td>
-                    <td>${item.namaBarang}</td>
-                    <td>${item.keterangan || '-'}</td>
-                    <td class="text-right">${formatCurrency(item.harga)}</td>
-                    <td class="text-center">${item.qty}</td>
-                    <td class="text-right">${formatCurrency(item.total)}</td>
-                    <td class="text-right">${item.diskon}%</td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-danger remove-item" data-index="${index}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `);
-        });
-        
-        // Remove item handling
-        $('.remove-item').click(function() {
-            const index = $(this).data('index');
-            items.splice(index, 1);
-            renderItems();
-            calculateTotals();
-        });
-    }
-    
-    // Calculate all totals
-    function calculateTotals() {
-        // Calculate subtotal
-        const subtotal = items.reduce((sum, item) => {
-            const itemDiskon = (item.total * item.diskon) / 100;
-            return sum + (item.total - itemDiskon);
-        }, 0);
-        
-        $('#total').val(formatCurrency(subtotal));
-        
-        // Calculate discount
-        let discountAmount = 0;
-        if ($('#discount_checkbox').is(':checked')) {
-            const discountPercent = parseFloat($('#discount_percent').val()) || 0;
-            discountAmount = (subtotal * discountPercent) / 100;
-        }
-        $('#discount_amount').val(formatCurrency(discountAmount));
-        
-        // Calculate PPN
-        let ppnAmount = 0;
-        if ($('#ppn_checkbox').is(':checked')) {
-            ppnAmount = ((subtotal - discountAmount) * 11) / 100; // Using 11% for PPN
-        }
-        $('#ppn_amount').val(formatCurrency(ppnAmount));
-        
-        // Calculate grand total
-        grandTotal = subtotal - discountAmount + ppnAmount;
-        $('#grand_total').val(formatCurrency(grandTotal));
-    }
-    
-    // Format currency
-    function formatCurrency(amount) {
-        return new Intl.NumberFormat('id-ID').format(amount);
-    }
-    
-    // Save transaction
-    $('#saveTransaction').click(function() {
-        if (confirm('Apakah Anda yakin ingin menyimpan?')) {
-            if (!$('#kode_supplier').val()) {
-                alert('Pilih supplier dari daftar yang tersedia!');
-                return;
-            }
-
-            if (items.length === 0) {
-                alert('Tidak ada barang yang ditambahkan!');
-                return;
-            }
-            
-            const transactionData = {
-                nota: $('#no_nota').val(),
-                tanggal: $('#tanggal').val(),
-                kode_supplier: $('#kode_supplier').val(),
-                cabang: $('#cabang').val(),
-                pembayaran: $('#pembayaran').val(),
-                cara_bayar: $('#cara_bayar').val(),
-                items: items,
-                subtotal: parseFloat($('#total').val().replace(/\./g, '').replace(/,/g, '.')),
-                discount: parseFloat($('#discount_amount').val().replace(/\./g, '').replace(/,/g, '.')),
-                ppn: parseFloat($('#ppn_amount').val().replace(/\./g, '').replace(/,/g, '.')),
-                grand_total: grandTotal
-            };
-            
-            // Send data to backend
-            $.ajax({
-                url: "{{ route('pembelian.store') }}",
-                method: "POST",
-                data: transactionData,
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-                    // Tampilkan modal invoice
-                    $('#invoiceNota').text(response.nota);
-                    $('#invoiceTanggal').text(response.tanggal);
-                    $('#invoiceSupplier').text(response.supplier);
-                    $('#invoiceGrandTotal').text('Rp ' + new Intl.NumberFormat('id-ID').format(response.grand_total || 0));
-                    
-                    // Simpan ID transaksi untuk tombol Print
-                    const transactionId = response.id;
-
-                    // Tombol Print
-                    $('#printInvoiceBtn').off('click').on('click', function() {
-                        window.location.href = "{{ url('pembelian/lihatnota') }}/" + transactionId;
-                    });
-
-                    $('#invoiceModal').modal('show');
-                },
-                error: function(xhr) {
-                    alert('Terjadi kesalahan: ' + (xhr.responseJSON ? xhr.responseJSON.message : xhr.statusText));
-                }
-            });
-        }
-    });
-    
-    // Cancel transaction
-    $('#cancelTransaction').click(function() {
-        if (confirm('Batalkan transaksi? Semua data akan hilang.')) {
-            $('#transactionForm')[0].reset();
-            items = [];
-            renderItems();
-            calculateTotals();
-        }
-    });
-    
-    // Initialize item preview
-    updateItemPreview();
-});
+{{-- Include the external JS file using file_get_contents to load directly from views directory --}}
+<script>
+{!! file_get_contents(resource_path('views/scripts/pembelian.js')) !!}
 </script>
 @endsection

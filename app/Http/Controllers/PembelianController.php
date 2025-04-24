@@ -39,12 +39,13 @@ class PembelianController extends Controller
     /**
      * Store a purchase transaction.
      */
-    public function store(Request $request)
+        public function store(Request $request)
     {
         $request->validate([
             'nota' => 'required|string|unique:pembelian,nota',
             'tanggal' => 'required|date',
             'kode_supplier' => 'required|exists:suppliers,kode_supplier',
+            'cabang' => 'required|string', 
             'subtotal' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'items' => 'required|array',
@@ -56,14 +57,16 @@ class PembelianController extends Controller
         try {
             DB::beginTransaction();
             
-            // Create purchase
+            // Create purchase - FIXED THE COLUMN NAME HERE
             $pembelian = Pembelian::create([
                 'nota' => $request->nota,
                 'tanggal' => $request->tanggal,
-                'supplier' => $request->kode_supplier,
+                'kode_supplier' => $request->kode_supplier,
+                'cabang' => $request->cabang, // Make sure this is included
+                'pembayaran' => $request->pembayaran ?? 'Tunai',
                 'cara_bayar' => $request->cara_bayar,
                 'subtotal' => $request->subtotal,
-                'diskon' => $request->discount ?? 0,
+                'diskon' => $request->diskon ?? 0,
                 'ppn' => $request->ppn ?? 0,
                 'grand_total' => $request->grand_total,
             ]);
