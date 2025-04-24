@@ -180,24 +180,24 @@ class PanelController extends Controller
                     ->limit($remainingQuantity)
                     ->get();
 
-                foreach ($exactPanels as $panel) {
-                    // $panel->available = false;
-                    // $panel->save();
+                // foreach ($exactPanels as $panel) {
+                //     // $panel->available = false;
+                //     // $panel->save();
 
-                    $usedPanels[] = [
-                        'panel_id' => $panel->id,
-                        'name' => $panel->name,
-                        'price' => $panel->price,
-                        'original_length' => $panel->length,
-                        'used_length' => $requestedLength,
-                        'remaining_length' => 0
-                    ];
+                //     $usedPanels[] = [
+                //         'panel_id' => $panel->id,
+                //         'name' => $panel->name,
+                //         'price' => $panel->price,
+                //         'original_length' => $panel->length,
+                //         'used_length' => $requestedLength,
+                //         'remaining_length' => 0
+                //     ];
 
-                    $remainingQuantity--;
-                    if ($remainingQuantity <= 0) {
-                        break;
-                    }
-                }
+                //     $remainingQuantity--;
+                //     if ($remainingQuantity <= 0) {
+                //         break;
+                //     }
+                // }
 
                 // If we still need more panels, look for longer ones to cut
                 if ($remainingQuantity > 0) {
