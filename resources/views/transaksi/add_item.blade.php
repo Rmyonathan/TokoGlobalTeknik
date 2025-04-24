@@ -13,7 +13,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label for="nama_barang">Nama Barang</label>
                 <div class="input-group">
@@ -21,19 +21,19 @@
                     <div id="namaBarangDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label for="keterangan">Keterangan</label>
                 <textarea class="form-control" id="keterangan" name="keterangan" rows="2"></textarea>
             </div>
         </div>
-        
+
         <div class="col-md-6">
             <div class="form-group">
                 <label for="harga">Harga</label>
                 <input type="number" class="form-control" id="harga" name="harga" required>
             </div>
-            
+
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
@@ -48,7 +48,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
@@ -63,7 +63,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label for="satuan">Satuan</label>
                 <select class="form-control" id="satuan" name="satuan">
@@ -76,7 +76,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="row mt-3">
         <div class="col-12">
             <div class="table-responsive">
@@ -86,8 +86,7 @@
                             <th>Kode</th>
                             <th>Keterangan</th>
                             <th>Harga</th>
-                            <th>P</th>
-                            <th>L</th>
+                            <th>Length</th>
                             <th>Qty</th>
                             <th>Total</th>
                             <th>Satuan</th>
@@ -112,7 +111,7 @@ $(document).ready(function() {
     $('#harga, #quantity, #diskon').on('input', function() {
         updatePreview();
     });
-    
+
     function updatePreview() {
         const kodeBarang = $('#kode_barang').val() || '-';
         const keterangan = $('#keterangan').val() || '-';
@@ -122,23 +121,22 @@ $(document).ready(function() {
         const quantity = parseInt($('#quantity').val()) || 0;
         const satuan = $('#satuan').val();
         const diskon = parseInt($('#diskon').val()) || 0;
-        
+
         // Calculate values
         const total = harga * quantity;
         const diskonAmount = (total * diskon) / 100;
         const subTotal = total - diskonAmount;
-        
+
         // Update preview
         const tbody = $('#itemPreview');
         tbody.empty();
-        
+
         tbody.append(`
             <tr>
                 <td>${kodeBarang}</td>
                 <td>${keterangan}</td>
                 <td class="text-right">${formatCurrency(harga)}</td>
                 <td>${panjang}</td>
-                <td>${lebar}</td>
                 <td>${quantity}</td>
                 <td class="text-right">${formatCurrency(total)}</td>
                 <td>${satuan}</td>
@@ -149,12 +147,12 @@ $(document).ready(function() {
             </tr>
         `);
     }
-    
+
     // Format currency
     function formatCurrency(amount) {
         return new Intl.NumberFormat('id-ID').format(amount);
     }
-    
+
     // Find item functionality
     // Load panels into the modal
     $('#selectPanelModal').on('show.bs.modal', function () {
@@ -171,10 +169,10 @@ $(document).ready(function() {
                             <td>${panel.length}</td>
                             <td>${panel.price}</td>
                             <td>
-                                <button type="button" class="btn btn-primary select-panel-btn" 
-                                    data-id="${panel.id}" 
-                                    data-name="${panel.name}" 
-                                    data-length="${panel.length}" 
+                                <button type="button" class="btn btn-primary select-panel-btn"
+                                    data-id="${panel.id}"
+                                    data-name="${panel.name}"
+                                    data-length="${panel.length}"
                                     data-price="${panel.price}">
                                     Pilih
                                 </button>
@@ -202,7 +200,7 @@ $(document).ready(function() {
                     let dropdown = '';
                     if (data.length > 0) {
                         data.forEach(panel => {
-                            dropdown += `<a class="dropdown-item panel-item" data-id="${panel.id}" data-name="${panel.name}" data-price="${panel.price}" data-length="${panel.length}">${panel.id} - ${panel.name}</a>`;
+                            dropdown += `<a class="dropdown-item panel-item" data-id="${panel.group_id}" data-name="${panel.name}" data-price="${panel.price}" data-length="${panel.length}">${panel.group_id} - ${panel.name} - ${panel.length} m</a>`;
                         });
                     } else {
                         dropdown = '<a class="dropdown-item disabled">Tidak ada panel ditemukan</a>';

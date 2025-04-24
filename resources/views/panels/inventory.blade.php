@@ -33,6 +33,7 @@
                                 <thead>
                                     <tr>
                                         <th>ID</th>
+                                        <th>Group ID</th>
                                         <th>Name</th>
                                         <th>Price</th>
                                         <th>Length (meters)</th>
@@ -44,6 +45,7 @@
                                     @foreach($inventory['inventory_by_length'] as $item)
                                         <tr>
                                             <td>{{ $item['id'] }}</td>
+                                            <td>{{ $item['group_id'] }}</td>
                                             <td>{{ $item['name'] }}</td>
                                             <td>Rp. {{ number_format($item['price'], 2) }}</td>
                                             <td>{{ number_format($item['length'], 2) }}</td>
@@ -54,6 +56,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-primary">
+                                        <th></th>
                                         <th></th>
                                         <th></th>
                                         <th></th>
