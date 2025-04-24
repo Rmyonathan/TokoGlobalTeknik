@@ -4,75 +4,140 @@
     <meta charset="UTF-8">
     <title>Nota Transaksi</title>
     <style>
-        body { font-family: DejaVu Sans, sans-serif; }
-        h3 { background: #007bff; color: white; padding: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #000; padding: 5px; text-align: left; }
-        .text-right { text-align: right; }
-        .text-success { color: green; }
-        .footer { margin-top: 20px; text-align: center; font-style: italic; }
+        body {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .header, .footer, .sub-header {
+            text-align: center;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        table th, table td {
+            border: 1px solid black;
+            padding: 4px;
+        }
+        .right { text-align: right; }
+        .center { text-align: center; }
+        .note {
+            font-size: 11px;
+            margin-top: 10px;
+        }
+        .signature {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+        }
     </style>
 </head>
 <body>
-    <h3>Invoice Transaksi</h3>
 
-    <p><strong>No Transaksi:</strong> {{ $transaction->no_transaksi }}</p>
-    <p><strong>Tanggal:</strong> {{ $transaction->tanggal }}</p>
-    <p><strong>Customer:</strong> {{ $transaction->customer->nama ?? 'N/A' }}</p>
-    <p><strong>Total:</strong> <span class="text-success">Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</span></p>
+    <div class="header">
+        <strong>CV. ALUMKA CIPTA PRIMA</strong><br>
+        JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008<br>
+        8 ILIR, ILIR TIMUR II<br>
+        TELP. (0711) 311158 &nbsp;&nbsp; FAX (0711) 311158<br>
+        NO FAKTUR: {{ $transaction->no_transaksi }}
+    </div>
 
-    <h4>Detail Barang</h4>
+    <br>
+
+    <div class="row">
+        <div>
+            <strong>Kpd Yth:</strong><br>
+            Nama: {{ $transaction->customer->nama ?? '-' }}<br>
+            Telp: {{ $transaction->customer->telepon ?? '-' }}<br>
+            Alamat: {{ $transaction->customer->alamat ?? '-' }}
+        </div>
+        <div class="right">
+            {{ \Carbon\Carbon::parse($transaction->tanggal)->format('d M Y H:i:s') }}<br>
+            HALAMAN: 1 - 1
+        </div>
+    </div>
+
     <table>
         <thead>
             <tr>
+                <th>No.</th>
                 <th>Kode Barang</th>
                 <th>Nama Barang</th>
                 <th>Qty</th>
-                <th>Harga</th>
-                <th>Diskon</th>
-                <th>Subtotal</th>
+                <th>Harga Satuan</th>
+                <th>Disc %</th>
+                <th>Disc Rp</th>
+                <th>Sub Total</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($transaction->items as $item)
+            @foreach ($transaction->items as $i => $item)
             <tr>
+                <td class="center">{{ $i + 1 }}</td>
                 <td>{{ $item->kode_barang }}</td>
                 <td>{{ $item->nama_barang }}</td>
-                <td>{{ $item->qty }}</td>
-                <td>Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
-                <td>Rp {{ number_format($item->diskon, 0, ',', '.') }}</td>
-                <td>Rp {{ number_format($item->total, 0, ',', '.') }}</td>
+                <td class="center">{{ $item->qty }}</td>
+                <td class="right">Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
+                <td class="center">{{ $item->diskon_persen ?? 0 }}</td>
+                <td class="right">Rp {{ number_format($item->diskon, 0, ',', '.') }}</td>
+                <td class="right">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
             </tr>
             @endforeach
         </tbody>
     </table>
 
-    <h4>Rincian Transaksi</h4>
+    <div class="note">
+        <strong>PERHATIAN !!!</strong><br>
+        Barang masih titipan dari CV. Alumka Cipta Prima, bila belum dilunasi.<br>
+        Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.
+    </div>
+
+    <br>
+
     <table>
         <tr>
-            <th>Subtotal</th>
-            <td>Rp {{ number_format($transaction->subtotal, 0, ',', '.') }}</td>
+            <th style="width: 70%">TOTAL</th>
+            <td class="right">Rp {{ number_format($transaction->subtotal, 0, ',', '.') }}</td>
         </tr>
         <tr>
-            <th>Diskon Transaksi</th>
-            <td>Rp {{ number_format($transaction->discount, 0, ',', '.') }}</td>
+            <th>DISCOUNT (%)</th>
+            <td class="right">Rp {{ number_format($transaction->discount, 0, ',', '.') }}</td>
         </tr>
         <tr>
-            <th>PPN (11%)</th>
-            <td>Rp {{ number_format($transaction->ppn, 0, ',', '.') }}</td>
+            <th>PPN</th>
+            <td class="right">Rp {{ number_format($transaction->ppn, 0, ',', '.') }}</td>
         </tr>
         <tr>
-            <th>DP</th>
-            <td>Rp {{ number_format($transaction->dp, 0, ',', '.') }}</td>
+            <th>GRAND TOTAL</th>
+            <td class="right"><strong>Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</strong></td>
         </tr>
         <tr>
-            <th>Grand Total</th>
-            <td><strong>Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</strong></td>
+            <th>TITIPAN UANG</th>
+            <td class="right">Rp {{ number_format($transaction->dp, 0, ',', '.') }}</td>
+        </tr>
+        <tr>
+            <th>SISA PIUTANG</th>
+            <td class="right">Rp {{ number_format($transaction->grand_total - $transaction->dp, 0, ',', '.') }}</td>
         </tr>
     </table>
 
-    <div class="footer">
-        Terima kasih telah bertransaksi dengan kami!
+    <div class="signature">
+        <div>
+            HORMAT KAMI<br><br><br><br>
+            (_____________)
+        </div>
+        <div class="right">
+            PENERIMA<br><br><br><br>
+            (_____________)
+        </div>
     </div>
+
 </body>
 </html>
