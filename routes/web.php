@@ -13,6 +13,7 @@ use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\StokOwnerController;
+use App\Http\Controllers\PembelianController;
 use App\Models\StokOwner;
 use App\Models\Supplier;
 use App\Models\Bookings;
@@ -131,7 +132,8 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
     Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
-
+    Route::get('/api/suppliers/search', [SupplierController::class, 'search'])->name('api.suppliers.search');
+    
     // Display Transaksi Penjualan
     Route::get('transaksi.penjualan', function () {
         return view('transaksi.displaypenjualan'); 
@@ -176,6 +178,16 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::get('/customers/search', [TransaksiController::class, 'searchCustomers'])->name('api.customers.search');
         Route::post('/customers/create', [TransaksiController::class, 'createCustomer'])->name('api.customers.create');
     });
+
+    
+    // Main transaction page pembelian
+    Route::get('/pembelian', [PembelianController::class, 'index'])->name('pembelian.index');
+    Route::post('/pembelian/store', [PembelianController::class, 'store'])->name('pembelian.store'); // Store transaction
+    Route::get('/pembelian/{id}', [PembelianController::class, 'getPurchase'])->name('pembelian.get');// Get transaction data
+    // Show invoice pembelian
+    Route::get('/pembelian/lihatnota/{id}', [PembelianController::class, 'showNota'])->name('pembelian.nota.show');
+    Route::get('/pembelian/nota/{nota}', [PembelianController::class, 'nota'])->name('pembelian.nota');// View nota by nota number
+    Route::get('/pembelian/lihat/nota', [PembelianController::class, 'listNota'])->name('pembelian.nota.list');  // List all nota
 
 });
 

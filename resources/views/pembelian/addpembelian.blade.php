@@ -17,7 +17,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="no_nota">No. Nota</label>
-                            <input type="text" class="form-control" id="no_nota" name="nota" value="BL/04/25-00006" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
+                            <input type="text" class="form-control" id="no_nota" name="nota" value="{{ $nota ?? 'BL/04/25-00006' }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
                         </div>
                         
                         <div class="form-group">
@@ -32,11 +32,9 @@
                         
                         <div class="form-group">
                             <label for="supplier">Supplier</label>
-                            <input type="text" id="supplier" name="kode_supplier" class="form-control" placeholder="Masukkan kode atau nama supplier">
+                            <input type="text" id="supplier" name="supplier_display" class="form-control" placeholder="Masukkan kode atau nama supplier">
                             <input type="hidden" id="kode_supplier" name="kode_supplier">
-                            <div class="input-group-append">
-                                <a href="#" class="btn btn-outline-secondary" data-toggle="modal" data-target="#addSupplierModal">Baru</a>
-                            </div>
+                            <div id="supplierDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
                         </div>
                     </div>
                     
@@ -321,6 +319,38 @@
     </div>
 </div>
 
+<!-- Modal Invoice -->
+<div class="modal fade" id="invoiceModal" tabindex="-1" role="dialog" aria-labelledby="invoiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="invoiceModalLabel">Invoice Pembelian</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Invoice Content -->
+                <div id="invoiceContent">
+                    <h4>No Nota: <span id="invoiceNota"></span></h4>
+                    <p>Tanggal: <span id="invoiceTanggal"></span></p>
+                    <p>Supplier: <span id="invoiceSupplier"></span></p>
+                    <p>Grand Total: <span id="invoiceGrandTotal"></span></p>
+                    <!-- Tambahkan detail lainnya jika diperlukan -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button type="button" class="btn btn-secondary" id="backToFormBtn">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -330,49 +360,54 @@ $(document).ready(function() {
     let items = [];
     let grandTotal = 0;
 
-    // Search suppliers - This now uses a direct URL rather than a route name
-    $('#supplier').on('input', function () {
-        const keyword = $(this).val();
-        if (keyword.length > 1) {
-            $('#supplier').after('<div id="loading" class="spinner-border spinner-border-sm text-primary" role="status"><span class="sr-only">Loading...</span></div>');
-            $.ajax({
-                url: "/suppliers/search", // Using direct URL
-                method: "GET",
-                data: { keyword },
-                success: function (data) {
-                    $('#loading').remove();
-                    let dropdown = '<ul class="dropdown-menu" style="display:block; position:absolute;">';
-                    if (data.length > 0) {
-                        data.forEach(supplier => {
-                            dropdown += `<li class="dropdown-item supplier-item" data-kode="${supplier.kode_supplier}" data-name="${supplier.nama}">${supplier.kode_supplier} - ${supplier.nama}</li>`;
-                        });
-                    } else {
-                        dropdown += '<li class="dropdown-item">Tidak ada supplier ditemukan</li>';
-                    }
-                    dropdown += '</ul>';
-                    $('#supplier').after(dropdown);
-                },
-                error: function () {
-                    $('#loading').remove();
-                    alert('Terjadi kesalahan saat mencari supplier.');
+    // Search suppliers - Now using the API route
+    // Search suppliers
+$('#supplier').on('input', function () {
+    console.log('Supplier input changed:', $(this).val());
+    const keyword = $(this).val();
+    if (keyword.length > 0) {
+        console.log('About to send AJAX request to:', "{{ route('api.suppliers.search') }}");
+        $.ajax({
+            url: "{{ route('api.suppliers.search') }}",
+            method: "GET",
+            data: { keyword },
+            success: function (data) {
+                console.log('Supplier search results:', data);
+                let dropdown = '';
+                if (data.length > 0) {
+                    data.forEach(supplier => {
+                        dropdown += `<a class="dropdown-item supplier-item" data-kode="${supplier.kode_supplier}" data-name="${supplier.nama}">${supplier.kode_supplier} - ${supplier.nama}</a>`;
+                    });
+                } else {
+                    dropdown = '<a class="dropdown-item disabled">Tidak ada supplier ditemukan</a>';
                 }
-            });
-        }
-    });
+                $('#supplierDropdown').html(dropdown).show();
+            },
+            error: function (xhr, status, error) {
+                console.error('Error searching suppliers:', xhr.responseText);
+                console.error('Status:', status);
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mencari supplier.');
+            }
+        });
+    } else {
+        $('#supplierDropdown').hide();
+    }
+});
 
-    // Select supplier from dropdown
+    // Select Supplier
     $(document).on('click', '.supplier-item', function () {
         const kodeSupplier = $(this).data('kode');
-        const supplierName = $(this).data('name');
-        $('#supplier').val(supplierName);
-        $('#kode_supplier').val(kodeSupplier);
-        $('.dropdown-menu').remove();
+        const namaSupplier = $(this).data('name');
+        $('#kode_supplier').val(kodeSupplier); // Isi input hidden dengan kode supplier
+        $('#supplier').val(`${kodeSupplier} - ${namaSupplier}`); // Tampilkan kode dan nama supplier di input utama
+        $('#supplierDropdown').hide();
     });
 
     // Hide dropdown when clicking outside
     $(document).click(function (e) {
-        if (!$(e.target).closest('#supplier').length) {
-            $('.dropdown-menu').remove();
+        if (!$(e.target).closest('#supplier, #supplierDropdown').length) {
+            $('#supplierDropdown').hide();
         }
     });
 
@@ -559,21 +594,41 @@ $(document).ready(function() {
                 pembayaran: $('#pembayaran').val(),
                 cara_bayar: $('#cara_bayar').val(),
                 items: items,
-                subtotal: $('#total').val().replace(/\./g, ''),
-                discount: $('#discount_amount').val().replace(/\./g, ''),
-                ppn: $('#ppn_amount').val().replace(/\./g, ''),
+                subtotal: parseFloat($('#total').val().replace(/\./g, '').replace(/,/g, '.')),
+                discount: parseFloat($('#discount_amount').val().replace(/\./g, '').replace(/,/g, '.')),
+                ppn: parseFloat($('#ppn_amount').val().replace(/\./g, '').replace(/,/g, '.')),
                 grand_total: grandTotal
             };
             
-            // You would typically send this data to your backend using AJAX
-            console.log('Transaction data:', transactionData);
-            
-            // Reset form
-            $('#transactionForm')[0].reset();
-            items = [];
-            renderItems();
-            calculateTotals();
-            alert('Transaksi berhasil disimpan!');
+            // Send data to backend
+            $.ajax({
+                url: "{{ route('pembelian.store') }}",
+                method: "POST",
+                data: transactionData,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    // Tampilkan modal invoice
+                    $('#invoiceNota').text(response.nota);
+                    $('#invoiceTanggal').text(response.tanggal);
+                    $('#invoiceSupplier').text(response.supplier);
+                    $('#invoiceGrandTotal').text('Rp ' + new Intl.NumberFormat('id-ID').format(response.grand_total || 0));
+                    
+                    // Simpan ID transaksi untuk tombol Print
+                    const transactionId = response.id;
+
+                    // Tombol Print
+                    $('#printInvoiceBtn').off('click').on('click', function() {
+                        window.location.href = "{{ url('pembelian/lihatnota') }}/" + transactionId;
+                    });
+
+                    $('#invoiceModal').modal('show');
+                },
+                error: function(xhr) {
+                    alert('Terjadi kesalahan: ' + (xhr.responseJSON ? xhr.responseJSON.message : xhr.statusText));
+                }
+            });
         }
     });
     

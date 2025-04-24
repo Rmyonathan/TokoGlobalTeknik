@@ -56,5 +56,8 @@ class Pembelian extends Model
     /**
      * Get the items for the purchase.
      */
-  
+    public function items()
+    {
+        return $this->hasMany(PembelianItem::class, 'nota', 'nota');
+    }
 }
