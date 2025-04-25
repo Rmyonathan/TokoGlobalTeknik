@@ -191,6 +191,11 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/pembelian/nota/{nota}', [PembelianController::class, 'nota'])->name('pembelian.nota');// View nota by nota number
     Route::get('/pembelian/lihat/nota', [PembelianController::class, 'listNota'])->name('pembelian.nota.list');  // List all nota
 
+    // New routes for edit and delete
+    Route::get('/edit/{id}', [PembelianController::class, 'edit'])->name('pembelian.edit');
+    Route::post('/update/{id}', [PembelianController::class, 'update'])->name('pembelian.update');
+    Route::delete('/delete/{id}', [PembelianController::class, 'destroy'])->name('pembelian.delete');
+
 });
 
 

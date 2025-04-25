@@ -52,7 +52,7 @@ class Pembelian extends Model
      */
     public function supplierRelation()
     {
-        return $this->belongsTo(Supplier::class, 'supplier', 'kode_supplier');
+        return $this->belongsTo(Supplier::class, 'kode_supplier', 'kode_supplier');
     }
 
     /**

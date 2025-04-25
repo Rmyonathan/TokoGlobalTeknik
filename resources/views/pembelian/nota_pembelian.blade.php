@@ -82,17 +82,45 @@
             margin-bottom: 20px;
             text-align: center;
         }
+        .action-buttons {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+        .btn-print {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .btn-edit {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-back {
+            background-color: #6c757d;
+            color: white;
+        }
         @media print {
-            .print-button {
+            .action-buttons {
                 display: none;
             }
         }
     </style>
 </head>
 <body>
-    <div class="print-button">
-        <button onclick="window.print()">Cetak Nota</button>
-        <button onclick="window.location.href='{{ route('pembelian.nota.list') }}'">Kembali ke Daftar</button>
+    <div class="action-buttons">
+        <button class="btn btn-print" onclick="window.print()">Cetak Nota</button>
+        <a href="{{ route('pembelian.nota.list') }}" class="btn btn-back">Kembali ke Daftar</a>
     </div>
 
     <div class="container">
@@ -113,7 +141,7 @@
                     </tr>
                     <tr>
                         <td>SUPPLIER</td>
-                        <td>{{ $purchase->kode_supplier }} </td>
+                        <td>{{ $purchase->kode_supplier }} - {{ $purchase->supplierRelation->nama ?? '' }}</td>
                     </tr>
                     <tr>
                         <td>TELP/HP</td>
@@ -187,5 +215,7 @@
             </table>
         </div>
     </div>
+
+    
 </body>
 </html>
