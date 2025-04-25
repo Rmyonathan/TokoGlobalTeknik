@@ -26,9 +26,19 @@
                                 <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 remove-panel" style="z-index: 1;">
                                     <i class="fas fa-times"></i>
                                 </button>
-                                <div class="form-group">
+                                {{-- <div class="form-group">
                                     <label for="name"><i class="fas fa-ruler mr-1"></i> Panel Name</label>
                                     <input type="text" name="panels[0][name]" class="form-control" required>
+                                </div> --}}
+                                <div class="form-group" style="position: relative;">
+                                    <label for="panelName"><i class="fas fa-ruler mr-1"></i> Panel Name</label>
+                                    <input type="text" id="panelNameInput" name="panels[0][name]" class="form-control" autocomplete="off" required>
+
+                                    <div id="panelNameDropdown" class="dropdown-menu" style="width: 100%; max-height: 200px; overflow-y: auto;">
+                                        @foreach($panel as $item)
+                                            <button class="dropdown-item" type="button">{{ $item->name }}</button>
+                                        @endforeach
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="length"><i class="fas fa-ruler mr-1"></i> Panel Length (meters)</label>
@@ -116,6 +126,73 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const input = document.getElementById('panelNameInput');
+        const dropdown = document.getElementById('panelNameDropdown');
+        const items = Array.from(dropdown.querySelectorAll('.dropdown-item'));
+
+        let selectedIndex = -1;
+
+        input.addEventListener('input', function () {
+            const value = input.value.toLowerCase();
+            selectedIndex = -1; // reset selection
+            let hasVisible = false;
+
+            items.forEach(item => {
+                if (item.textContent.toLowerCase().includes(value)) {
+                    item.style.display = 'block';
+                    hasVisible = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            dropdown.classList.toggle('show', hasVisible && value.length > 0);
+        });
+
+        items.forEach((item, index) => {
+            item.addEventListener('click', function () {
+                input.value = this.textContent;
+                dropdown.classList.remove('show');
+            });
+        });
+
+        input.addEventListener('keydown', function (e) {
+            const visibleItems = items.filter(item => item.style.display === 'block');
+
+            if (dropdown.classList.contains('show')) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = (selectedIndex + 1) % visibleItems.length;
+                    updateSelection(visibleItems);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = (selectedIndex - 1 + visibleItems.length) % visibleItems.length;
+                    updateSelection(visibleItems);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (visibleItems[selectedIndex]) {
+                        input.value = visibleItems[selectedIndex].textContent;
+                        dropdown.classList.remove('show');
+                    }
+                }
+            }
+        });
+
+        function updateSelection(visibleItems) {
+            visibleItems.forEach(item => item.classList.remove('active'));
+            if (visibleItems[selectedIndex]) {
+                visibleItems[selectedIndex].classList.add('active');
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+    });
+
     let panelIndex = 1;
 
     const container = document.getElementById('panel-orders');

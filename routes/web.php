@@ -94,10 +94,16 @@ Route::middleware(['web', 'role'])->group(function () {
     // Add to Inventory Form
     Route::get('/panels/add', [PanelController::class, 'createInventory'])
     ->name('panels.create-inventory');
+    Route::get('/panels/edit/{id}', [PanelController::class, 'editInventory'])
+    ->name('panels.edit-inventory');
 
     // Store New Inventory
     Route::post('/panels/add', [PanelController::class, 'storeInventory'])
     ->name('panels.store-inventory');
+    Route::post('/panels/edit', [PanelController::class, 'updateInventory'])
+    ->name('panels.update-inventory');
+    Route::post('/panels/delete/{id}', [PanelController::class, 'deleteInventory'])
+    ->name('panels.delete-inventory');
 
     // Route::get('/master/barang', function () {
     //     return view('master.barang');

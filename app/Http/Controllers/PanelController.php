@@ -32,8 +32,9 @@ class PanelController extends Controller
      */
     public function createOrder()
     {
+        $panel = Panel::select('name')->distinct()->get();
         $inventory = $this->getInventorySummary();
-        return view('panels.order', compact('inventory'));
+        return view('panels.order', compact('inventory', 'panel'));
     }
 
     /**
@@ -110,6 +111,17 @@ class PanelController extends Controller
         return view('panels.add-inventory');
     }
 
+    public function editInventory(Request $request)
+    {
+        $panel = Panel::where('group_id', $request->id)->first();
+        $quantity = Panel::where('group_id', $request->id)->count();
+        return view('panels.edit', [
+            'panel' => $panel,
+            'quantity' => $quantity
+        ]);
+    }
+
+
     /**
      * Add new panels to inventory
      */
@@ -154,6 +166,62 @@ class PanelController extends Controller
 
         return redirect()->route('panels.inventory')
             ->with('success', $result['message']);
+    }
+
+    public function updateInventory(Request $request)
+    {
+        // Validate the request
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'group_id' => 'required|string|max:255',
+            'length' => 'required|numeric|min:0.1',
+            'price' => 'required|numeric|min:0',
+            'quantity' => 'required|integer|min:1',
+        ], [
+            'group_id.required' => 'Item code is required',
+            'group_id.string' => 'Item code must be a valid string',
+            'group_id.max' => 'Item code may not be greater than 255 characters',
+
+            'name.required' => 'Panel name is required',
+            'name.string' => 'Panel name must be a valid string',
+            'name.max' => 'Panel name may not be greater than 255 characters',
+
+            'length.required' => 'Panel length is required',
+            'length.numeric' => 'Panel length must be a number',
+            'length.min' => 'Panel length must be at least 0.1 meters',
+
+            'price.required' => 'Price is required',
+            'price.numeric' => 'Price must be a valid number',
+            'price.min' => 'Price must be at least 0',
+
+            'quantity.required' => 'Quantity is required',
+            'quantity.integer' => 'Quantity must be a whole number',
+            'quantity.min' => 'Quantity must be at least 1',
+        ]);
+
+        $name = $validated['name'];
+        $length = $validated['length'];
+        $group_id = $validated['group_id'];
+        $price = $validated['price'];
+        $quantity = $validated['quantity'];
+
+        Panel::where('group_id', $group_id)->delete();
+
+        $parts = explode('-', $group_id);
+        $group_id = $parts[0];
+
+        $result = $this->addPanelsToInventory($name, $price, $length, $group_id, $quantity);
+
+        return redirect()->route('master.barang')
+            ->with('success', $result['message']);
+    }
+
+    public function deleteInventory(Request $request)
+    {
+        Panel::where('group_id', $request->id)->delete();
+
+        return redirect()->route('master.barang')
+            ->with('success', "Item deleted successfully");
     }
 
     /**
