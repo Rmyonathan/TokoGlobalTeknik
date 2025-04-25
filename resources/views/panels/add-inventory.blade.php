@@ -24,6 +24,14 @@
                             <small class="form-text text-muted">Enter the name of the aluminum panels.</small>
                         </div>
                         <div class="form-group">
+                            <label for="group_id"><i class="fas fa-ruler mr-1"></i>Kode Barang</label>
+                            <input type="text" step="0.01" class="form-control @error('group_id') is-invalid @enderror" id="group_id" name="group_id" value="{{ old('group_id') }}" required>
+                            @error('group_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Enter the name of the item code.</small>
+                        </div>
+                        <div class="form-group">
                             <label for="price"><i class="fas fa-ruler mr-1"></i> Price (per meters)</label>
                             <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ old('price') }}" required>
                             @error('price')

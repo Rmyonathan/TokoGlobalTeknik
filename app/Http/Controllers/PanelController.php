@@ -21,6 +21,12 @@ class PanelController extends Controller
         return view('panels.inventory', compact('inventory'));
     }
 
+    public function viewBarang()
+    {
+        $inventory = $this->getInventorySummary();
+        return view('master.barang', compact('inventory'));
+    }
+
     /**
      * Show the form for creating a new panel order
      */
@@ -112,10 +118,15 @@ class PanelController extends Controller
         // Validate the request
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'group_id' => 'required|string|max:255',
             'length' => 'required|numeric|min:0.1',
             'price' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:1',
         ], [
+            'group_id.required' => 'Item code is required',
+            'group_id.string' => 'Item code must be a valid string',
+            'group_id.max' => 'Item code may not be greater than 255 characters',
+
             'name.required' => 'Panel name is required',
             'name.string' => 'Panel name must be a valid string',
             'name.max' => 'Panel name may not be greater than 255 characters',
@@ -135,10 +146,11 @@ class PanelController extends Controller
 
         $name = $validated['name'];
         $length = $validated['length'];
+        $group_id = $validated['group_id'];
         $price = $validated['price'];
         $quantity = $validated['quantity'];
 
-        $result = $this->addPanelsToInventory($name, $price, $length, $quantity);
+        $result = $this->addPanelsToInventory($name, $price, $length, $group_id, $quantity);
 
         return redirect()->route('panels.inventory')
             ->with('success', $result['message']);
@@ -168,24 +180,24 @@ class PanelController extends Controller
                     ->limit($remainingQuantity)
                     ->get();
 
-                foreach ($exactPanels as $panel) {
-                    $panel->available = false;
-                    $panel->save();
+                // foreach ($exactPanels as $panel) {
+                //     // $panel->available = false;
+                //     // $panel->save();
 
-                    $usedPanels[] = [
-                        'panel_id' => $panel->id,
-                        'name' => $panel->name,
-                        'price' => $panel->price,
-                        'original_length' => $panel->length,
-                        'used_length' => $requestedLength,
-                        'remaining_length' => 0
-                    ];
+                //     $usedPanels[] = [
+                //         'panel_id' => $panel->id,
+                //         'name' => $panel->name,
+                //         'price' => $panel->price,
+                //         'original_length' => $panel->length,
+                //         'used_length' => $requestedLength,
+                //         'remaining_length' => 0
+                //     ];
 
-                    $remainingQuantity--;
-                    if ($remainingQuantity <= 0) {
-                        break;
-                    }
-                }
+                //     $remainingQuantity--;
+                //     if ($remainingQuantity <= 0) {
+                //         break;
+                //     }
+                // }
 
                 // If we still need more panels, look for longer ones to cut
                 if ($remainingQuantity > 0) {
@@ -221,6 +233,9 @@ class PanelController extends Controller
                                 'used_length' => $requestedLength,
                                 'remaining_length' => $remainingLength
                             ];
+
+                            $this->createPanel($requestedName, $panel->price, $requestedLength, true, $panel->id, $panel->group_id);
+
                         }
 
                         // Create a new panel for leftover length if usable
@@ -232,8 +247,7 @@ class PanelController extends Controller
                             //     'available' => true,
                             //     'parent_panel_id' => $panel->id
                             // ]);
-
-                            $panel = $this->createPanel($requestedName, $panel->price, $remainingLength, true, $panel->id);
+                            $panel = $this->createPanel($requestedName, $panel->price, $remainingLength, true, $panel->id, $panel->group_id);
                         }
                     }
                 }
@@ -358,12 +372,12 @@ class PanelController extends Controller
      * @param int $quantity Number of panels to add
      * @return array Status of the operation
      */
-    private function addPanelsToInventory(string $name, float $price, float $length, int $quantity): array
+    private function addPanelsToInventory(string $name, float $price, float $length, string $group_id, int $quantity): array
     {
         $panels = [];
 
         for ($i = 0; $i < $quantity; $i++) {
-            $panel = $this->createPanel($name, $price, $length);
+            $panel = $this->createPanel($name, $price, $length, true, null, $group_id);
             $panels[] = $panel;
         }
 
@@ -374,27 +388,55 @@ class PanelController extends Controller
         ];
     }
 
-    private function createPanel(string $name, float $price, float $length, bool $available = true, ?int $parent_panel_id = NULL): array
+    private function createPanel(string $name, float $price, float $length, bool $available = true, ?int $parent_panel_id = NULL, ?string $group_id = NULL): array
     {
         $existingPanel = Panel::where('name', $name)
                           ->where('length', $length)
                           ->where('available', true)
                           ->first();
 
+        $existingGroup = Panel::where('name', $name)
+                        ->where('group_id', $group_id)
+                        ->where('available', true)
+                        ->first();
+
         $panel = Panel::create([
             'name' => $name,
             'price' => $price,
             'length' => $length,
+            'group_id' => 'tai babi',
             'available' => $available,
             'parent_panel_id' => $parent_panel_id
         ]);
 
+        $base62Encode = function ($num) {
+            $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            $base = strlen($chars);
+            $result = '';
+            do {
+                $result = $chars[$num % $base] . $result;
+                $num = floor($num / $base);
+            } while ($num > 0);
+            return $result;
+        };
+
+        $encoded = $base62Encode($panel->id);
         if ($existingPanel){
-            $panel['group_id'] = $existingPanel->id;
+            $panel['group_id'] = $existingPanel->group_id;
+            // $panel['sku'] = $existingPanel->sku;
+            $panel->save();
+        }
+        elseif ($existingGroup && !$existingPanel) {
+            $originalGroupId = $existingGroup->group_id;
+            $parts = explode('-', $originalGroupId);
+            $prefix = $parts[0];
+            $panel['group_id'] = $prefix . '-' . $encoded;
+            // $panel['sku'] = $existingPanel->sku;
             $panel->save();
         }
         else{
-            $panel['group_id'] = $panel->id;
+            // $panel->group_id = $panel->id;
+            $panel->group_id = $group_id . '-' . $encoded;
             $panel->save();
         }
 

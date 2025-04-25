@@ -102,9 +102,11 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/panels/add', [PanelController::class, 'storeInventory'])
     ->name('panels.store-inventory');
 
-    Route::get('/master/barang', function () {
-        return view('master.barang');
-    })->name('master.barang');
+    // Route::get('/master/barang', function () {
+    //     return view('master.barang');
+    // })->name('master.barang');
+
+    Route::get('/master/barang', [PanelController::class, 'viewBarang'])->name('master.barang');
 
     Route::get('master/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::post('master/customers', [CustomerController::class, 'store'])->name('customers.store');

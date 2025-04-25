@@ -61,7 +61,7 @@ class TransaksiController extends Controller
             'subtotal' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'items' => 'required|array',
-            'items.*.kodeBarang' => 'required|exists:panels,id', // Validasi kode_barang
+            'items.*.kodeBarang' => 'required|exists:panels,group_id', // Validasi kode_barang
             'items.*.harga' => 'required|numeric',
             'items.*.qty' => 'required|numeric',
         ]);
@@ -96,7 +96,8 @@ class TransaksiController extends Controller
                     'transaksi_id' => $transaksi->id, // Gunakan id transaksi sebagai foreign key
                     'no_transaksi' => $request->no_transaksi, // Gunakan no_transaksi sebagai foreign key
                     'kode_barang' => $item['kodeBarang'],
-                    'nama_barang' => Panel::find($item['kodeBarang'])->name,
+                    // 'nama_barang' => Panel::find($item['kodeBarang'])->name,
+                    'nama_barang' => $item['namaBarang'],
                     'keterangan' => $item['keterangan'] ?? null,
                     'harga' => $item['harga'],
                     'panjang' => $item['panjang'] ?? 0,
@@ -108,6 +109,18 @@ class TransaksiController extends Controller
             }
 
             DB::commit();
+
+            foreach ($request->items as $item){
+                $panels = Panel::where('group_id', $item['kodeBarang'])
+                ->where('available', True)
+                ->limit($item['qty'])
+                ->get();
+
+                foreach ($panels as $panel){
+                    $panel->available = False;
+                    $panel->save();
+                }
+            }
 
             return response()->json([
                 'id' => $transaksi->id,
