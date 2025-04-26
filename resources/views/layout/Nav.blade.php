@@ -64,7 +64,7 @@
             background: var(--primary-color);
             position: fixed;
             z-index: 1020;
-            width: 220px;
+            width: 230px;
             top: 60px;
             height: calc(100% - 60px);
             padding-top: 15px;
@@ -77,11 +77,11 @@
             display: flex;
             flex-direction: column;
             padding: 0;
-            width: 100%;
+            width: 50%;
         }
 
         .side-navbar .nav-item {
-            margin: 5px 10px;
+            margin: 0px;
             border-radius: 8px;
             overflow: hidden;
         }
@@ -100,6 +100,7 @@
             display: flex;
             align-items: center;
             width: 100%;
+            white-space: normal;
             padding: 12px 15px;
             color: var(--light-color);
             text-decoration: none;
@@ -115,7 +116,7 @@
         }
 
         .side-navbar .nav-link i {
-            margin-right: 12px;
+            margin-right: 10px;
             min-width: 24px;
             text-align: center;
             font-size: 1.1rem;
@@ -131,6 +132,41 @@
         .side-navbar .nav-link.active i {
             color: white;
         }
+        
+        .side-navbar .dropdown-menu {
+    background-color: var(--primary-color);
+    border: none;
+    box-shadow: none;
+    width: 100%;
+    margin-top: 5px;
+    padding: 0;
+}
+
+.side-navbar .dropdown-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    white-space: normal;
+    padding: 12px 15px;
+    color: var(--light-color);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+    font-weight: 500;
+    background: none;
+}
+
+.side-navbar .dropdown-menu .dropdown-item:hover {
+    background-color: rgba(230, 57, 70, 0.15);
+    color: var(--light-color);
+    border-left: 3px solid var(--secondary-color);
+}
+
+.side-navbar .dropdown-menu .dropdown-item.active {
+    background-color: var(--secondary-color);
+    color: white;
+    border-left: 3px solid var(--light-color);
+}
 
         /* Main Container */
         .main-container {
@@ -341,16 +377,16 @@
             <div class="collapse navbar-collapse" id="navbarTop">
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item">
-                        @guest
+                        <?php if(auth()->guard()->guest()): ?>
                             <a class="nav-link" href="/signin"><i class="fas fa-sign-in-alt mr-1"></i> Masuk</a>
-                        @else
+                        <?php else: ?>
                             <form action="/logout" method="POST">
-                                @csrf
+                                <?php echo csrf_field(); ?>
                                 <button class="nav-link no-style-btn" type="submit" onclick="return confirm('Apakah anda yakin untuk log out?')">
                                     <i class="fas fa-sign-out-alt mr-1"></i> Keluar
                                 </button>
                             </form>
-                        @endguest
+                        <?php endif; ?>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/account-maintenance"><i class="fas fa-user-cog mr-1"></i> Manage-Akun</a>
@@ -375,21 +411,23 @@
                         <ul class="nav flex-column ml-3">
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('panels.inventory') }}"><i class="fas fa-cut"></i> Inventory</a>
+                                <a class="nav-link" href="<?php echo e(route('panels.inventory')); ?>"><i class="fas fa-cut"></i> Panel Management</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('master.barang') }}"><i class="fas fa-layer-group"></i> Display Barang</a>
+                                <a class="nav-link" href="<?php echo e(route('master.barang')); ?>"><i class="fas fa-layer-group"></i> Barang</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('customers.index') }}"><i class="fas fa-users"></i> Customers</a>
+                                <a class="nav-link" href="<?php echo e(route('customers.index')); ?>"><i class="fas fa-users"></i> Customers</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('stok_owner.index') }}"><i class="fas fa-database"></i> Stok Owner</a>
+                                <a class="nav-link" href="<?php echo e(route('stok_owner.index')); ?>"><i class="fas fa-database"></i> Stok Owner</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('suppliers.index') }}"><i class="fas fa-people-carry-box"></i> Suppliers</a>
+                                <a class="nav-link" href="<?php echo e(route('suppliers.index')); ?>"><i class="fas fa-people-carry-box"></i> Suppliers</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('cara_bayar.form') }}"><i class="fas fa-file-invoice-dollar"></i> Master Cara Bayar</a>
+                                <a class="nav-link" href="<?php echo e(route('cara_bayar.form')); ?>"><i class="fas fa-file-invoice-dollar"></i> Master Cara Bayar</a>
                             </li>
                         </ul>
                     </div>
@@ -412,16 +450,13 @@
                                     <ul class="nav flex-column ml-3">
                                         <!-- Add the new Panel Management menu item here -->
                                         <li class="nav-item">
-                                            <a class="nav-link" href="{{ route('transaksi.penjualan') }}"><i class="fas fa-circle-plus"></i> Tambah Penjualan</a>
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.penjualan')); ?>"><i class="fas fa-circle-plus"></i> Tambah Penjualan</a>
                                         </li>
                                         <li class="nav-item">
-                                        <a class="nav-link" href="{{ route('transaksi.displaypenjualan') }}"><i class="fas fa-clock-rotate-left"></i> Display Penjualan</a>
+                                        <a class="nav-link" href="<?php echo e(route('transaksi.displaypenjualan')); ?>"><i class="fas fa-clock-rotate-left"></i> Display Penjualan</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="{{ route('transaksi.datapenjualanpercustomer') }}"><i class="fas fa-file-invoice-dollar mr-2"></i>Data Penjualan Per Customer</a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" href="{{ route('transaksi.listnota') }}"><i class="fas fa-file-invoice"></i> Lihat Nota Penjualan</a>
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.datapenjualanpercustomer')); ?>"><i class="fas fa-file-invoice-dollar mr-2"></i>Data Penjualan Per Customer</a>
                                         </li>
                                     </ul>
                                 </div>
@@ -436,9 +471,10 @@
                                     <ul class="nav flex-column ml-3">
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembelian.index') }}"><i class="fas fa-circle-plus"></i> Tambah Pembelian</a>
+                                            <a class="nav-link" href="<?php echo e(route('pembelian.form')); ?>"><i class="fas fa-circle-plus"></i> Tambah Pembelian</a>
                                         </li>
                                         <li class="nav-item">
-                                        <a class="nav-link" href="{{ route('pembelian.historypembelian') }}"><i class="fas fa-clock-rotate-left"></i> History Pembelian</a>
+                                        <a class="nav-link" href="<?php echo e(route('pembelian.historypembelian')); ?>"><i class="fas fa-clock-rotate-left"></i> History Pembelian</a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-clock-rotate-left"></i> List Nota Pembelian</a>
@@ -449,6 +485,9 @@
                             </li>
                             <!-- Lihat Nota Transaksi -->
                             
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-file-invoice"></i> Lihat Nota Penjualan</a>
+                            </li>
                         </ul>
                     </div>
                 </li>
@@ -462,10 +501,10 @@
                         <ul class="nav flex-column ml-3">
                             <!-- Add the new Panel Management menu item here -->
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('suratjalan.form') }}"><i class="fas fa-cut"></i> Tambah Surat Jalan</a>
+                                <a class="nav-link" href="<?php echo e(route('suratjalan.form')); ?>"><i class="fas fa-cut"></i> Tambah Surat Jalan</a>
                             </li>
                             <li class="nav-item">
-                            <a class="nav-link" href="{{ route('suratjalan.historysuratjalan') }}"><i class="fas fa-cut"></i> Display Surat Jalan</a>
+                            <a class="nav-link" href="<?php echo e(route('suratjalan.historysuratjalan')); ?>"><i class="fas fa-cut"></i> Display Surat Jalan</a>
                             </li>
                         </ul>
                     </div> 
@@ -481,7 +520,7 @@
     <!-- Main Content -->
     <div class="main-container" id="mainContainer">
         <!-- Content will be loaded here -->
-        @yield('content')
+        <?php echo $__env->yieldContent('content'); ?>
     </div>
 
     <script>
@@ -547,7 +586,8 @@
 
     </script>
 
-    @yield('scripts')
+    <?php echo $__env->yieldContent('scripts'); ?>
     
 </body>
 </html>
+<?php /**PATH C:\Work\AtapJerri\resources\views/layout/Nav.blade.php ENDPATH**/ ?>
