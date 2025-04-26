@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Showroom Management System</title>
+    <title>Atap Management System</title>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 
@@ -332,7 +332,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-warehouse brand-logo"></i>
-               Auto Dashboard Pro
+               Atap Management System
             </a>
             <button class="navbar-toggler" type="button" id="topNavToggle">
                 <span class="navbar-toggler-icon"></span>
@@ -374,10 +374,10 @@
                         <!-- Master menu items -->
                         <ul class="nav flex-column ml-3">
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('panels.inventory') }}"><i class="fas fa-cut"></i> Panel Management</a>
+                                <a class="nav-link" href="{{ route('panels.inventory') }}"><i class="fas fa-cut"></i> Inventory</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('master.barang') }}"><i class="fas fa-layer-group"></i> Barang</a>
+                                <a class="nav-link" href="{{ route('master.barang') }}"><i class="fas fa-layer-group"></i> Display Barang</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('customers.index') }}"><i class="fas fa-users"></i> Customers</a>
@@ -420,6 +420,9 @@
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('transaksi.datapenjualanpercustomer') }}"><i class="fas fa-file-invoice-dollar mr-2"></i>Data Penjualan Per Customer</a>
                                         </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('transaksi.listnota') }}"><i class="fas fa-file-invoice"></i> Lihat Nota Penjualan</a>
+                                        </li>
                                     </ul>
                                 </div>
                             </li>
@@ -440,13 +443,12 @@
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-clock-rotate-left"></i> List Nota Pembelian</a>
                                             </li>
+                                           
                                     </ul>
                                 </div>
                             </li>
                             <!-- Lihat Nota Transaksi -->
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('transaksi.listnota') }}"><i class="fas fa-file-invoice"></i> Lihat Nota Penjualan</a>
-                            </li>
+                            
                         </ul>
                     </div>
                 </li>

@@ -22,7 +22,7 @@
                             <i class="fas fa-plus mr-1"></i> Add Panels
                         </a>
                         <a href="{{ route('panels.create-order') }}" class="btn btn-secondary btn-sm ml-2">
-                            <i class="fas fa-shopping-cart mr-1"></i> New Order
+                            <i class="fas fa-shopping-cart mr-1"></i> Potong
                         </a>
                     </div>
                 </div>
