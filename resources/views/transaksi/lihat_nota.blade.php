@@ -21,7 +21,7 @@
                     <td>{{ $transaction->customer->nama ?? 'N/A' }}</td>
                     <td>Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</td>
                     <td>
-                        <a href="{{ route('transaksi.lihatnota', $transaction->id) }}" class="btn btn-primary btn-sm">Lihat Nota</a>
+                        <a href="{{ route('transaksi.nota', $transaction->id) }}" class="btn btn-primary btn-sm">Lihat Nota</a>
                     </td>
                 </tr>
             @endforeach

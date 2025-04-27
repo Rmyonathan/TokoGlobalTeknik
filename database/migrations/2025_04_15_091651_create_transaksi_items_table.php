@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('no_transaksi'); // Menggunakan string untuk relasi ke no_transaksi
             $table->foreign('no_transaksi')->references('no_transaksi')->on('transaksi')->onDelete('cascade');
-            $table->unsignedBigInteger('kode_barang');
-            $table->foreign('kode_barang')->references('id')->on('panels')->onDelete('cascade');
+            $table->string('kode_barang');
+            // $table->foreign('kode_barang')->references('group_id')->on('panels')->onDelete('cascade');
             $table->string('nama_barang');
             $table->text('keterangan')->nullable();
             $table->decimal('harga', 15, 2);

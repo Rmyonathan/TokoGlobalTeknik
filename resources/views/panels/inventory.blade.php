@@ -22,7 +22,7 @@
                             <i class="fas fa-plus mr-1"></i> Add Panels
                         </a>
                         <a href="{{ route('panels.create-order') }}" class="btn btn-secondary btn-sm ml-2">
-                            <i class="fas fa-shopping-cart mr-1"></i> New Order
+                            <i class="fas fa-shopping-cart mr-1"></i> Potong
                         </a>
                     </div>
                 </div>
@@ -33,6 +33,7 @@
                                 <thead>
                                     <tr>
                                         <th>ID</th>
+                                        <th>Group ID</th>
                                         <th>Name</th>
                                         <th>Price</th>
                                         <th>Length (meters)</th>
@@ -44,6 +45,7 @@
                                     @foreach($inventory['inventory_by_length'] as $item)
                                         <tr>
                                             <td>{{ $item['id'] }}</td>
+                                            <td>{{ $item['group_id'] }}</td>
                                             <td>{{ $item['name'] }}</td>
                                             <td>Rp. {{ number_format($item['price'], 2) }}</td>
                                             <td>{{ number_format($item['length'], 2) }}</td>
@@ -54,6 +56,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-primary">
+                                        <th></th>
                                         <th></th>
                                         <th></th>
                                         <th></th>

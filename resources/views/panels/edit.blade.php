@@ -13,11 +13,11 @@
                     <h5 class="mb-0">New Panel Stock Entry</h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('panels.store-inventory') }}" method="POST">
+                    <form action="{{ route('panels.update-inventory') }}" method="POST">
                         @csrf
                         <div class="form-group">
                             <label for="name"><i class="fas fa-ruler mr-1"></i> Panel Name</label>
-                            <input type="text" step="0.01" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required>
+                            <input type="text" step="0.01" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ $panel->name }}" required>
                             @error('name')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -25,7 +25,7 @@
                         </div>
                         <div class="form-group">
                             <label for="group_id"><i class="fas fa-ruler mr-1"></i>Kode Barang</label>
-                            <input type="text" step="0.01" class="form-control @error('group_id') is-invalid @enderror" id="group_id" name="group_id" value="{{ old('group_id') }}" required>
+                            <input type="text" step="0.01" class="form-control @error('group_id') is-invalid @enderror" id="group_id" name="group_id" value="{{ $panel->group_id }}" readonly>
                             @error('group_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -33,7 +33,7 @@
                         </div>
                         <div class="form-group">
                             <label for="price"><i class="fas fa-ruler mr-1"></i> Price (per meters)</label>
-                            <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ old('price') }}" required>
+                            <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ $panel->price }}" required>
                             @error('price')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -41,7 +41,7 @@
                         </div>
                         <div class="form-group">
                             <label for="length"><i class="fas fa-ruler mr-1"></i> Panel Length (meters)</label>
-                            <input type="number" step="0.01" class="form-control @error('length') is-invalid @enderror" id="length" name="length" value="{{ old('length') }}" required>
+                            <input type="number" step="0.01" class="form-control @error('length') is-invalid @enderror" id="length" name="length" value="{{ $panel->length }}" required>
                             @error('length')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -50,7 +50,7 @@
 
                         <div class="form-group">
                             <label for="quantity"><i class="fas fa-layer-group mr-1"></i> Quantity</label>
-                            <input type="number" class="form-control @error('quantity') is-invalid @enderror" id="quantity" name="quantity" value="{{ old('quantity', 1) }}" min="1" required>
+                            <input type="number" class="form-control @error('quantity') is-invalid @enderror" id="quantity" name="quantity" value="{{ $quantity }}" min="1" required>
                             @error('quantity')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror

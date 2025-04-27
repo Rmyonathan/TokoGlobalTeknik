@@ -3,7 +3,7 @@
 @section('content')
 <div class="container">
     <div class="title-box">
-        <h2><i class="fas fa-shopping-cart mr-2"></i>Transaksi Pembelian</h2>
+        <h2><i class="fas fa-edit mr-2"></i>Edit Transaksi Pembelian</h2>
     </div>
 
     <div class="card mb-4">
@@ -17,13 +17,13 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="no_nota">No. Nota</label>
-                            <input type="text" class="form-control" id="no_nota" name="nota" value="{{ $nota ?? 'BL/04/25-00006' }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
+                            <input type="text" class="form-control" id="no_nota" name="nota" value="{{ $purchase->nota }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
                         </div>
                         
                         <div class="form-group">
                             <label for="tanggal">Tanggal</label>
                             <div class="input-group">
-                                <input type="date" class="form-control" id="tanggal" name="tanggal" value="{{ date('Y-m-d') }}">
+                                <input type="date" class="form-control" id="tanggal" name="tanggal" value="{{ $purchase->tanggal->format('Y-m-d') }}">
                                 <div class="input-group-append">
                                     <span class="input-group-text"><i class="fas fa-calendar"></i></span>
                                 </div>
@@ -32,8 +32,8 @@
                         
                         <div class="form-group">
                             <label for="supplier">Supplier</label>
-                            <input type="text" id="supplier" name="supplier_display" class="form-control" placeholder="Masukkan kode atau nama supplier">
-                            <input type="hidden" id="kode_supplier" name="kode_supplier">
+                            <input type="text" id="supplier" name="supplier_display" class="form-control" value="{{ $supplier }}" placeholder="Masukkan kode atau nama supplier">
+                            <input type="hidden" id="kode_supplier" name="kode_supplier" value="{{ $purchase->kode_supplier }}">
                             <div id="supplierDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
                         </div>
                     </div>
@@ -42,29 +42,29 @@
                         <div class="form-group">
                             <label for="cabang">Cabang</label>
                             <select class="form-control" id="cabang" name="cabang">
-                                <option value="LAMPUNG" selected>LAMPUNG</option>
-                                <option value="PALEMBANG">PALEMBANG</option>
-                                <option value="JAKARTA">JAKARTA</option>
+                                <option value="LAMPUNG" {{ $purchase->cabang == 'LAMPUNG' ? 'selected' : '' }}>LAMPUNG</option>
+                                <option value="PALEMBANG" {{ $purchase->cabang == 'PALEMBANG' ? 'selected' : '' }}>PALEMBANG</option>
+                                <option value="JAKARTA" {{ $purchase->cabang == 'JAKARTA' ? 'selected' : '' }}>JAKARTA</option>
                             </select>
                         </div>
                         
                         <div class="form-group">
                             <label for="pembayaran">Pembayaran</label>
                             <select class="form-control" id="pembayaran" name="pembayaran">
-                                <option value="Tunai">Tunai</option>
-                                <option value="Transfer">Transfer</option>
-                                <option value="Kredit">Kredit</option>
-                                <option value="Debit">Debit</option>
+                                <option value="Tunai" {{ $purchase->pembayaran == 'Tunai' ? 'selected' : '' }}>Tunai</option>
+                                <option value="Transfer" {{ $purchase->pembayaran == 'Transfer' ? 'selected' : '' }}>Transfer</option>
+                                <option value="Kredit" {{ $purchase->pembayaran == 'Kredit' ? 'selected' : '' }}>Kredit</option>
+                                <option value="Debit" {{ $purchase->pembayaran == 'Debit' ? 'selected' : '' }}>Debit</option>
                             </select>
                         </div>
                         
                         <div class="form-group">
                             <label for="cara_bayar">Cara Bayar</label>
                             <select class="form-control" id="cara_bayar" name="cara_bayar">
-                                <option value="Cash">Cash</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="Debit">Debit</option>
-                                <option value="Cicilan">Cicilan</option>
+                                <option value="Cash" {{ $purchase->cara_bayar == 'Cash' ? 'selected' : '' }}>Cash</option>
+                                <option value="Credit Card" {{ $purchase->cara_bayar == 'Credit Card' ? 'selected' : '' }}>Credit Card</option>
+                                <option value="Debit" {{ $purchase->cara_bayar == 'Debit' ? 'selected' : '' }}>Debit</option>
+                                <option value="Cicilan" {{ $purchase->cara_bayar == 'Cicilan' ? 'selected' : '' }}>Cicilan</option>
                             </select>
                         </div>
                     </div>
@@ -98,7 +98,7 @@
                         </tr>
                     </thead>
                     <tbody id="itemsList">
-                        <!-- Dynamic items will be added here -->
+                        <!-- Dynamic items will be loaded by JavaScript -->
                     </tbody>
                 </table>
             </div>
@@ -112,33 +112,33 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Total</label>
-                        <input type="text" class="form-control text-right" id="total" name="total" readonly value="0">
+                        <input type="text" class="form-control text-right" id="total" name="total" readonly value="{{ number_format($purchase->subtotal, 0, ',', '.') }}">
                     </div>
                     <div class="form-group">
                         <div class="input-group">
                             <div class="input-group-prepend">
                                 <div class="input-group-text">
-                                    <input type="checkbox" id="discount_checkbox">
+                                    <input type="checkbox" id="discount_checkbox" {{ $purchase->diskon > 0 ? 'checked' : '' }}>
                                 </div>
                             </div>
                             <div class="input-group-prepend">
                                 <span class="input-group-text">Disc(%)</span>
                             </div>
-                            <input type="number" class="form-control" id="discount_percent" value="0" disabled>
-                            <input type="text" class="form-control text-right" id="discount_amount" value="0" readonly>
+                            <input type="number" class="form-control" id="discount_percent" value="{{ $purchase->diskon > 0 ? ($purchase->diskon / $purchase->subtotal) * 100 : 0 }}" {{ $purchase->diskon > 0 ? '' : 'disabled' }}>
+                            <input type="text" class="form-control text-right" id="discount_amount" value="{{ number_format($purchase->diskon, 0, ',', '.') }}" readonly>
                         </div>
                     </div>
                     <div class="form-group">
                         <div class="input-group">
                             <div class="input-group-prepend">
                                 <div class="input-group-text">
-                                    <input type="checkbox" id="ppn_checkbox">
+                                    <input type="checkbox" id="ppn_checkbox" {{ $purchase->ppn > 0 ? 'checked' : '' }}>
                                 </div>
                             </div>
                             <div class="input-group-prepend">
                                 <span class="input-group-text">PPN</span>
                             </div>
-                            <input type="text" class="form-control text-right" id="ppn_amount" value="0" readonly>
+                            <input type="text" class="form-control text-right" id="ppn_amount" value="{{ number_format($purchase->ppn, 0, ',', '.') }}" readonly>
                         </div>
                     </div>
                 </div>
@@ -146,77 +146,26 @@
                     <div class="form-group">
                         <label>Cara Bayar</label>
                         <select class="form-control" id="cara_bayar_akhir">
-                            <option value="Cash">Cash</option>
-                            <option value="Credit Card">Credit Card</option>
-                            <option value="Debit">Debit</option>
-                            <option value="Cicilan">Cicilan</option>
+                            <option value="Cash" {{ $purchase->cara_bayar == 'Cash' ? 'selected' : '' }}>Cash</option>
+                            <option value="Credit Card" {{ $purchase->cara_bayar == 'Credit Card' ? 'selected' : '' }}>Credit Card</option>
+                            <option value="Debit" {{ $purchase->cara_bayar == 'Debit' ? 'selected' : '' }}>Debit</option>
+                            <option value="Cicilan" {{ $purchase->cara_bayar == 'Cicilan' ? 'selected' : '' }}>Cicilan</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Grand Total</label>
-                        <input type="text" class="form-control text-right" id="grand_total" readonly value="0" style="font-size: 18px; font-weight: bold;">
+                        <input type="text" class="form-control text-right" id="grand_total" readonly value="{{ number_format($purchase->grand_total, 0, ',', '.') }}" style="font-size: 18px; font-weight: bold;">
                     </div>
                     <div class="form-group text-right mt-4">
-                        <button type="button" class="btn btn-success" id="saveTransaction">
-                            <i class="fas fa-save"></i> Simpan Transaksi
+                        <button type="button" class="btn btn-success" id="updateTransaction">
+                            <i class="fas fa-save"></i> Simpan Perubahan
                         </button>
-                        <button type="button" class="btn btn-secondary" id="cancelTransaction">
+                        <a href="{{ route('pembelian.nota.show', $purchase->id) }}" class="btn btn-secondary">
                             <i class="fas fa-times"></i> Batal
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Supplier Modal -->
-<div class="modal fade" id="addSupplierModal" tabindex="-1" role="dialog" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form id="addSupplierForm" action="{{ route('suppliers.store') }}" method="POST">
-                @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addSupplierModalLabel">Tambah Supplier Baru</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="nama">Nama</label>
-                        <input type="text" class="form-control" id="nama" name="nama" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="alamat">Alamat</label>
-                        <input type="text" class="form-control" id="alamat" name="alamat" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="pemilik">Pemilik</label>
-                        <input type="text" class="form-control" id="pemilik" name="pemilik" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="telepon_fax">Telepon/Fax</label>
-                        <input type="text" class="form-control" id="telepon_fax" name="telepon_fax" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="contact_person">Contact Person</label>
-                        <input type="text" class="form-control" id="contact_person" name="contact_person" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="hp_contact_person">HP Contact Person</label>
-                        <input type="text" class="form-control" id="hp_contact_person" name="hp_contact_person" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="kode_kategori">Kode Kategori</label>
-                        <input type="text" class="form-control" id="kode_kategori" name="kode_kategori" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -326,38 +275,6 @@
     </div>
 </div>
 
-<!-- Modal Invoice -->
-<div class="modal fade" id="invoiceModal" tabindex="-1" role="dialog" aria-labelledby="invoiceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="invoiceModalLabel">Invoice Pembelian</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <!-- Invoice Content -->
-                <div id="invoiceContent">
-                    <h4>No Nota: <span id="invoiceNota"></span></h4>
-                    <p>Tanggal: <span id="invoiceTanggal"></span></p>
-                    <p>Supplier: <span id="invoiceSupplier"></span></p>
-                    <p>Grand Total: <span id="invoiceGrandTotal"></span></p>
-                    <!-- Tambahkan detail lainnya jika diperlukan -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" id="printInvoiceBtn">
-                    <i class="fas fa-print"></i> Print
-                </button>
-                <button type="button" class="btn btn-secondary" id="backToFormBtn">
-                    <i class="fas fa-arrow-left"></i> Kembali
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 @endsection
 
 @section('scripts')
@@ -365,13 +282,29 @@
 <script>
     // Expose Laravel routes as global window variables
     window.supplierSearchUrl = "{{ route('api.suppliers.search') }}";
-    window.storeTransactionUrl = "{{ route('pembelian.store') }}";
-    window.printInvoiceUrl = "{{ url('pembelian/lihatnota') }}/";
+    window.updateTransactionUrl = "{{ route('pembelian.update', $purchase->id) }}";
+    window.notaShowUrl = "{{ route('pembelian.nota.show', $purchase->id) }}";
     window.csrfToken = "{{ csrf_token() }}";
+    window.purchaseId = "{{ $purchase->id }}";
+    window.grandTotal = "{{ $purchase->grand_total }}";
+    
+    // Initial items data
+    const initialItems = {!! json_encode($purchase->items->map(function($item) {
+        return [
+            'kodeBarang' => $item->kode_barang,
+            'namaBarang' => $item->nama_barang,
+            'keterangan' => $item->keterangan,
+            'harga' => (int)$item->harga,
+            'qty' => (int)$item->qty,
+            'panjang' => 0, // Assuming this isn't stored, adjust if it is
+            'diskon' => (int)$item->diskon,
+            'total' => (int)$item->total
+        ];
+    })) !!};
 </script>
 
 {{-- Include the external JS file using file_get_contents to load directly from views directory --}}
 <script>
-{!! file_get_contents(resource_path('views/scripts/pembelian.js')) !!}
+{!! file_get_contents(resource_path('views/scripts/editpembelian.js')) !!}
 </script>
 @endsection

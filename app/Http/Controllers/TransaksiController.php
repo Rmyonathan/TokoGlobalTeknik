@@ -8,17 +8,18 @@ use App\Models\Transaksi;
 use App\Models\TransaksiItem;
 use App\Models\Customer;
 use App\Models\Panel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TransaksiController extends Controller
 {
     /**
      * Display the sales transaction form.
      */
-    public function penjualan()
+    public function penjualan(Request $request)
     {
         // Ambil nomor transaksi terakhir
         $lastTransaction = Transaksi::orderBy('created_at', 'desc')->first();
-    
+
         // Generate nomor transaksi baru
         if ($lastTransaction) {
             // Ambil angka terakhir dari no_transaksi
@@ -28,15 +29,24 @@ class TransaksiController extends Controller
             // Jika belum ada transaksi, mulai dari 1
             $newNumber = 1;
         }
-    
+
         // Format nomor transaksi baru
         $noTransaksi = 'KP/WS/' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
-    
+
         return view('transaksi.penjualan', compact('noTransaksi'));
     }
 
+    public function getByGroupId($group_id)
+    {
+        $panel = Panel::where('group_id', $group_id)->first();
 
-    
+        if (!$panel) {
+            return response()->json(['error' => 'Panel not found'], 404);
+        }
+
+        return response()->json($panel);
+    }
+
     /**
      * Store a sales transaction.
      */
@@ -50,16 +60,16 @@ class TransaksiController extends Controller
             'subtotal' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'items' => 'required|array',
-            'items.*.kodeBarang' => 'required|exists:panels,id', // Validasi kode_barang
+            'items.*.kodeBarang' => 'required|exists:panels,group_id', // Validasi kode_barang
             'items.*.harga' => 'required|numeric',
             'items.*.qty' => 'required|numeric',
         ]);
-        
+
         try {
             DB::beginTransaction();
 
             $ppn = str_replace(',', '.', $request->ppn);
-            
+
             // Create transaction
             $transaksi = Transaksi::create([
                 'no_transaksi' => $request->no_transaksi,
@@ -78,13 +88,14 @@ class TransaksiController extends Controller
                 'grand_total' => $request->grand_total,
                 'status' => 'baru',
             ]);
-            
+
             // Create transaction items
             foreach ($request->items as $item) {
                 TransaksiItem::create([
                     'no_transaksi' => $request->no_transaksi, // Gunakan no_transaksi sebagai foreign key
                     'kode_barang' => $item['kodeBarang'],
-                    'nama_barang' => Panel::find($item['kodeBarang'])->name,
+                    // 'nama_barang' => Panel::find($item['kodeBarang'])->name,
+                    'nama_barang' => $item['namaBarang'],
                     'keterangan' => $item['keterangan'] ?? null,
                     'harga' => $item['harga'],
                     'panjang' => $item['panjang'] ?? 0,
@@ -94,8 +105,20 @@ class TransaksiController extends Controller
                     'total' => $item['total'],
                 ]);
             }
-            
+
             DB::commit();
+
+            foreach ($request->items as $item){
+                $panels = Panel::where('group_id', $item['kodeBarang'])
+                ->where('available', True)
+                ->limit($item['qty'])
+                ->get();
+
+                foreach ($panels as $panel){
+                    $panel->available = False;
+                    $panel->save();
+                }
+            }
 
             return response()->json([
                 'id' => $transaksi->id,
@@ -106,46 +129,46 @@ class TransaksiController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
     }
-    
+
     /**
      * Search for products
      */
     public function searchProducts(Request $request)
     {
         $keyword = $request->keyword;
-        
+
         $products = DB::table('barang')
             ->where('kode_barang', 'like', "%{$keyword}%")
             ->orWhere('nama_barang', 'like', "%{$keyword}%")
             ->limit(10)
             ->get();
-        
+
         return response()->json($products);
     }
-    
+
     /**
      * Search for customers
      */
     public function searchCustomers(Request $request)
     {
         $keyword = $request->keyword;
-        
+
         $customers = DB::table('customers')
             ->where('nama', 'like', "%{$keyword}%")
             ->orWhere('kode_customer', 'like', "%{$keyword}%")
             ->limit(10)
             ->get();
-        
+
         return response()->json($customers);
     }
-    
+
     /**
      * Create a new customer
      */
@@ -156,7 +179,7 @@ class TransaksiController extends Controller
             'alamat' => 'nullable|string',
             'telepon' => 'nullable|string|max:20',
         ]);
-        
+
         try {
             $customer = DB::table('customers')->insert([
                 'nama' => $request->nama,
@@ -165,7 +188,7 @@ class TransaksiController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Customer berhasil ditambahkan',
@@ -178,14 +201,14 @@ class TransaksiController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Get transaction data
      */
     public function getTransaction($id)
     {
         $transaction = Transaksi::with('items')->findOrFail($id);
-        
+
         return response()->json($transaction);
     }
 
@@ -208,7 +231,7 @@ class TransaksiController extends Controller
                 ->where('kode_customer', $request->kode_customer)
                 ->get();
         }
-            
+
         return view('transaksi.datapenjualanpercustomer', compact('customers', 'transaksi'));
     }
 
@@ -218,14 +241,17 @@ class TransaksiController extends Controller
     public function showNota($id)
     {
         $transaction = Transaksi::with('items', 'customer')->findOrFail($id);
-        
+
         return view('transaksi.nota', compact('transaction'));
     }
 
-    public function nota($no_transaksi)
+    public function nota($id)
     {
-        $transaction = Transaksi::with('items', 'customer')->where('no_transaksi', $no_transaksi)->firstOrFail();
-        return view('transaksi.nota', compact('transaction'));
+        $transaction = Transaksi::with('items', 'customer')->findOrFail($id);
+
+        $pdf = Pdf::loadView('transaksi.nota', ['transaction' => $transaction]);
+
+        return $pdf->stream('nota.pdf'); // or use `stream()` to open in browser
     }
 
     public function listNota()
