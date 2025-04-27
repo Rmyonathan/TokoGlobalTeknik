@@ -1,102 +1,356 @@
 @extends('layout.Nav')
 
 @section('content')
-<div class="container bg-light p-4 rounded">
-    <h4>:: Surat Jalan ::</h4>
+<div class="container">
+    <div class="title-box">
+        <h2><i class="fas fa-file-invoice mr-2"></i>Buat Surat Jalan</h2>
+    </div>
 
-    <div class="row mb-3">
-        <div class="col-md-3">
-            <label>No Surat Jalan</label>
-            <input type="text" class="form-control bg-warning text-white font-weight-bold" value="SJ-0425-00140" readonly>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Data Transaksi</h5>
         </div>
-        <div class="col-md-3">
-            <label>Tanggal</label>
-            <input type="date" class="form-control" value="{{ date('Y-m-d') }}">
+        <div class="card-body">
+            <form id="suratjalanForm">
+                @csrf
+                <div class="row">
+
+                    <!-- Kiri -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="no_transaksi">No. Surat Jalan</label>
+                            <input type="text" class="form-control" id= "no_suratjalan" name="no_suratjalan" value="{{ $noSuratJalan ?? 'SJ-001-00001' }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tanggal">Tanggal</label>
+                            <input type="date" class="form-control" id="tanggal" name="tanggal" value="{{ date('Y-m-d') }}" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="titipan_uang">Titipan Uang</label>
+                            <input type="number" class="form-control" id="titipan_uang" name="titipan_uang" value="0" min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="sisa_piutang">Sisa Piutang</label>
+                            <input type="number" class="form-control" id="sisa_piutang" name="sisa_piutang" value="0" min="0">
+                        </div>
+                    </div>
+
+                    <!-- Kanan -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="customer">Customer</label>
+                            <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan kode atau nama customer">
+                            <input type="hidden" id="kode_customer" name="kode_customer"> <!-- Hanya kode_customer yang dikirim -->
+                            <div id="customerDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="no_transaksi">No Faktur</label>
+                            <input type="text" id="no_faktur" name="no_faktur_display" class="form-control" autocomplete="off" placeholder="Masukkan nomor faktur">
+                            <input type="hidden" id="no_transaksi" name="no_transaksi">
+                            <input type="hidden" id="transaksi_id" name="transaksi_id">
+                            <div id="notransaksiList" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
+
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tanggal_transaksi">Tanggal Transaksi</label>
+                            <input type="date" class="form-control" id="tanggal_transaksi" name="tanggal_transaksi" value="{{ date('Y-m-d') }}" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="alamat_suratjalan">Alamat di Surat Jalan</label>
+                            <textarea class="form-control" id="alamat_suratjalan" name="alamat_suratjalan" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <label>Customer</label>
-            <input type="text" class="form-control" placeholder="Nama Customer">
+    <!-- Detail Transaksi & Items Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Rincian Transaksi</h5>
         </div>
-        <div class="col-md-6">
-            <label>Alamat Di Surat Jalan</label>
-            <input type="text" class="form-control" placeholder="Alamat">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="itemsTable">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Kode Barang</th>
+                            <th>Nama Barang</th>
+                            <th>Qty</th>
+                            <th>Harga Satuan</th>
+                            <th>Disc %</th>
+                            <th>Disc Rp</th>
+                            <th>Sub Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsList">
+                        <!-- Dynamic items will be added here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="form-group text-right mt-4">
+                <button type="button" class="btn btn-success" id="saveSuratJalan">
+                    <i class="fas fa-save"></i> Simpan Surat Jalan
+                </button>
+                <button type="button" class="btn btn-secondary" id="resetForm">
+                    <i class="fas fa-times"></i> Reset
+                </button>
+            </div>
         </div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col-md-3">
-            <label>No Faktur</label>
-            <input type="text" class="form-control" placeholder="Nomor Faktur">
+<!-- Modal Cetakan Surat Jalan -->
+<div class="modal fade" id="printsuratjalanModal" tabindex="-1" role="dialog" aria-labelledby="printsuratjalanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="printsuratjalanModalLabel">Surat Jalan Transaksi</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Print Surat Jalan Content -->
+                <div id="suratjalanContent">
+                    <h4>No Surat Jalan: <span id="suratjalanNo"></span></h4>
+                    <h5>No Faktur: <span id="suratjalanNoTransaksi"></span></h5>
+                    <p>Tanggal: <span id="suratjalanTanggal"></span></p>
+                    <p>Customer: <span id="suratjalanCustomer"></span></p>
+                    <p>Alamat: <span id="suratjalanAlamat"></span></p>
+                    <p>Grand Total: <span id="suratjalanGrandTotal"></span></p>
+                    <!-- Tambahkan detail lainnya jika diperlukan -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button type="button" class="btn btn-secondary" id="backToFormBtn">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
+            </div>
         </div>
-        <div class="col-md-3">
-            <label>Tanggal Transaksi</label>
-            <input type="date" class="form-control" value="{{ date('Y-m-d') }}">
-        </div>
-    </div>
-
-    <h5 class="mt-4">Detail Item</h5>
-    <div class="table-responsive mb-3">
-        <table class="table table-bordered">
-            <thead class="table-secondary">
-                <tr>
-                    <th>Stock Owner</th>
-                    <th>Kode Barang</th>
-                    <th>Keterangan</th>
-                    <th>P</th>
-                    <th>L</th>
-                    <th>Qty</th>
-                    <th>Pernah Ambil</th>
-                    <th>Satuan</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Baris kosong untuk diisi nanti -->
-                <tr>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <h5>Item Yang Akan Dibawa</h5>
-    <div class="table-responsive mb-3">
-        <table class="table table-bordered">
-            <thead class="table-secondary">
-                <tr>
-                    <th>Stock Owner</th>
-                    <th>Kode Barang</th>
-                    <th>Keterangan</th>
-                    <th>P</th>
-                    <th>L</th>
-                    <th>Qty Dibawa</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                    <td><input type="text" class="form-control" /></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="text-end">
-        <button class="btn btn-primary">Simpan</button>
-        <button class="btn btn-secondary">Tutup</button>
     </div>
 </div>
+
+@endsection
+
+@section('scripts')
+
+<script>
+$(document).ready(function() {
+
+    // Initialize variables
+    // Array to hold items
+    let items = [];
+    let transaksiGrandTotal = 0;
+    let selectedtransaksiId = 0;
+
+    // Search customer
+    $('#customer').on('input', function() {
+        const keyword = $(this).val();
+        if (keyword.length > 0) {
+            $.ajax({
+                url: "{{ route('api.customers.search') }}",
+                method: "GET",
+                data: { keyword },
+                success: function (data) {
+                    let dropdown = '';
+                    if (data.length > 0) {
+                        data.forEach(customer => {
+                            dropdown += `<a class="dropdown-item customer-item" 
+                            data-kode="${customer.kode_customer}" 
+                            data-name="${customer.nama}">
+                            ${customer.kode_customer} - ${customer.nama}</a>`;
+                        });
+                    } else {
+                        dropdown = '<a class="dropdown-item disabled">Tidak ada customer ditemukan</a>';
+                    }
+                    $('#customerDropdown').html(dropdown).show();
+                },
+                error: function () {
+                    alert('Terjadi kesalahan saat mencari customer.');
+                }
+            });
+        } else {
+            $('#customerDropdown').hide();
+        }
+    });
+
+    // Select customer from dropdown
+    $(document).on('click', '.customer-item', function () {
+        const kodeCustomer = $(this).data('kode');
+        const namaCustomer = $(this).data('name');
+        $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
+        $('#customer').val(`${kodeCustomer} - ${namaCustomer}`); // Tampilkan kode dan nama customer di input utama
+        $('#customerDropdown').hide();
+
+        // Customer has been selected, now get a list of transactions by this customer so we can show it in the dropdown
+        // User can search transactions made by this customer
+        $('#no_faktur').on('input', function() {
+            const keyword = $(this).val();
+            const kodeCustomer = $('#kode_customer').val(); // Get the selected customer code
+            if (keyword.length > 0 && kodeCustomer.length > 0) {
+                $.ajax({
+                    url: "{{ route('api.faktur.search') }}",
+                    method: "GET",
+                    data: { keyword, kode_customer: kodeCustomer },
+                    success: function (data) {
+                        let dropdown = '';
+                        if (data.length > 0) {
+                            data.forEach(transaksi => {
+                                dropdown += `<a class="dropdown-item transaksi-item" 
+                                data-transaksi_id="${transaksi.id}"
+                                data-no_transaksi="${transaksi.no_transaksi}" 
+                                data-kode_customer="${transaksi.kode_customer}"
+                                data-tanggal_transaksi="${transaksi.tanggal}"
+                                data-grand_total="${transaksi.grand_total}">
+                                ${transaksi.no_transaksi} By ${transaksi.kode_customer}</a>`;
+                            });
+                        } else {
+                            dropdown = '<a class="dropdown-item disabled">Tidak ada transaksi ditemukan</a>';
+                        }
+                        $('#notransaksiList').html(dropdown).show();
+                    },
+                    error: function () {
+                        alert('Terjadi kesalahan saat mencari transaksi.');
+                    }
+                });
+            } 
+            else {
+                $('#notransaksiList').hide();
+            }
+        });
+
+        // Select transaction from dropdown
+        $(document).on('click', '.transaksi-item', function(e) {
+            e.preventDefault();
+            const noTransaksi = $(this).data('no_transaksi');
+            const transaksiId = $(this).data('transaksi_id');
+            const kodeCustomer = $(this).data('kodecustomer');
+            const tanggalTransaksi = $(this).data('tanggal_transaksi');
+            const grandTotal = $(this).data('grand_total');
+            transaksiGrandTotal = grandTotal;
+            selectedtransaksiId = $(this).data('transaksi_id');
+
+            // Isi input dengan data transaksi yang dipilih
+            $('#no_transaksi').val(noTransaksi);
+            $('#no_faktur').val(noTransaksi);
+            $('#tanggal_transaksi').val(tanggalTransaksi);
+            $('#transaksi_id').val(transaksiId);
+            $('#notransaksiList').hide();
+            // Ambil detail transaksi berdasarkan transaksi yang dipilih
+            $.ajax({
+                url: "{{ url('api/suratjalan/transaksiitem/') }}/" + transaksiId, // Gunakan ID transaksi
+                method: "GET",
+                success: function(response) {
+                    let html = '';
+                    items = [];
+                    response.forEach(function(item, index) {
+                        html += `
+                            <tr>
+                                <td>${index+1}</td>
+                                <td>${item.kode_barang}</td>
+                                <td>${item.nama_barang}</td>
+                                <td>${item.qty}</td>
+                                <td class="text-right">${formatCurrency(item.harga)}</td>
+                                <td>${item.diskon} %</td>
+                                <td class="text-right">${formatCurrency(item.diskon * item.total)}</td>
+                                <td class="text-right">${formatCurrency(item.total)}</td>
+                            </tr>
+                        `;
+                        items.push({
+                            kode_barang: item.kode_barang,
+                            nama_barang: item.nama_barang,
+                            qty: item.qty,
+                        })
+                    });
+                    $('#itemsList').html(html);
+                },
+            });
+        });
+    });
+
+    // Save Surat Jalan
+    $('#saveSuratJalan').click(function(){
+        // Apakah anda yakin ingin menyimpan surat jalan ini?
+        if (confirm('Apakah anda yakin ingin menyimpan surat jalan ini?')){
+            // Validasi form
+            if(!$('#no_suratjalan').val() || !$('#kode_customer').val() || !$('#no_transaksi').val()) {
+                alert('Silakan lengkapi semua field yang diperlukan.');
+                return;
+            }
+            if (items.length === 0) {
+                alert('Tidak ada barang dalam transaksi.');
+                return;
+            }
+
+            const formatteditems = items.map(item => {
+                return {
+                    no_transaksi: $('#no_transaksi').val(),
+                    transaksi_id: selectedtransaksiId,
+                    kode_barang: item.kode_barang,
+                    nama_barang: item.nama_barang,
+                    qty: item.qty
+                };
+            });
+
+            const suratjalanData = {
+                no_suratjalan: $('#no_suratjalan').val(),
+                tanggal: $('#tanggal').val(),
+                kode_customer: $('#kode_customer').val(),
+                alamat_suratjalan: $('#alamat_suratjalan').val() || 'default',
+                no_transaksi: $('#no_transaksi').val(),
+                tanggal_transaksi: $('#tanggal_transaksi').val(),
+                titipan_uang: $('#titipan_uang').val(),
+                sisa_piutang: $('#sisa_piutang').val(),
+                grand_total: transaksiGrandTotal,
+                items: formatteditems // Kirim data items ke server
+            };
+            // Simpan data ke server
+            $.ajax({
+                url: "{{ route('suratjalan.store') }}",
+                method: "POST",
+                data: suratjalanData,
+                success: function(response) {
+                    // Tampilkan modal cetakan surat jalan
+                    $('#suratjalanNo').text(response.no_suratjalan);
+                    $('#suratjalanNoTransaksi').text(response.no_transaksi);
+                    $('#suratjalanTanggal').text(response.tanggal);
+                    $('#suratjalanCustomer').text(response.kode_customer);
+                    $('#suratjalanAlamat').text(response.alamat_suratjalan);
+                    $('#suratjalanGrandTotal').text(formatCurrency(response.grand_total));
+
+                    let suratJalanId = response.id
+
+                    $('#printInvoiceBtn').off('click').on('click', function() {
+                        window.location.href = "{{ url('suratjalan/detail') }}/" + suratJalanId;
+                    });
+
+                    // Tampilkan modal
+                    $('#printsuratjalanModal').modal('show');
+                },
+                error: function(xhr, status, error) {
+                    alert('Terjadi kesalahan saat menyimpan surat jalan. ' + xhr.responseJSON.message);
+                }
+            });
+        }
+
+    });
+    
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
+    }
+
+});
+
+</script>
 @endsection

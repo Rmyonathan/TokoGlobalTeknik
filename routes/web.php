@@ -13,6 +13,9 @@ use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\StokOwnerController;
+use App\Http\Controllers\SuratJalanController;
+use App\Http\Controllers\SuratJalanItemController;
+
 use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\KodeBarangController;
 use App\Models\StokOwner;
@@ -146,15 +149,13 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/transaksi/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
     Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
     // Penjualan Per Customer
-    Route::get('transaksi.datapenjualanpercustomer', function () {
-        return view('transaksi.datapenjualanpercustomer'); 
-        })->name('transaksi.datapenjualanpercustomer');
+    Route::get('/transaksi/datapenjualanpercustomer', [TransaksiController::class, 'datapenjualanpercustomer'])->name('transaksi.datapenjualanpercustomer');
+
 
     Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
     Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
-    Route::get('/api/suppliers/search', [SupplierController::class, 'search'])->name('api.suppliers.search');
-    
+
     // Display Transaksi Penjualan
     Route::get('transaksi.penjualan', function () {
         return view('transaksi.displaypenjualan');
@@ -200,6 +201,23 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::get('/products/search', [TransaksiController::class, 'searchProducts'])->name('api.products.search');
         Route::get('/customers/search', [TransaksiController::class, 'searchCustomers'])->name('api.customers.search');
         Route::post('/customers/create', [TransaksiController::class, 'createCustomer'])->name('api.customers.create');
+    });
+    
+    Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
+    Route::get('/api/customers', [CustomerController::class, 'searchsuratjalan'])->name('api.customers');
+    Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
+    Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
+    Route::get('/api/transaksi', [TransaksiController::class, 'getTransaksi'])->name('api.transaksi');
+    Route::get('/api/searchfaktur', [TransaksiController::class,'getTransaksiByCustomer'])->name('api.faktur.search');
+    Route::get('/api/suratjalan/transaksiitem/{transaksiId}', [TransaksiController::class, 'getRincianTransaksi'])->name('api.rinciantransaksi');
+    Route::get('/api/transaksi/items/{transaksiId}', [TransaksiController::class, 'getTransaksiItems'])->name('api.transaksi.items');
+
+    // Surat Jalan
+    Route::prefix('suratjalan')->group(function () {
+        Route::get('/create', [SuratJalanController::class, 'create'])->name('suratjalan.create');
+        Route::post('/store', [SuratJalanController::class, 'store'])->name('suratjalan.store');
+        Route::get('/history', [SuratJalanController::class, 'history'])->name('suratjalan.history');
+        Route::get('/detail/{id}', [SuratJalanController::class, 'detail'])->name('suratjalan.detail');
     });
 
     
