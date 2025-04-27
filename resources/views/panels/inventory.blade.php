@@ -35,6 +35,7 @@
                                         <th>ID</th>
                                         <th>Group ID</th>
                                         <th>Name</th>
+                                        <th>Cost</th>
                                         <th>Price</th>
                                         <th>Length (meters)</th>
                                         <th>Available Quantity</th>
@@ -47,6 +48,7 @@
                                             <td>{{ $item['id'] }}</td>
                                             <td>{{ $item['group_id'] }}</td>
                                             <td>{{ $item['name'] }}</td>
+                                            <td>Rp. {{ number_format($item['cost'], 2) }}</td>
                                             <td>Rp. {{ number_format($item['price'], 2) }}</td>
                                             <td>{{ number_format($item['length'], 2) }}</td>
                                             <td>{{ $item['quantity'] }}</td>
@@ -56,6 +58,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-primary">
+                                        <th></th>
                                         <th></th>
                                         <th></th>
                                         <th></th>
