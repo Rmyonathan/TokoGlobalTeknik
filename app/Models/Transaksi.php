@@ -45,6 +45,9 @@ class Transaksi extends Model
     public function items()
     {
         return $this->hasMany(TransaksiItem::class, 'no_transaksi', 'no_transaksi');
+    }
+
+    public function itemsTransaksiId(){
         return $this->hasMany(TransaksiItem::class, 'transaksi_id', 'id');
     }
 

@@ -41,6 +41,9 @@ class TransaksiItem extends Model
     public function transaksi()
     {
         return $this->belongsTo(Transaksi::class, 'no_transaksi', 'no_transaksi');
+    }
+
+    public function itemsTransaksiId(){
         return $this->belongsTo(Transaksi::class, 'transaksi_id', 'id');
     }
 

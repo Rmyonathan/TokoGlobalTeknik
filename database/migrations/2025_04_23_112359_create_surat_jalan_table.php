@@ -12,26 +12,26 @@ class CreateSuratJalanTable extends Migration
             $table->id();
             $table->string('no_suratjalan')->unique();
             $table->date('tanggal');
-            $table->unsignedBigInteger('customer_id');
-            $table->string('alamat')->nullable();
+            $table->string('kode_customer');
             $table->string('alamat_suratjalan')->nullable();
             $table->string('no_transaksi')->nullable();
             $table->date('tanggal_transaksi')->nullable();
+            $table->decimal('titipan_uang', 15, 2)->default(0);
+            $table->decimal('sisa_piutang', 15, 2)->default(0);
             $table->timestamps();
 
-            $table->foreign('customer_id')->references('id')->on('customers')->onDelete('cascade');
-            $table->foreign('no_transaksi')->references('no_transaksi')->on('transaksi')->onDelete('cascade');
+            $table->foreign('kode_customer')->references('kode_customer')->on('customers')->onDelete('restrict');
+            $table->foreign('no_transaksi')->references('no_transaksi')->on('transaksi')->onDelete('restrict');
         });
 
         Schema::create('surat_jalan_items', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('surat_jalan_id');
-            $table->unsignedBigInteger('transaksi_item_id');
-            $table->integer('qty_dibawa');
+            $table->unsignedBigInteger('no_suratjalan');
+            $table->unsignedBigInteger('transaksi_id');
             $table->timestamps();
 
-            $table->foreign('surat_jalan_id')->references('id')->on('surat_jalan')->onDelete('cascade');
-            $table->foreign('transaksi_item_id')->references('id')->on('transaksi_items')->onDelete('cascade');
+            $table->foreign('no_suratjalan')->references('no_suratjalan')->on('surat_jalan')->onDelete('restrict');
+            $table->foreign('transaksi_id')->references('id')->on('transaksi_items')->onDelete('restrict');
         });
     }
 

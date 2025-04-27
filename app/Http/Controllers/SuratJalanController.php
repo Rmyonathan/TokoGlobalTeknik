@@ -20,47 +20,57 @@ class SuratJalanController extends Controller
         $customers = Customer::all();
         $noTransaksi = $request->get('no_transaksi'); // Jika ada no_transaksi dari query string
         $transaksi = $noTransaksi ? Transaksi::with('items')->where('no_transaksi', $noTransaksi)->first() : null;
+        $transaksiItems = $transaksi ? $transaksi->items : collect();
 
-        return view('suratjalan.suratjalan', compact('noSuratJalan', 'customers', 'transaksi'));
+        return view('suratjalan.suratjalan', compact('noSuratJalan', 'customers', 'transaksi', 'transaksiItems'));
     }
 
-    public function store(Request $request)
-    {
+    public function store(Request $request){
         $request->validate([
             'no_suratjalan' => 'required|unique:surat_jalan,no_suratjalan',
             'tanggal' => 'required|date',
             'kode_customer' => 'required|exists:customers,kode_customer',
             'alamat_suratjalan' => 'required|string',
-            'no_transaksi' => 'nullable|exists:transaksi,no_transaksi',
+            'no_transaksi' => 'required|exists:transaksi,no_transaksi',
+            'tanggal_transaksi' => 'required|date',
+            'titipan_uang' => 'nullable|numeric',
+            'sisa_piutang' => 'nullable|numeric',
             'items' => 'required|array',
-            'items.*.transaksi_item_id' => 'required|exists:transaksi_items,id',
-            'items.*.qty_dibawa' => 'required|numeric|min:1',
+            'items.*.no_transaksi' => 'required|exists:transaksi,no_transaksi',
         ]);
     
         $suratJalan = SuratJalan::create([
             'no_suratjalan' => $request->no_suratjalan,
-            'tanggal' => $request->tanggal,
+            'tanggal' => $request->tanggal ?? now(),
             'kode_customer' => $request->kode_customer,
-            'alamat_suratjalan' => $request->alamat_suratjalan,
+            'alamat_suratjalan' => $request->alamat_suratjalan ?? "default",
             'no_transaksi' => $request->no_transaksi,
+            'tanggal_transaksi' => $request->tanggal_transaksi,
+            'titipan_uang' => $request->titipan_uang ?? 0,
+            'sisa_piutang' => $request->sisa_piutang ?? 0,
         ]);
     
         foreach ($request->items as $item) {
-            $transaksiItem = TransaksiItem::findOrFail($item['transaksi_item_id']);
-            $totalDibawa = SuratJalanItem::where('transaksi_item_id', $item['transaksi_item_id'])->sum('qty_dibawa');
-    
-            if ($item['qty_dibawa'] > ($transaksiItem->qty - $totalDibawa)) {
-                return response()->json(['success' => false, 'message' => 'Qty Dibawa melebihi jumlah yang tersedia!'], 400);
-            }
-    
             SuratJalanItem::create([
-                'surat_jalan_id' => $suratJalan->id,
-                'transaksi_item_id' => $item['transaksi_item_id'],
-                'qty_dibawa' => $item['qty_dibawa'],
+                'no_suratjalan' => $suratJalan->no_suratjalan,
+                'transaksi_id' => $item['transaksi_id'],
+                'kode_barang' => $item['kode_barang'],
+                'nama_barang' => $item['nama_barang'],
+                'qty' => $item['qty']
             ]);
         }
     
-        return response()->json(['success' => true, 'message' => 'Surat Jalan berhasil disimpan!', 'id' => $suratJalan->id]);
+        return response()->json([
+            'message' => 'Surat Jalan berhasil disimpan!', 
+            'id' => $suratJalan->id,
+            'no_suratjalan'=> $suratJalan->no_suratjalan,
+            'no_transaksi' => $suratJalan->no_transaksi,
+            'tanggal' => $suratJalan->tanggal,
+            'kode_customer' => $suratJalan->kode_customer,
+            'alamat_suratjalan' => $suratJalan->alamat_suratjalan,
+            'grand_total' => $request->grand_total ?? 0
+        ]);
+
     }
 
     public function history()

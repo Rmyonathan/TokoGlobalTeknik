@@ -5,8 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SuratJalan extends Model
-{
+class SuratJalan extends Model{
     use HasFactory;
 
     protected $table = 'surat_jalan';
@@ -14,35 +13,26 @@ class SuratJalan extends Model
     protected $fillable = [
         'no_suratjalan',
         'tanggal',
-        'customer_id',
-        'alamat',
+        'kode_customer',
         'alamat_suratjalan',
         'no_transaksi',
         'tanggal_transaksi',
+        'titipan_uang',
+        'sisa_piutang'
     ];
 
     public function items()
     {
-        return $this->hasMany(SuratJalanItem::class, 'surat_jalan_id');
+        return $this->hasMany(SuratJalanItem::class, 'no_suratjalan', 'no_suratjalan');
     }
 
     public function customer()
     {
-        return $this->belongsTo(Customer::class, 'customer_id');
+        return $this->belongsTo(Customer::class, 'kode_customer', 'kode_customer');
     }
 
     public function transaksi()
     {
         return $this->belongsTo(Transaksi::class, 'no_transaksi', 'no_transaksi');
-    }
-
-    public function getStatusBarangAttribute()
-    {
-        $totalQty = $this->items->sum(function ($item) {
-            return $item->transaksiItem->qty;
-        });
-        $totalDibawa = $this->items->sum('qty_dibawa');
-
-        return $totalDibawa >= $totalQty ? 'Selesai' : 'Belum Selesai';
     }
 }

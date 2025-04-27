@@ -184,6 +184,8 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
     Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
     Route::get('/api/transaksi', [TransaksiController::class, 'getTransaksi'])->name('api.transaksi');
+    Route::get('/api/searchfaktur', [TransaksiController::class,'getTransaksiByCustomer'])->name('api.faktur.search');
+    Route::get('/api/suratjalan/transaksiitem/{transaksiId}', [TransaksiController::class, 'getRincianTransaksi'])->name('api.rinciantransaksi');
     Route::get('/api/transaksi/items/{transaksiId}', [TransaksiController::class, 'getTransaksiItems'])->name('api.transaksi.items');
 
     // Surat Jalan
