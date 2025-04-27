@@ -441,7 +441,7 @@
                             <!-- Di sini Dropdown Transaksi Penjualan -->
                             <li class='nav-item'>
                                 <a class="nav-link" data-toggle="collapse" href="#penjualan" role="button" aria-expanded="false" aria-controls="transaksipenjualan">
-                                    <i class="fas fa-cogs"></i> Transaksi Penjualan
+                                    <i class="fas fa-cogs"></i> Penjualan
                                     <i class="fas fa-chevron-down ml-auto"></i>
                                 </a>
                                 <div class="collapse bg-dark border-0" id="penjualan">
