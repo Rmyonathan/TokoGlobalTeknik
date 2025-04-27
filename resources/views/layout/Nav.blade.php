@@ -411,11 +411,9 @@
                         <ul class="nav flex-column ml-3">
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('panels.inventory') }}"><i class="fas fa-cut"></i> Inventory</a>
-                                <a class="nav-link" href="<?php echo e(route('panels.inventory')); ?>"><i class="fas fa-cut"></i> Panel Management</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('master.barang') }}"><i class="fas fa-layer-group"></i> Display Barang</a>
-                                <a class="nav-link" href="<?php echo e(route('master.barang')); ?>"><i class="fas fa-layer-group"></i> Barang</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('customers.index')); ?>"><i class="fas fa-users"></i> Customers</a>
@@ -443,7 +441,7 @@
                             <!-- Di sini Dropdown Transaksi Penjualan -->
                             <li class='nav-item'>
                                 <a class="nav-link" data-toggle="collapse" href="#penjualan" role="button" aria-expanded="false" aria-controls="transaksipenjualan">
-                                    <i class="fas fa-cogs"></i> Transaksi Penjualan
+                                    <i class="fas fa-cogs"></i> Penjualan
                                     <i class="fas fa-chevron-down ml-auto"></i>
                                 </a>
                                 <div class="collapse bg-dark border-0" id="penjualan">
@@ -456,7 +454,10 @@
                                         <a class="nav-link" href="<?php echo e(route('transaksi.displaypenjualan')); ?>"><i class="fas fa-clock-rotate-left"></i> Display Penjualan</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="<?php echo e(route('transaksi.datapenjualanpercustomer')); ?>"><i class="fas fa-file-invoice-dollar mr-2"></i>Data Penjualan Per Customer</a>
+                                            <a class="nav-link" href="{{ route('transaksi.datapenjualanpercustomer') }}"><i class="fas fa-file-invoice-dollar mr-2"></i>Data Penjualan Per Customer</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-file-invoice"></i> Lihat Nota Penjualan</a>
                                         </li>
                                     </ul>
                                 </div>
@@ -471,7 +472,6 @@
                                     <ul class="nav flex-column ml-3">
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembelian.index') }}"><i class="fas fa-circle-plus"></i> Tambah Pembelian</a>
-                                            <a class="nav-link" href="<?php echo e(route('pembelian.form')); ?>"><i class="fas fa-circle-plus"></i> Tambah Pembelian</a>
                                         </li>
                                         <li class="nav-item">
                                         <a class="nav-link" href="<?php echo e(route('pembelian.historypembelian')); ?>"><i class="fas fa-clock-rotate-left"></i> History Pembelian</a>
@@ -485,9 +485,7 @@
                             </li>
                             <!-- Lihat Nota Transaksi -->
                             
-                            <li class="nav-item">
-                                <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-file-invoice"></i> Lihat Nota Penjualan</a>
-                            </li>
+                           
                         </ul>
                     </div>
                 </li>
