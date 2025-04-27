@@ -1,5 +1,7 @@
 /vendor
 /node_modules
+/composer.lock
+/composer.json
 /.env
 /.idea
 /.vscode
