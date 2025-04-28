@@ -23,7 +23,6 @@
                 <th>Customer</th>
                 <th>Alamat</th>
                 <th>No Faktur</th>
-                <th>Status Barang</th>
                 <th>Aksi</th>
             </tr>
         </thead>
@@ -34,34 +33,20 @@
                     <td>{{ $sj->no_suratjalan }}</td>
                     <td>{{ $sj->tanggal }}</td>
                     <td>{{ $sj->customer->nama }}</td>
-                    <td>{{ $sj->alamat }}</td>
+                    <td>{{ $sj->alamat_suratjalan }}</td>
                     <td>{{ $sj->no_transaksi }}</td>
-                    <td>
-                        @if ($sj->status_barang === 'Selesai')
-                            <span class="badge bg-success">Selesai</span>
-                        @else
-                            <span class="badge bg-warning text-dark">Belum Selesai</span>
-                        @endif
-                    </td>
                     <td>
                         <a href="{{ route('suratjalan.detail', $sj->id) }}" class="btn btn-info btn-sm">
                             <i class="fas fa-eye"></i> Detail
                         </a>
                         <a href="{{ route('suratjalan.detail', $sj->id) }}" class="btn btn-primary btn-sm" target="_blank">
                             <i class="fas fa-print"></i> Print
-                        </a>
-                        @if ($sj->items->sum('qty_dibawa') < $sj->transaksi->items->sum('qty'))
-                            <a href="{{ route('suratjalan.create') }}?no_transaksi={{ $sj->no_transaksi }}" class="btn btn-warning btn-sm">
-                                <i class="fas fa-truck"></i> Bawa Barang
-                            </a>
-                        @endif
                     </td>
                 </tr>
             @endforeach
         </tbody>
     </table>
     <div class="d-flex justify-content-center">
-        {{ $suratJalan->links() }}
     </div>
 </div>
 @endsection

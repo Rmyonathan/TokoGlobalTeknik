@@ -46,6 +46,7 @@
         JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008<br>
         8 ILIR, ILIR TIMUR II<br>
         TELP. (0711) 311158 &nbsp;&nbsp; FAX (0711) 311158<br>
+        NO SURAT JALAN: {{ $suratJalan->no_suratjalan }}<br>
         NO FAKTUR: {{ $suratJalan->no_transaksi }}
     </div>
 

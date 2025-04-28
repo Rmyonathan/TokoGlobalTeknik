@@ -26,7 +26,7 @@ class CreateSuratJalanTable extends Migration
 
         Schema::create('surat_jalan_items', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('no_suratjalan');
+            $table->string('no_suratjalan');
             $table->unsignedBigInteger('transaksi_id');
             $table->timestamps();
 

@@ -76,16 +76,6 @@ class SuratJalanController extends Controller
     public function history()
     {
         $suratJalan = SuratJalan::with('customer', 'items.transaksiItem')->get();
-
-        foreach ($suratJalan as $sj) {
-            $totalQty = $sj->items->sum(function ($item) {
-                return $item->transaksiItem->qty;
-            });
-            $totalDibawa = $sj->items->sum('qty_dibawa');
-
-            $sj->status_barang = $totalDibawa >= $totalQty ? 'Selesai' : 'Belum Selesai';
-        }
-
         return view('suratjalan.historysuratjalan', compact('suratJalan'));
     }
 
