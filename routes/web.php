@@ -160,7 +160,8 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
     Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
-
+    Route::get('/api/suppliers/search', [SupplierController::class, 'search'])->name('api.suppliers.search');
+    
     // Display Transaksi Penjualan
     Route::get('transaksi.penjualan', function () {
         return view('transaksi.displaypenjualan');
