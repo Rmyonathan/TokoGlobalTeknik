@@ -427,6 +427,9 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('cara_bayar.form')); ?>"><i class="fas fa-file-invoice-dollar"></i> Master Cara Bayar</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?php echo e(route('master.mutasistokbarang')); ?>"><i class="fas fa-file-invoice-dollar"></i> Mutasi Stok Barang</a>
+                            </li>
                         </ul>
                     </div>
                 </li>
