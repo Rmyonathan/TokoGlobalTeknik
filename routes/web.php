@@ -121,6 +121,11 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/panels/delete/{id}', [PanelController::class, 'deleteInventory'])
     ->name('panels.delete-inventory');
 
+    //ROute edit and delete kode barang -yoyo
+    Route::get('/code/edit/{id}', [KodeBarangController::class, 'edit'])->name('code.edit');
+    Route::put('/code/update/{id}', [KodeBarangController::class, 'update'])->name('code.update');
+    Route::delete('/code/delete/{id}', [KodeBarangController::class, 'destroy'])->name('code.delete');
+
     // Route::get('/master/barang', function () {
     //     return view('master.barang');
     // })->name('master.barang');

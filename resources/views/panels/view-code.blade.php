@@ -9,6 +9,15 @@
         </a>
     </div>
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
+
     <div class="card">
         <div class="card-body">
             @if(isset($codes) && count($codes) > 0)
@@ -30,12 +39,10 @@
                                     <td style="border: 1px solid #000;">{{ number_format($code->length, 2) }}</td>
                                     <td style="border: 1px solid #000;">
                                         <div class="btn-group" role="group">
-                                            {{-- <a href="{{ route('code.edit', $code->id) }}" class="btn btn-sm btn-success"> --}}
-                                            <a href="#" class="btn btn-sm btn-success">
+                                            <a href="{{ route('code.edit', $code->id) }}" class="btn btn-sm btn-success">
                                                 <i class="fas fa-edit"></i> Edit
                                             </a>
-                                            {{-- <form action="{{ route('code.delete', $code->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus kode ini?');"> --}}
-                                            <form action="#" method="POST" onsubmit="return confirm('Yakin ingin menghapus kode ini?');">
+                                            <form action="{{ route('code.delete', $code->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus kode ini?');">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-danger">
@@ -72,6 +79,12 @@
 
     .table-bordered {
         border: 2px solid #000;
+    }
+    
+    /* Fix button group alignment */
+    .btn-group form {
+        display: inline-block;
+        margin-left: 5px;
     }
 </style>
 @endsection
