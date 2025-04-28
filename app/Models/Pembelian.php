@@ -24,7 +24,9 @@ class Pembelian extends Model
     protected $fillable = [
         'nota',
         'tanggal',
-        'supplier',
+        'kode_supplier',
+        'cabang',
+        'pembayaran',
         'cara_bayar',
         'subtotal',
         'diskon',
@@ -50,11 +52,14 @@ class Pembelian extends Model
      */
     public function supplierRelation()
     {
-        return $this->belongsTo(Supplier::class, 'supplier', 'kode_supplier');
+        return $this->belongsTo(Supplier::class, 'kode_supplier', 'kode_supplier');
     }
 
     /**
      * Get the items for the purchase.
      */
-  
+    public function items()
+    {
+        return $this->hasMany(PembelianItem::class, 'nota', 'nota');
+    }
 }

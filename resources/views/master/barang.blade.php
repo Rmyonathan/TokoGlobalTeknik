@@ -90,15 +90,21 @@
                                         <td>{{ number_format($item['length'] * $item['quantity'], 2) }}</td>
                                         <td style="border: 1px solid #000;">
                                             <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-success" disabled>
-                                                    <i class="fas fa-edit"></i> Edit
-                                                </button>
-                                                <button class="btn btn-sm btn-danger" disabled>
-                                                    <i class="fas fa-trash"></i> Hapus
-                                                </button>
-                                                <button class="btn btn-sm btn-secondary" disabled>
+                                                <form action="{{ route('panels.edit-inventory', ['id' => $item['group_id']]) }}" method="GET" enctype="multipart/form-data">
+                                                    @csrf
+                                                    <button class="btn btn-sm btn-success">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </button>
+                                                </form>
+                                                <form action="{{ route('panels.delete-inventory', ['id' => $item['group_id']]) }}" method="POST" enctype="multipart/form-data">
+                                                    @csrf
+                                                    <button class="btn btn-sm btn-danger">
+                                                        <i class="fas fa-trash"></i> Hapus
+                                                    </button>
+                                                </form>
+                                                {{-- <button class="btn btn-sm btn-secondary" disabled>
                                                     <i class="fas fa-tools"></i> Servis
-                                                </button>
+                                                </button> --}}
                                             </div>
                                         </td>
                                     </tr>

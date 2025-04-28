@@ -16,6 +16,7 @@ use App\Http\Controllers\StokOwnerController;
 use App\Http\Controllers\SuratJalanController;
 use App\Http\Controllers\SuratJalanItemController;
 
+use App\Http\Controllers\PembelianController;
 use App\Models\StokOwner;
 use App\Models\Supplier;
 use App\Models\Bookings;
@@ -97,10 +98,16 @@ Route::middleware(['web', 'role'])->group(function () {
     // Add to Inventory Form
     Route::get('/panels/add', [PanelController::class, 'createInventory'])
     ->name('panels.create-inventory');
+    Route::get('/panels/edit/{id}', [PanelController::class, 'editInventory'])
+    ->name('panels.edit-inventory');
 
     // Store New Inventory
     Route::post('/panels/add', [PanelController::class, 'storeInventory'])
     ->name('panels.store-inventory');
+    Route::post('/panels/edit', [PanelController::class, 'updateInventory'])
+    ->name('panels.update-inventory');
+    Route::post('/panels/delete/{id}', [PanelController::class, 'deleteInventory'])
+    ->name('panels.delete-inventory');
 
     // Route::get('/master/barang', function () {
     //     return view('master.barang');
@@ -132,6 +139,12 @@ Route::middleware(['web', 'role'])->group(function () {
     // Penjualan Per Customer
     Route::get('/transaksi/datapenjualanpercustomer', [TransaksiController::class, 'datapenjualanpercustomer'])->name('transaksi.datapenjualanpercustomer');
 
+
+    Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
+    Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
+    Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
+    Route::get('/api/suppliers/search', [SupplierController::class, 'search'])->name('api.suppliers.search');
+    
     // Display Transaksi Penjualan
     Route::get('transaksi.penjualan', function () {
         return view('transaksi.displaypenjualan');
@@ -195,6 +208,21 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::get('/history', [SuratJalanController::class, 'history'])->name('suratjalan.history');
         Route::get('/detail/{id}', [SuratJalanController::class, 'detail'])->name('suratjalan.detail');
     });
+
+    
+    // Main transaction page pembelian
+    Route::get('/pembelian', [PembelianController::class, 'index'])->name('pembelian.index');
+    Route::post('/pembelian/store', [PembelianController::class, 'store'])->name('pembelian.store'); // Store transaction
+    Route::get('/pembelian/{id}', [PembelianController::class, 'getPurchase'])->name('pembelian.get');// Get transaction data
+    // Show invoice pembelian
+    Route::get('/pembelian/lihatnota/{id}', [PembelianController::class, 'showNota'])->name('pembelian.nota.show');
+    Route::get('/pembelian/nota/{nota}', [PembelianController::class, 'nota'])->name('pembelian.nota');// View nota by nota number
+    Route::get('/pembelian/lihat/nota', [PembelianController::class, 'listNota'])->name('pembelian.nota.list');  // List all nota
+
+    // New routes for edit and delete
+    Route::get('/edit/{id}', [PembelianController::class, 'edit'])->name('pembelian.edit');
+    Route::post('/update/{id}', [PembelianController::class, 'update'])->name('pembelian.update');
+    Route::delete('/delete/{id}', [PembelianController::class, 'destroy'])->name('pembelian.delete');
 
 });
 

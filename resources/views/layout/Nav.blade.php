@@ -432,11 +432,14 @@
                                 <div class="collapse bg-dark border-0" id="pembelian">
                                     <ul class="nav flex-column ml-3">
                                         <li class="nav-item">
-                                            <a class="nav-link" href="{{ route('pembelian.form') }}"><i class="fas fa-circle-plus"></i> Tambah Pembelian</a>
+                                            <a class="nav-link" href="{{ route('pembelian.index') }}"><i class="fas fa-circle-plus"></i> Tambah Pembelian</a>
                                         </li>
                                         <li class="nav-item">
                                         <a class="nav-link" href="{{ route('pembelian.historypembelian') }}"><i class="fas fa-clock-rotate-left"></i> History Pembelian</a>
                                         </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-clock-rotate-left"></i> List Nota Pembelian</a>
+                                            </li>
                                     </ul>
                                 </div>
                             </li>
