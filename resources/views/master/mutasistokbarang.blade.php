@@ -16,9 +16,9 @@
                     ['so' => 'ALUMKA', 'kode_barang' => 'ID5,5W', 'nama' => 'ALDERON ID 860 WHITE 550 CM', 'good_stock' => 0.00, 'satuan' => 'LBR', 'bad_stock' => 0],
                     ['so' => 'ALUMKA', 'kode_barang' => 'ID5B', 'nama' => 'ALDERON ID 860 BLUE 500 CM', 'good_stock' => 30.00, 'satuan' => 'LBR', 'bad_stock' => 0],
                     ['so' => 'LAMPUNG', 'kode_barang' => 'ID5B', 'nama' => 'ALDERON ID 860 BLUE 500 CM', 'good_stock' => 13.00, 'satuan' => 'LBR', 'bad_stock' => 0],
-                    ['so' => 'ALUMKA', 'kode_barang' => 'ID5G', 'nama' => 'ALDERON ID 860 GREY 600 CM', 'good_stock' => 127.00, 'satuan' => 'LBR', 'bad_stock' => 0],
+                    ['so' => 'ALUMKA', 'kode_barang' => 'ID5G', 'nama' => 'ALDERON ID 860 GREY 500 CM', 'good_stock' => 127.00, 'satuan' => 'LBR', 'bad_stock' => 0],
                     ['so' => 'ALUMKA', 'kode_barang' => 'ID5M', 'nama' => 'ALDERON ID 830 ASA MAROON 530 CM', 'good_stock' => 0.00, 'satuan' => 'LBR', 'bad_stock' => 0],
-                    ['so' => 'ALUMKA', 'kode_barang' => 'ID5W', 'nama' => 'ALDERON ID 860 WHITE 700 CM', 'good_stock' => 5.00, 'satuan' => 'LBR', 'bad_stock' => 0],
+                    ['so' => 'ALUMKA', 'kode_barang' => 'ID5W', 'nama' => 'ALDERON ID 860 WHITE 500 CM', 'good_stock' => 5.00, 'satuan' => 'LBR', 'bad_stock' => 0],
                     ['so' => 'LAMPUNG', 'kode_barang' => 'ID5W', 'nama' => 'ALDERON ID 860 WHITE 300 CM', 'good_stock' => 2.00, 'satuan' => 'LBR', 'bad_stock' => 0],
                 ];
             @endphp

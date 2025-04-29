@@ -13,9 +13,11 @@ return new class extends Migration
     {
         Schema::create('panels', function (Blueprint $table) {
             $table->id();
+            // $table->string('group_id')->nullable();
             $table->string('group_id')->nullable();
             $table->string('name');
             $table->decimal('length', 8, 2); // Length in meters with 2 decimal precision
+            $table->decimal('cost', 8, 2);
             $table->decimal('price', 8, 2);
             $table->boolean('available')->default(true);
             $table->unsignedBigInteger('parent_panel_id')->nullable(); // For tracking cut panels
@@ -23,6 +25,11 @@ return new class extends Migration
 
             $table->foreign('parent_panel_id')->references('id')->on('panels')
                 ->onDelete('set null');
+            $table->foreign('group_id') // Kolom di tabel transaksi
+                ->references('kode_barang') // Kolom di tabel stok_owners
+                ->on('kode_barangs')
+                ->onDelete('set null') // Hapus transaksi jika stok owner dihapus
+                ->onUpdate('cascade'); // Update foreign key jika stok owner diubah
         });
     }
 

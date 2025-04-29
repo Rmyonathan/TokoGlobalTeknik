@@ -22,6 +22,7 @@ class TransaksiItem extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'transaksi_id',
         'no_transaksi',
         'kode_barang',
         'nama_barang',
@@ -41,4 +42,15 @@ class TransaksiItem extends Model
     {
         return $this->belongsTo(Transaksi::class, 'no_transaksi', 'no_transaksi');
     }
+
+    public function itemsTransaksiId(){
+        return $this->belongsTo(Transaksi::class, 'transaksi_id', 'id');
+    }
+
+    public function suratJalanItems()
+    {
+        return $this->hasMany(SuratJalanItem::class, 'transaksi_item_id', 'id');
+    }
+
 }
+

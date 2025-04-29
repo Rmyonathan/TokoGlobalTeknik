@@ -13,13 +13,20 @@ use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\StokOwnerController;
+use App\Http\Controllers\SuratJalanController;
+use App\Http\Controllers\SuratJalanItemController;
+
 use App\Http\Controllers\PembelianController;
+use App\Http\Controllers\KodeBarangController;
 use App\Models\StokOwner;
 use App\Models\Supplier;
 use App\Models\Bookings;
 use App\Models\Logistics;
 use App\Models\Transactions;
 use App\Models\Customer;
+use App\Models\KodeBarang;
+use App\Models\Pembelian;
+use App\Models\Transaksi;
 
 Route::middleware(['web'])->group(function () {
 
@@ -95,22 +102,43 @@ Route::middleware(['web', 'role'])->group(function () {
     // Add to Inventory Form
     Route::get('/panels/add', [PanelController::class, 'createInventory'])
     ->name('panels.create-inventory');
+    Route::get('/kode_barang/add', [KodeBarangController::class, 'createCode'])
+    ->name('code.create-code');
+
+    Route::get('/kode_barang/view', [KodeBarangController::class, 'viewCode'])
+    ->name('code.view-code');
+
     Route::get('/panels/edit/{id}', [PanelController::class, 'editInventory'])
     ->name('panels.edit-inventory');
 
     // Store New Inventory
     Route::post('/panels/add', [PanelController::class, 'storeInventory'])
     ->name('panels.store-inventory');
+
+    Route::post('/kode_barang/add', [KodeBarangController::class, 'storeCode'])
+    ->name('code.store-code');
+
     Route::post('/panels/edit', [PanelController::class, 'updateInventory'])
     ->name('panels.update-inventory');
     Route::post('/panels/delete/{id}', [PanelController::class, 'deleteInventory'])
     ->name('panels.delete-inventory');
+
+    //ROute edit and delete kode barang -yoyo
+    Route::get('/code/edit/{id}', [KodeBarangController::class, 'edit'])->name('code.edit');
+    Route::put('/code/update/{id}', [KodeBarangController::class, 'update'])->name('code.update');
+    Route::delete('/code/delete/{id}', [KodeBarangController::class, 'destroy'])->name('code.delete');
 
     // Route::get('/master/barang', function () {
     //     return view('master.barang');
     // })->name('master.barang');
 
     Route::get('/master/barang', [PanelController::class, 'viewBarang'])->name('master.barang');
+
+    // Mutasi Stok Barang
+    Route::get('master.mutasistokbarang', function () {
+        return view('master.mutasistokbarang');
+        })->name('master.mutasistokbarang');
+
 
     Route::get('master/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::post('master/customers', [CustomerController::class, 'store'])->name('customers.store');
@@ -141,8 +169,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
     Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
-    Route::get('/api/suppliers/search', [SupplierController::class, 'search'])->name('api.suppliers.search');
-    
+
     // Display Transaksi Penjualan
     Route::get('transaksi.penjualan', function () {
         return view('transaksi.displaypenjualan');
@@ -188,6 +215,23 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::get('/products/search', [TransaksiController::class, 'searchProducts'])->name('api.products.search');
         Route::get('/customers/search', [TransaksiController::class, 'searchCustomers'])->name('api.customers.search');
         Route::post('/customers/create', [TransaksiController::class, 'createCustomer'])->name('api.customers.create');
+    });
+    
+    Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
+    Route::get('/api/customers', [CustomerController::class, 'searchsuratjalan'])->name('api.customers');
+    Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
+    Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
+    Route::get('/api/transaksi', [TransaksiController::class, 'getTransaksi'])->name('api.transaksi');
+    Route::get('/api/searchfaktur', [TransaksiController::class,'getTransaksiByCustomer'])->name('api.faktur.search');
+    Route::get('/api/suratjalan/transaksiitem/{transaksiId}', [TransaksiController::class, 'getRincianTransaksi'])->name('api.rinciantransaksi');
+    Route::get('/api/transaksi/items/{transaksiId}', [TransaksiController::class, 'getTransaksiItems'])->name('api.transaksi.items');
+
+    // Surat Jalan
+    Route::prefix('suratjalan')->group(function () {
+        Route::get('/create', [SuratJalanController::class, 'create'])->name('suratjalan.create');
+        Route::post('/store', [SuratJalanController::class, 'store'])->name('suratjalan.store');
+        Route::get('/history', [SuratJalanController::class, 'history'])->name('suratjalan.history');
+        Route::get('/detail/{id}', [SuratJalanController::class, 'detail'])->name('suratjalan.detail');
     });
 
     
