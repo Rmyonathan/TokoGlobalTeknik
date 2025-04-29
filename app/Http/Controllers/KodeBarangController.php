@@ -79,24 +79,72 @@ class KodeBarangController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(KodeBarang $kodeBarang)
+   /**
+ * Show the form for editing the specified resource.
+ */
+    public function edit($id)
     {
-        //
+        $viewPath = resource_path('views/panels/edit-code.blade.php');
+        if (file_exists($viewPath)) {
+            $code = KodeBarang::findOrFail($id);
+            return view('panels.edit-code', compact('code'));
+        } else {
+            return "View file does not exist at: " . $viewPath;
+        }
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateKodeBarangRequest $request, KodeBarang $kodeBarang)
+    public function update(Request $request, $id)
     {
-        //
+        // Validate the request
+        $validated = $request->validate([
+            'attribute' => 'required|string|max:255',
+            'kode_barang' => 'required|string|max:255',
+            'length' => 'required|numeric|min:0.1',
+        ], [
+            'kode_barang.required' => 'Item code is required',
+            'kode_barang.string' => 'Item code must be a valid string',
+            'kode_barang.max' => 'Item code may not be greater than 255 characters',
+
+            'attribute.required' => 'Panel name is required',
+            'attribute.string' => 'Panel name must be a valid string',
+            'attribute.max' => 'Panel name may not be greater than 255 characters',
+
+            'length.required' => 'Panel length is required',
+            'length.numeric' => 'Panel length must be a number',
+            'length.min' => 'Panel length must be at least 0.1 meters',
+        ]);
+
+        $code = KodeBarang::findOrFail($id);
+        $code->update($validated);
+
+        return redirect()->route('code.view-code')
+            ->with('success', "Successfully updated code!");
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(KodeBarang $kodeBarang)
+    public function destroy($id)
     {
-        //
+        $code = KodeBarang::findOrFail($id);
+        $code->delete();
+
+        return redirect()->route('code.view-code')
+            ->with('success', "Successfully deleted code!");
+    }
+    
+    public function searchKodeBarang(Request $request)
+    {
+        $keyword = $request->input('keyword');
+        
+        $kodeBarang = KodeBarang::where('kode_barang', 'like', "%{$keyword}%")
+            ->orWhere('attribute', 'like', "%{$keyword}%")
+            ->limit(10)
+            ->get();
+        
+        return response()->json($kodeBarang);
     }
 }

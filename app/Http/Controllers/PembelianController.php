@@ -10,6 +10,13 @@ use App\Models\Supplier;
 
 class PembelianController extends Controller
 {
+    protected $stockController;
+
+    public function __construct(StockController $stockController)
+    {
+        $this->stockController = $stockController;
+    }
+
     /**
      * Display the purchase transaction form.
      */
@@ -57,12 +64,16 @@ class PembelianController extends Controller
         try {
             DB::beginTransaction();
             
-            // Create purchase - FIXED THE COLUMN NAME HERE
+            // Get supplier name for stock mutation record
+            $supplier = Supplier::where('kode_supplier', $request->kode_supplier)->first();
+            $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
+            
+            // Create purchase
             $pembelian = Pembelian::create([
                 'nota' => $request->nota,
                 'tanggal' => $request->tanggal,
                 'kode_supplier' => $request->kode_supplier,
-                'cabang' => $request->cabang, // Make sure this is included
+                'cabang' => $request->cabang,
                 'pembayaran' => $request->pembayaran ?? 'Tunai',
                 'cara_bayar' => $request->cara_bayar,
                 'subtotal' => $request->subtotal,
@@ -71,10 +82,19 @@ class PembelianController extends Controller
                 'grand_total' => $request->grand_total,
             ]);
             
-            // Create purchase items
+            // Get creator name from request or default to 'ADMIN'
+            $creator = $request->created_by ?? 'ADMIN';
+            
+            // Format transaction number for mutation record
+            $noTransaksi = "BL-" . date('m/y', strtotime($request->tanggal)) . "-" . 
+                           substr($request->nota, strrpos($request->nota, '-') + 1) . 
+                           " ({$creator})";
+            
+            // Create purchase items and update stock mutation
             foreach ($request->items as $item) {
+                // Create purchase item
                 PembelianItem::create([
-                    'nota' => $request->nota, // Gunakan nota sebagai foreign key
+                    'nota' => $request->nota,
                     'kode_barang' => $item['kodeBarang'],
                     'nama_barang' => $item['namaBarang'],
                     'keterangan' => $item['keterangan'] ?? null,
@@ -83,6 +103,19 @@ class PembelianController extends Controller
                     'diskon' => $item['diskon'] ?? 0,
                     'total' => $item['total'],
                 ]);
+                
+                // Record purchase in stock mutation (just for reporting - doesn't affect panel inventory)
+                $this->stockController->recordPurchase(
+                    $item['kodeBarang'],
+                    $item['namaBarang'],
+                    $noTransaksi,
+                    $request->tanggal,
+                    $request->nota,
+                    $supplierName . ' (' . $request->kode_supplier . ')',
+                    $item['qty'],
+                    $request->cabang,
+                    'LBR'
+                );
             }
             
             DB::commit();
@@ -193,6 +226,36 @@ class PembelianController extends Controller
             $pembelian = Pembelian::findOrFail($id);
             $nota = $pembelian->nota; // Keep the original nota
             
+            // Get supplier name for stock mutation record
+            $supplier = Supplier::where('kode_supplier', $request->kode_supplier)->first();
+            $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
+            
+            // Get creator name from request or default to 'ADMIN'
+            $creator = $request->updated_by ?? 'ADMIN';
+            
+            // Format transaction number for mutation record
+            $noTransaksi = "BL-" . date('m/y', strtotime($request->tanggal)) . "-" . 
+                           substr($nota, strrpos($nota, '-') + 1) . 
+                           " ({$creator}) [UPDATED]";
+            
+            // First, reverse all previous stock movements from this purchase
+            // Get the original items
+            $originalItems = PembelianItem::where('nota', $nota)->get();
+            foreach ($originalItems as $item) {
+                // Record sale to reverse the original purchase in stock mutation
+                $this->stockController->recordSale(
+                    $item->kode_barang,
+                    $item->nama_barang,
+                    $noTransaksi,
+                    now(), // Use current date/time for the reversal
+                    $nota . ' (reversal)',
+                    $supplierName . ' (' . $request->kode_supplier . ')',
+                    $item->qty, // Same quantity as purchase, but as a "sale" to reduce stock
+                    $pembelian->cabang,
+                    'LBR'
+                );
+            }
+            
             // Update purchase
             $pembelian->update([
                 'tanggal' => $request->tanggal,
@@ -209,7 +272,7 @@ class PembelianController extends Controller
             // Delete all existing items
             PembelianItem::where('nota', $nota)->delete();
             
-            // Create new purchase items
+            // Create new purchase items and stock movements
             foreach ($request->items as $item) {
                 PembelianItem::create([
                     'nota' => $nota,
@@ -221,6 +284,19 @@ class PembelianController extends Controller
                     'diskon' => $item['diskon'] ?? 0,
                     'total' => $item['total'],
                 ]);
+                
+                // Record new purchase in stock mutation
+                $this->stockController->recordPurchase(
+                    $item['kodeBarang'],
+                    $item['namaBarang'],
+                    $noTransaksi,
+                    $request->tanggal,
+                    $nota . ' (updated)',
+                    $supplierName . ' (' . $request->kode_supplier . ')',
+                    $item['qty'],
+                    $request->cabang,
+                    'LBR'
+                );
             }
             
             DB::commit();
@@ -252,6 +328,36 @@ class PembelianController extends Controller
             // Find purchase
             $pembelian = Pembelian::findOrFail($id);
             $nota = $pembelian->nota;
+            
+            // Get supplier name for stock mutation record
+            $supplier = $pembelian->supplierRelation;
+            $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
+            
+            // Get creator name or default to 'ADMIN'
+            $creator = 'ADMIN';
+            
+// Format transaction number for deletion record
+            $noTransaksi = "BL-" . date('m/y', strtotime($pembelian->tanggal)) . "-" . 
+              substr($nota, strrpos($nota, '-') + 1) . 
+              " ({$creator}) [DELETED]";
+            
+            // Get the items to reverse stock movements
+            $items = PembelianItem::where('nota', $nota)->get();
+            
+            foreach ($items as $item) {
+                // Record sale to reverse the purchase in stock mutation
+                $this->stockController->recordSale(
+                    $item->kode_barang,
+                    $item->nama_barang,
+                    $noTransaksi,
+                    now(), // Use current date/time for the deletion
+                    $nota . ' (deleted)',
+                    $supplierName . ' (' . $pembelian->kode_supplier . ')',
+                    $item->qty, // Same quantity as purchase, but as a "sale" to reduce stock
+                    $pembelian->cabang,
+                    'LBR'
+                );
+            }
             
             // Delete all related items first
             PembelianItem::where('nota', $nota)->delete();

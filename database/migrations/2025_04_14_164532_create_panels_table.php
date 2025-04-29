@@ -26,10 +26,10 @@ return new class extends Migration
             $table->foreign('parent_panel_id')->references('id')->on('panels')
                 ->onDelete('set null');
             $table->foreign('group_id') // Kolom di tabel transaksi
-            ->references('kode_barang') // Kolom di tabel stok_owners
-            ->on('kode_barangs')
-            ->onDelete('set null') // Hapus transaksi jika stok owner dihapus
-            ->onUpdate('cascade'); // Update foreign key jika stok owner diubah
+                ->references('kode_barang') // Kolom di tabel stok_owners
+                ->on('kode_barangs')
+                ->onDelete('set null') // Hapus transaksi jika stok owner dihapus
+                ->onUpdate('cascade'); // Update foreign key jika stok owner diubah
         });
     }
 
