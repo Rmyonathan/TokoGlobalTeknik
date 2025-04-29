@@ -135,4 +135,16 @@ class KodeBarangController extends Controller
         return redirect()->route('code.view-code')
             ->with('success', "Successfully deleted code!");
     }
+    
+    public function searchKodeBarang(Request $request)
+    {
+        $keyword = $request->input('keyword');
+        
+        $kodeBarang = KodeBarang::where('kode_barang', 'like', "%{$keyword}%")
+            ->orWhere('attribute', 'like', "%{$keyword}%")
+            ->limit(10)
+            ->get();
+        
+        return response()->json($kodeBarang);
+    }
 }

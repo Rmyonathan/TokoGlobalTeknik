@@ -10,6 +10,8 @@ use App\Models\Customer;
 use App\Models\Panel;
 use App\Models\SuratJalanItem;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
+
 
 class TransaksiController extends Controller
 {
@@ -255,7 +257,7 @@ class TransaksiController extends Controller
                 
                 return response()->json($transaksi);
             } catch (\Exception $e) {
-                \Log::error('Error in getTransaksi:', ['message' => $e->getMessage()]);
+                Log::error('Error in getTransaksi:', ['message' => $e->getMessage()]);
                 return response()->json(['error' => 'Internal Server Error'], 500);
             }
         }
@@ -304,7 +306,7 @@ class TransaksiController extends Controller
     
             return response()->json($transaksiItems);
         } catch (\Exception $e) {
-            \Log::error('Error in getTransaksiItems:', ['message' => $e->getMessage()]);
+            Log::error('Error in getTransaksiItems:', ['message' => $e->getMessage()]);
             return response()->json(['error' => 'Internal Server Error'], 500);
         }
     }

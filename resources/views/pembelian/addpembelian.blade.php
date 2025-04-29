@@ -235,16 +235,19 @@
                 <form id="addItemForm">
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="form-group">
+                            <!-- Updated kode_barang input group with dropdown and search button -->
+                            <div class="form-group position-relative">
                                 <label for="kode_barang">Kode Barang</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="kode_barang" name="kode_barang" required>
+                                    <input type="text" class="form-control" id="kode_barang" name="kode_barang" placeholder="Masukkan kode barang" autocomplete="off" required>
                                     <div class="input-group-append">
-                                        <button class="btn btn-outline-secondary" type="button" id="findItem">
+                                        <button class="btn btn-outline-secondary" type="button" id="findItem" data-toggle="modal" data-target="#kodeBarangSearchModal">
                                             <i class="fas fa-search"></i>
                                         </button>
                                     </div>
                                 </div>
+                                <!-- Autocomplete dropdown -->
+                                <div class="dropdown-menu" id="kodeBarangDropdown" style="display: none; max-height: 280px; overflow-y: auto; width: 100%;"></div>
                             </div>
                             
                             <div class="form-group">
@@ -358,6 +361,48 @@
     </div>
 </div>
 
+<!-- Modal for searching Kode Barang -->
+<div class="modal fade" id="kodeBarangSearchModal" tabindex="-1" role="dialog" aria-labelledby="kodeBarangSearchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="kodeBarangSearchModalLabel">Cari Kode Barang</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="searchKodeBarangInput" placeholder="Masukkan kode atau nama barang">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button" id="searchKodeBarangBtn">
+                            <i class="fas fa-search"></i> Cari
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Kode Barang</th>
+                                <th>Nama Barang</th>
+                                <th>Panjang</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kodeBarangSearchResults">
+                            <!-- Search results will be added here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -367,6 +412,7 @@
     window.supplierSearchUrl = "{{ route('api.suppliers.search') }}";
     window.storeTransactionUrl = "{{ route('pembelian.store') }}";
     window.printInvoiceUrl = "{{ url('pembelian/lihatnota') }}/";
+    window.kodeBarangSearchUrl = "{{ route('kodeBarang.search') }}";
     window.csrfToken = "{{ csrf_token() }}";
 </script>
 

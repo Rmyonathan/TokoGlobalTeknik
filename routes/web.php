@@ -18,6 +18,7 @@ use App\Http\Controllers\SuratJalanItemController;
 
 use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\KodeBarangController;
+use App\Http\Controllers\StockController;
 use App\Models\StokOwner;
 use App\Models\Supplier;
 use App\Models\Bookings;
@@ -225,6 +226,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/searchfaktur', [TransaksiController::class,'getTransaksiByCustomer'])->name('api.faktur.search');
     Route::get('/api/suratjalan/transaksiitem/{transaksiId}', [TransaksiController::class, 'getRincianTransaksi'])->name('api.rinciantransaksi');
     Route::get('/api/transaksi/items/{transaksiId}', [TransaksiController::class, 'getTransaksiItems'])->name('api.transaksi.items');
+    Route::get('/kode-barang/search', [KodeBarangController::class, 'searchKodeBarang'])->name('kodeBarang.search');
 
     // Surat Jalan
     Route::prefix('suratjalan')->group(function () {
@@ -248,6 +250,12 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/edit/{id}', [PembelianController::class, 'edit'])->name('pembelian.edit');
     Route::post('/update/{id}', [PembelianController::class, 'update'])->name('pembelian.update');
     Route::delete('/delete/{id}', [PembelianController::class, 'destroy'])->name('pembelian.delete');
+
+    // Stock Management Routes
+    Route::get('/stock/mutasi', [StockController::class, 'mutasiStock'])->name('stock.mutasi');
+    Route::get('/stock/print-good', [StockController::class, 'printGoodStock'])->name('stock.print.good');
+    Route::get('/stock/get', [StockController::class, 'getStock'])->name('stock.get');
+    Route::get('/stock/mutations', [StockController::class, 'getStockMutations'])->name('stock.mutations');
 
 });
 
