@@ -1,171 +1,135 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Surat Jalan</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
         @page {
-            margin: 15mm;
+            size: 8.5in 11in;
+            margin: 0.5in;
         }
         body {
             font-family: 'Arial', sans-serif;
-            font-size: 12px;
-            line-height: 1.5;
+            font-size: 11px;
+            line-height: 1.2;
             color: #333;
             margin: 0;
             padding: 0;
+            width: 100%;
         }
         .container {
             max-width: 100%;
+            margin: 0 auto;
             padding: 10px;
+        }
+        .header, .document-title, .info-section, table, .note-box, .delivery-info, .signature-section {
+            page-break-inside: avoid;
         }
         .header {
             text-align: center;
             border-bottom: 2px solid #2c3e50;
             padding-bottom: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         .header h1 {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 0 0 5px;
-            text-transform: uppercase;
-            color: #2c3e50;
+            font-size: 18px;
+            margin-bottom: 3px;
         }
         .header p {
-            margin: 3px 0;
-            font-size: 14px;
+            font-size: 12px;
+            margin: 2px 0;
         }
         .document-title {
             text-align: center;
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
-            margin: 15px 0;
-            background-color: #f8f9fa;
-            padding: 8px;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
+            margin: 10px 0;
         }
-        .document-title judul {
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .document-title p {
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .document-number {
-            background-color: #f8f9fa;
-            padding: 6px;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            margin: 10px auto;
-            width: 80%;
-            text-align: center;
-        }
-        .document-number p {
-            margin: 3px 0;
-            font-weight: bold;
+        .document-number p, .document-title p {
+            font-size: 12px;
+            margin: 2px 0;
         }
         .info-section {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         .info-box {
-            width: 30%;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
+            width: 32%;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 3px;
             background-color: #f8f9fa;
+            font-size: 11px;
         }
         .info-box h3 {
-            margin: 0 0 8px;
-            font-size: 12px;
-            border-bottom: 1px solid #dee2e6;
-            padding-bottom: 5px;
-            text-transform: uppercase;
+            font-size: 11px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #ccc;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 15px 0;
+            margin-top: 10px;
         }
-        table th {
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            font-size: 10px;
+        }
+        th {
             background-color: #2c3e50;
             color: #fff;
-            font-weight: bold;
             text-align: center;
-            padding: 8px;
-            font-size: 11px;
-            text-transform: uppercase;
         }
-        table td {
-            padding: 8px;
-            border: 1px solid #dee2e6;
-            font-size: 11px;
-        }
-        table tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
         .note-box {
-            margin: 15px 0;
-            padding: 10px;
-            border: 1px solid #6c757d;
+            font-size: 10px;
+            margin-top: 10px;
+            padding: 8px;
             background-color: #f8f9fa;
-            border-radius: 4px;
-            font-size: 11px;
-        }
-        .note-box h4 {
-            margin: 0 0 5px;
-            color: #495057;
-            font-size: 12px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
         }
         .delivery-info {
-            margin: 15px 0;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
+            margin-top: 10px;
+            padding: 8px;
             background-color: #f8f9fa;
-        }
-        .delivery-info h3 {
-            margin: 0 0 8px;
-            font-size: 12px;
-            border-bottom: 1px solid #dee2e6;
-            padding-bottom: 5px;
-            text-transform: uppercase;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 10px;
         }
         .delivery-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .delivery-grid div {
+            width: 48%;
         }
         .signature-section {
             display: flex;
-            justify-content: space-between;
-            margin-top: 40px;
+            justify-content: space-around;
+            margin-top: 30px;
         }
         .signature-box {
-            width: 150px;
             text-align: center;
+            font-size: 11px;
         }
         .signature-line {
             margin-top: 50px;
-            border-top: 1px solid #333;
+            border-top: 1px solid #000;
             padding-top: 5px;
         }
         @media print {
-            body {
-                width: 210mm;
-                height: 297mm;
-            }
             .no-print {
                 display: none;
             }
         }
     </style>
+
 </head>
 <body>
     <div class="container">
@@ -206,9 +170,9 @@
         <table>
             <thead>
                 <tr>
-                    <th width="5%">No.</th>
+                    <th width="2.5%">No.</th>
                     <th width="10%">Kode Barang</th>
-                    <th width="15%">Nama Barang</th>
+                    <th width="17.5%">Nama Barang</th>
                     <th width="25%">Keterangan</th>
                     <th width="7.5%">Panjang (m)</th>
                     <th width="10%">Harga Satuan</th>
@@ -225,10 +189,10 @@
                     <td>{{ $item->nama_barang }}</td>
                     <td>{{ $item->keterangan }}</td>
                     <td>{{ $item->panjang }}</td>
-                    <td>{{ $item->harga }}</td>
+                    <td class= "text-right">Rp {{ number_format($item->harga, 2, ' ,' , '.') }}</td>
                     <td class="text-center">{{ $item->qty }}</td>
                     <td class="text-center">Pcs</td>
-                    <td>{{ $item->total }}</td>
+                    <td class="text-right">Rp {{ number_format($item->total, 2, ' ,' , '.') }}</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -245,7 +209,6 @@
             <h3>KONFIRMASI PENGIRIMAN</h3>
             <div class="delivery-grid">
                 <div>
-                    <p><strong>Pengirim:</strong> ___________________</p>
                     <p><strong>Kurir:</strong> ___________________</p>
                     <p><strong>Plat Kendaraan:</strong> ___________________</p>
                 </div>
