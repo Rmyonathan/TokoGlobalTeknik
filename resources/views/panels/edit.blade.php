@@ -32,6 +32,14 @@
                             <small class="form-text text-muted">Enter the name of the item code.</small>
                         </div>
                         <div class="form-group">
+                            <label for="cost"><i class="fas fa-ruler mr-1"></i> Cost (per meters)</label>
+                            <input type="number" step="0.01" class="form-control @error('cost') is-invalid @enderror" id="cost" name="cost" value="{{ $panel->cost }}" required>
+                            @error('price')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Enter the cost.</small>
+                        </div>
+                        <div class="form-group">
                             <label for="price"><i class="fas fa-ruler mr-1"></i> Price (per meters)</label>
                             <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ $panel->price }}" required>
                             @error('price')
