@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\KodeBarang;
 use App\Models\Panel;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -108,7 +109,9 @@ class PanelController extends Controller
      */
     public function createInventory()
     {
-        return view('panels.add-inventory');
+        $codes = KodeBarang::all();
+
+        return view('panels.add-inventory', compact('codes'));    
     }
 
     public function editInventory(Request $request)
@@ -131,7 +134,7 @@ class PanelController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'group_id' => 'required|string|max:255',
-            'length' => 'required|numeric|min:0.1',
+            'cost' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:1',
         ], [
@@ -143,9 +146,9 @@ class PanelController extends Controller
             'name.string' => 'Panel name must be a valid string',
             'name.max' => 'Panel name may not be greater than 255 characters',
 
-            'length.required' => 'Panel length is required',
-            'length.numeric' => 'Panel length must be a number',
-            'length.min' => 'Panel length must be at least 0.1 meters',
+            'cost.required' => 'Cost is required',
+            'cost.numeric' => 'Cost must be a valid number',
+            'cost.min' => 'Cost must be at least 0',
 
             'price.required' => 'Price is required',
             'price.numeric' => 'Price must be a valid number',
@@ -157,12 +160,13 @@ class PanelController extends Controller
         ]);
 
         $name = $validated['name'];
-        $length = $validated['length'];
         $group_id = $validated['group_id'];
+        $length = KodeBarang::where('kode_barang', $group_id)->first()->length;
+        $cost = $validated['cost'];
         $price = $validated['price'];
         $quantity = $validated['quantity'];
 
-        $result = $this->addPanelsToInventory($name, $price, $length, $group_id, $quantity);
+        $result = $this->addPanelsToInventory($name, $cost, $price, $length, $group_id, $quantity);
 
         return redirect()->route('panels.inventory')
             ->with('success', $result['message']);
@@ -175,6 +179,7 @@ class PanelController extends Controller
             'name' => 'required|string|max:255',
             'group_id' => 'required|string|max:255',
             'length' => 'required|numeric|min:0.1',
+            'cost' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:1',
         ], [
@@ -190,6 +195,10 @@ class PanelController extends Controller
             'length.numeric' => 'Panel length must be a number',
             'length.min' => 'Panel length must be at least 0.1 meters',
 
+            'cost.required' => 'Cost is required',
+            'cost.numeric' => 'Cost must be a valid number',
+            'cost.min' => 'Cost must be at least 0',
+
             'price.required' => 'Price is required',
             'price.numeric' => 'Price must be a valid number',
             'price.min' => 'Price must be at least 0',
@@ -202,15 +211,16 @@ class PanelController extends Controller
         $name = $validated['name'];
         $length = $validated['length'];
         $group_id = $validated['group_id'];
+        $cost = $validated['cost'];
         $price = $validated['price'];
         $quantity = $validated['quantity'];
 
         Panel::where('group_id', $group_id)->delete();
 
-        $parts = explode('-', $group_id);
-        $group_id = $parts[0];
+        // $parts = explode('-', $group_id);
+        // $group_id = $parts[0];
 
-        $result = $this->addPanelsToInventory($name, $price, $length, $group_id, $quantity);
+        $result = $this->addPanelsToInventory($name, $cost, $price, $length, $group_id, $quantity);
 
         return redirect()->route('master.barang')
             ->with('success', $result['message']);
@@ -302,8 +312,8 @@ class PanelController extends Controller
                                 'remaining_length' => $remainingLength
                             ];
 
-                            $this->createPanel($requestedName, $panel->price, $requestedLength, true, $panel->id, $panel->group_id);
-
+                            $this->createPanel($requestedName, $panel->cost, $panel->price, $requestedLength, true, $panel->id);
+                        
                         }
 
                         // Create a new panel for leftover length if usable
@@ -315,7 +325,7 @@ class PanelController extends Controller
                             //     'available' => true,
                             //     'parent_panel_id' => $panel->id
                             // ]);
-                            $panel = $this->createPanel($requestedName, $panel->price, $remainingLength, true, $panel->id, $panel->group_id);
+                            $panel = $this->createPanel($requestedName, $panel->cost, $panel->price, $remainingLength, true, $panel->id);                        
                         }
                     }
                 }
@@ -410,6 +420,7 @@ class PanelController extends Controller
                     'id' => $panel->id,
                     'length' => $panel->length,
                     'name' => $panel->name,
+                    'cost' => $panel->cost,
                     'price' => $panel->price,
                     'group_id' => $panel->group_id,
                     'quantity' => 1
@@ -440,12 +451,12 @@ class PanelController extends Controller
      * @param int $quantity Number of panels to add
      * @return array Status of the operation
      */
-    private function addPanelsToInventory(string $name, float $price, float $length, string $group_id, int $quantity): array
+    private function addPanelsToInventory(string $name, float $cost, float $price, float $length, string $group_id, int $quantity): array    
     {
         $panels = [];
 
         for ($i = 0; $i < $quantity; $i++) {
-            $panel = $this->createPanel($name, $price, $length, true, null, $group_id);
+            $panel = $this->createPanel($name, $cost, $price, $length, true, null, $group_id);
             $panels[] = $panel;
         }
 
@@ -456,55 +467,27 @@ class PanelController extends Controller
         ];
     }
 
-    private function createPanel(string $name, float $price, float $length, bool $available = true, ?int $parent_panel_id = NULL, ?string $group_id = NULL): array
+    private function createPanel(string $name, float $cost, float $price, float $length, bool $available = true, ?int $parent_panel_id = NULL, ?string $group_id = NULL): array    
     {
-        $existingPanel = Panel::where('name', $name)
-                          ->where('length', $length)
-                          ->where('available', true)
-                          ->first();
-
-        $existingGroup = Panel::where('name', $name)
-                        ->where('group_id', $group_id)
-                        ->where('available', true)
-                        ->first();
-
         $panel = Panel::create([
             'name' => $name,
+            'cost' => $cost,
             'price' => $price,
             'length' => $length,
-            'group_id' => 'tai babi',
+            'group_id' => $group_id,
             'available' => $available,
             'parent_panel_id' => $parent_panel_id
         ]);
 
-        $base62Encode = function ($num) {
-            $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            $base = strlen($chars);
-            $result = '';
-            do {
-                $result = $chars[$num % $base] . $result;
-                $num = floor($num / $base);
-            } while ($num > 0);
-            return $result;
-        };
-
-        $encoded = $base62Encode($panel->id);
-        if ($existingPanel){
-            $panel['group_id'] = $existingPanel->group_id;
-            // $panel['sku'] = $existingPanel->sku;
-            $panel->save();
-        }
-        elseif ($existingGroup && !$existingPanel) {
-            $originalGroupId = $existingGroup->group_id;
-            $parts = explode('-', $originalGroupId);
-            $prefix = $parts[0];
-            $panel['group_id'] = $prefix . '-' . $encoded;
-            // $panel['sku'] = $existingPanel->sku;
-            $panel->save();
-        }
-        else{
-            // $panel->group_id = $panel->id;
-            $panel->group_id = $group_id . '-' . $encoded;
+        if ($panel->group_id == NULL){
+            $getAttribute = Panel::find($parent_panel_id);
+            $getAttribute = $getAttribute->group_id;
+            $getAttribute = KodeBarang::where('kode_barang', $getAttribute)->first();
+            $getAttribute = $getAttribute->attribute;
+            $getCode = KodeBarang::where('attribute', $getAttribute)
+                              ->where('length', $length)
+                              ->first();
+            $panel->group_id = $getCode->kode_barang;
             $panel->save();
         }
 

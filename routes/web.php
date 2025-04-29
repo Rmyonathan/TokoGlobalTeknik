@@ -13,12 +13,13 @@ use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\StokOwnerController;
+use App\Http\Controllers\KodeBarangController;
 use App\Http\Controllers\SuratJalanController;
 use App\Http\Controllers\SuratJalanItemController;
-
 use App\Http\Controllers\PembelianController;
 use App\Models\StokOwner;
 use App\Models\Supplier;
+use App\Models\KodeBarang;
 use App\Models\Bookings;
 use App\Models\Logistics;
 use App\Models\Transactions;
@@ -98,12 +99,23 @@ Route::middleware(['web', 'role'])->group(function () {
     // Add to Inventory Form
     Route::get('/panels/add', [PanelController::class, 'createInventory'])
     ->name('panels.create-inventory');
+
+    Route::get('/kode_barang/add', [KodeBarangController::class, 'createCode'])
+    ->name('code.create-code');
+
+    Route::get('/kode_barang/view', [KodeBarangController::class, 'viewCode'])
+    ->name('code.view-code');
+
     Route::get('/panels/edit/{id}', [PanelController::class, 'editInventory'])
     ->name('panels.edit-inventory');
 
     // Store New Inventory
     Route::post('/panels/add', [PanelController::class, 'storeInventory'])
     ->name('panels.store-inventory');
+
+    Route::post('/kode_barang/add', [KodeBarangController::class, 'storeCode'])
+    ->name('code.store-code');
+
     Route::post('/panels/edit', [PanelController::class, 'updateInventory'])
     ->name('panels.update-inventory');
     Route::post('/panels/delete/{id}', [PanelController::class, 'deleteInventory'])

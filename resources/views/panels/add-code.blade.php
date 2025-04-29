@@ -13,68 +13,36 @@
                     <h5 class="mb-0">New Panel Stock Entry</h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('panels.store-inventory') }}" method="POST">
+                    <form action="{{ route('code.store-code') }}" method="POST">
                         @csrf
                         <div class="form-group">
-                            <label for="name"><i class="fas fa-ruler mr-1"></i> Panel Name</label>
-                            <input type="text" step="0.01" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required>
-                            @error('name')
+                            <label for="attribute"><i class="fas fa-ruler mr-1"></i> Group Name</label>
+                            <input type="text" step="0.01" class="form-control @error('attribute') is-invalid @enderror" id="attribute" name="attribute" value="{{ old('attribute') }}" required>
+                            @error('attribute')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Enter the name of the aluminum panels.</small>
+                            <small class="form-text text-muted">Enter the the group name that describe the group.</small>
                         </div>
                         <div class="form-group">
-                            <label for="group_id"><i class="fas fa-ruler mr-1"></i>Kode Barang</label>
-                            <select class="form-control @error('group_id') is-invalid @enderror" id="group_id" name="group_id" required>
-                                <option value="">-- Pilih Kode Barang --</option>
-                                @foreach ($codes as $code)
-                                    <option value="{{ $code->kode_barang }}">
-                                        {{ $code->kode_barang }} - {{ $code->attribute }} - {{ $code->length }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('group_id')
+                            <label for="kode_barang"><i class="fas fa-ruler mr-1"></i>Kode</label>
+                            <input type="text" step="0.01" class="form-control @error('kode_barang') is-invalid @enderror" id="kode_barang" name="kode_barang" value="{{ old('kode_barang') }}" required>
+                            @error('kode_barang')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Select the item code.</small>                        
+                            <small class="form-text text-muted">Enter the name of the group code.</small>
                         </div>
                         <div class="form-group">
-                            <label for="cost"><i class="fas fa-ruler mr-1"></i> Cost (per meters)</label>
-                            <input type="number" step="0.01" class="form-control @error('cost') is-invalid @enderror" id="cost" name="cost" value="{{ old('cost') }}" required>
-                            @error('cost')
+                            <label for="length"><i class="fas fa-ruler mr-1"></i> Panel Length (meters)</label>
+                            <input type="number" step="0.01" class="form-control @error('length') is-invalid @enderror" id="length" name="length" value="{{ old('length') }}" required>
+                            @error('length')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Enter the price.</small>
+                            <small class="form-text text-muted">Enter the length of the aluminum panels in meters.</small>
                         </div>
-                        <div class="form-group">
-                            <label for="price"><i class="fas fa-ruler mr-1"></i> Price (per meters)</label>
-                            <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ old('price') }}" required>
-                            @error('price')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-text text-muted">Enter the price.</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="quantity"><i class="fas fa-layer-group mr-1"></i> Quantity</label>
-                            <input type="number" class="form-control @error('quantity') is-invalid @enderror" id="quantity" name="quantity" value="{{ old('quantity', 1) }}" min="1" required>
-                            @error('quantity')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-text text-muted">Enter the number of panels to add to inventory.</small>
-                        </div>
-
-                        <div class="form-group">
-                            <div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="confirmCheck" required>
-                                <label class="custom-control-label" for="confirmCheck">I confirm that these panels are available in the warehouse</label>
-                            </div>
-                        </div>
-
                         <div class="form-row">
                             <div class="col-md-6">
                                 <button type="submit" class="btn btn-primary btn-block">
-                                    <i class="fas fa-save mr-1"></i> Add to Inventory
+                                    <i class="fas fa-save mr-1"></i> Add Group
                                 </button>
                             </div>
                             <div class="col-md-6">
@@ -135,7 +103,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Quick length selection buttons
     const lengthButtons = document.querySelectorAll('.length-btn');
     const lengthInput = document.getElementById('length');
-
     lengthButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();

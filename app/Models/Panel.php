@@ -14,12 +14,14 @@ class Panel extends Model
         'group_id',
         'length',
         'price',
+        'cost',
         'available',
         'parent_panel_id'
     ];
 
     protected $casts = [
         'length' => 'decimal:2',
+        'cost' => 'decimal:2',
         'price' => 'decimal:2',
         'available' => 'boolean',
     ];
@@ -42,5 +44,10 @@ class Panel extends Model
     public function panel()
     {
         return $this->belongsTo(Panel::class, 'kode_barang', 'id');
+    }
+    
+    public function kodeBarang()
+    {
+        return $this->belongsTo(KodeBarang::class, 'group_id', 'kode_barang');
     }
 }
