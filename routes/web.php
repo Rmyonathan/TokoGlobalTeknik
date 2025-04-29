@@ -25,6 +25,8 @@ use App\Models\Logistics;
 use App\Models\Transactions;
 use App\Models\Customer;
 use App\Models\KodeBarang;
+use App\Models\Pembelian;
+use App\Models\Transaksi;
 
 Route::middleware(['web'])->group(function () {
 
@@ -131,6 +133,12 @@ Route::middleware(['web', 'role'])->group(function () {
     // })->name('master.barang');
 
     Route::get('/master/barang', [PanelController::class, 'viewBarang'])->name('master.barang');
+
+    // Mutasi Stok Barang
+    Route::get('master.mutasistokbarang', function () {
+        return view('master.mutasistokbarang');
+        })->name('master.mutasistokbarang');
+
 
     Route::get('master/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::post('master/customers', [CustomerController::class, 'store'])->name('customers.store');
