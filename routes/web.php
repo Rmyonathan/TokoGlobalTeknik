@@ -148,9 +148,14 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/transaksi/store', [TransaksiController::class, 'store'])->name('transaksi.store');
     Route::get('/transaksi/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
     Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
-    // Penjualan Per Customer
-    Route::get('/transaksi/datapenjualanpercustomer', [TransaksiController::class, 'datapenjualanpercustomer'])->name('transaksi.datapenjualanpercustomer');
 
+    // Penjualan Per Customer
+    Route::get('/penjualanpercustomer', [TransaksiController::class, 'penjualanPercustomer'])->name('transaksi.penjualancustomer');
+    Route::get('/api/getpenjualancustomer',[TransaksiController::class, 'getPenjualan']);
+
+    // Route::get('transaksi.datapenjualanpercustomer', function () {
+    //     return view('transaksi.datapenjualanpercustomer');
+    //     })->name('transaksi.datapenjualanpercustomer');
 
     Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');

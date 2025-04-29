@@ -133,7 +133,7 @@
                 <button type="button" class="btn btn-primary" id="printInvoiceBtn">
                     <i class="fas fa-print"></i> Print
                 </button>
-                <button type="button" class="btn btn-secondary" id="backToFormBtn">
+                <button type="button" class="btn btn-secondary" href="{{ route('suratjalan.create') }}" id="backToFormBtn">
                     <i class="fas fa-arrow-left"></i> Kembali
                 </button>
             </div>
@@ -333,6 +333,10 @@ $(document).ready(function() {
 
                     $('#printInvoiceBtn').off('click').on('click', function() {
                         window.location.href = "{{ url('suratjalan/detail') }}/" + suratJalanId;
+                    });
+
+                    $('#backToFormBtn').off('click').on('click', function(){
+                        window.location.href = "{{ route('suratjalan.create') }}"
                     });
 
                     // Tampilkan modal
