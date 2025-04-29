@@ -18,6 +18,13 @@ class TransaksiController extends Controller
     /**
      * Display the sales transaction form.
      */
+
+    protected $stockController;
+
+    public function __construct(StockController $stockController)
+    {
+        $this->stockController = $stockController;
+    }
     public function penjualan(Request $request)
     {
         // Ambil nomor transaksi terakhir
@@ -91,13 +98,20 @@ class TransaksiController extends Controller
                 'status' => 'baru',
             ]);
 
+            // Get customer for stock mutation
+            $customer = Customer::where('kode_customer', $request->kode_customer)->first();
+            $customerName = $customer ? $customer->nama : 'Unknown Customer';
+
+            // Format transaction number for stock mutation
+            $creator = 'ADMIN'; // You can replace this with the actual user name
+            $noTransaksi = $request->no_transaksi . " ({$creator})";
+
             // Create transaction items
             foreach ($request->items as $item) {
                 TransaksiItem::create([
-                    'transaksi_id' => $transaksi->id, // Gunakan id transaksi sebagai foreign key
-                    'no_transaksi' => $request->no_transaksi, // Gunakan no_transaksi sebagai foreign key
+                    'transaksi_id' => $transaksi->id,
+                    'no_transaksi' => $request->no_transaksi,
                     'kode_barang' => $item['kodeBarang'],
-                    // 'nama_barang' => Panel::find($item['kodeBarang'])->name,
                     'nama_barang' => $item['namaBarang'],
                     'keterangan' => $item['keterangan'] ?? null,
                     'harga' => $item['harga'],
@@ -107,6 +121,19 @@ class TransaksiController extends Controller
                     'diskon' => $item['diskon'] ?? 0,
                     'total' => $item['total'],
                 ]);
+
+                // Record the sale in stock mutation
+                $this->stockController->recordSale(
+                    $item['kodeBarang'],
+                    $item['namaBarang'],
+                    $noTransaksi,
+                    $request->tanggal,
+                    $request->no_transaksi,
+                    $customerName . ' (' . $request->kode_customer . ')',
+                    $item['qty'],
+                    $request->lokasi ?? 'ALUMKA',
+                    'LBR'
+                );
             }
 
             DB::commit();
@@ -347,4 +374,4 @@ class TransaksiController extends Controller
         return view('transaksi.lihat_nota', compact('transactions'));
     }
 
-}
+ }
