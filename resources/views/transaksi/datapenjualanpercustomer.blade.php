@@ -1,4 +1,3 @@
-<!-- resources/views/datapenjualanpercustomer.blade.php -->
 @extends('layout.Nav')
 
 @section('content')
