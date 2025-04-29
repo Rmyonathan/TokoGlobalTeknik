@@ -457,7 +457,7 @@
                                         <a class="nav-link" href="<?php echo e(route('transaksi.displaypenjualan')); ?>"><i class="fas fa-clock-rotate-left"></i> Display Penjualan</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="{{ route('transaksi.datapenjualanpercustomer') }}"><i class="fas fa-file-invoice-dollar mr-2"></i>Data Penjualan Per Customer</a>
+                                            <a class="nav-link" href="{{ route('transaksi.penjualancustomer') }}"><i class="fas fa-file-invoice-dollar mr-2"></i>Data Penjualan Per Customer</a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-file-invoice"></i> Lihat Nota Penjualan</a>

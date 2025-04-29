@@ -265,7 +265,18 @@ class TransaksiController extends Controller
     /**
      * Get transaction data from customers
      */
-    public function datapenjualanpercustomer(Request $request){
+    public function penjualanPercustomer(){
+        // Fetch all customers
+        $customers = Customer::all();
+
+
+        // Fetch all transactions (penjualan & pembelian)
+        $transactions = Transaksi::with('items')->orderBy('created_at', 'desc')->get();
+
+        return view('transaksi.datapenjualanpercustomer', compact('transactions', 'customers'));        
+    }
+
+    public function getPenjualancustomer(Request $request){
         // Ambil daftar customer yang telah melakukan transaksi
         $customers = DB::table('transaksi')
             ->join('customers', 'transaksi.kode_customer', '=', 'customers.kode_customer')
@@ -280,10 +291,8 @@ class TransaksiController extends Controller
                 ->where('kode_customer', $request->kode_customer)
                 ->get();
         }
-
-        return view('transaksi.datapenjualanpercustomer', compact('customers', 'transaksi'));
+        
     }
-
 
     // Mencari transaksi berdasarkan id untuk surat jalan
     public function getTransaksiItems($transaksiId)

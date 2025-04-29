@@ -13,19 +13,18 @@ use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\StokOwnerController;
+use App\Http\Controllers\KodeBarangController;
 use App\Http\Controllers\SuratJalanController;
 use App\Http\Controllers\SuratJalanItemController;
-
 use App\Http\Controllers\PembelianController;
-use App\Http\Controllers\KodeBarangController;
 use App\Http\Controllers\StockController;
 use App\Models\StokOwner;
 use App\Models\Supplier;
+use App\Models\KodeBarang;
 use App\Models\Bookings;
 use App\Models\Logistics;
 use App\Models\Transactions;
 use App\Models\Customer;
-use App\Models\KodeBarang;
 use App\Models\Pembelian;
 use App\Models\Transaksi;
 
@@ -162,9 +161,14 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/transaksi/store', [TransaksiController::class, 'store'])->name('transaksi.store');
     Route::get('/transaksi/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
     Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
-    // Penjualan Per Customer
-    Route::get('/transaksi/datapenjualanpercustomer', [TransaksiController::class, 'datapenjualanpercustomer'])->name('transaksi.datapenjualanpercustomer');
 
+    // Penjualan Per Customer
+    Route::get('/penjualanpercustomer', [TransaksiController::class, 'penjualanPercustomer'])->name('transaksi.penjualancustomer');
+    Route::get('/api/getpenjualancustomer',[TransaksiController::class, 'getPenjualan']);
+
+    // Route::get('transaksi.datapenjualanpercustomer', function () {
+    //     return view('transaksi.datapenjualanpercustomer');
+    //     })->name('transaksi.datapenjualanpercustomer');
 
     Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');

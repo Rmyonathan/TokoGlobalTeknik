@@ -1,171 +1,195 @@
-<!-- resources/views/datapenjualanpercustomer.blade.php -->
 @extends('layout.Nav')
 
 @section('content')
-<div class="container">
-    <h1 class="mb-4">Display Data Penjualan Per Customer</h1>
+<div class="container py-2">
+    <div class="title-box">
+        <h2><i class="fas fa-file-invoice mr-2"></i>Data Penjualan Per Customer</h2>
+    </div>
 
-    <!-- Filter Customers -->
+    <!-- CUSTOMER TABLE -->
     <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">List Customer</h5>
+        </div>
         <div class="card-body">
-            <form class="row g-3" method="GET" action="">
-                <div class="col-md-3">
-                    <label for="kolom" class="form-label">Kolom</label>
-                    <select class="form-select" id="kolom" name="kolom">
-                        <option value="nama">Nama</option>
-                        <option value="kode_customer">Kode Customer</option>
-                        <option value="alamat">Alamat</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="value" class="form-label">Value</label>
-                    <input type="text" class="form-control" id="value" name="value" placeholder="Cari...">
-                </div>
-                <div class="col-md-6 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">Cari</button>
-                    <a href="{{ route('transaksi.datapenjualanpercustomer') }}" class="btn btn-secondary">Tampil Semua</a>
-                </div>
-            </form>
+            <div class="col-md-4 mb-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Cari Nama atau Kode Customer">
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>No</th>
+                            <th>Kode Customer</th>
+                            <th>nama</th>
+                            <th>Alamat</th>
+                            <th>HP</th>
+                            <th>telepon</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyCustomer">
+                        @foreach ($customers as $index => $cust)
+                            <tr>
+                                <td>{{ $index + 1 }}</td>
+                                <td>{{ $cust->kode_customer }}</td>
+                                <td>{{ $cust->nama }}</td>
+                                <td>{{ $cust->alamat }}</td>
+                                <td>{{ $cust->hp }}</td>
+                                <td>{{ $cust->telepon }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- Data Customers -->
-    <div class="table-responsive mb-4">
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Kode Kategori</th>
-                    <th>Kode Customer</th>
-                    <th>Nama</th>
-                    <th>Alamat</th>
-                    <th>Telepon</th>
-                    <th>HP</th>
-                    <th>Fax</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Dummy Data -->
-                <tr>
-                    <td>UMUM</td>
-                    <td>1</td>
-                    <td>CASH</td>
-                    <td>PALEMBANG</td>
-                    <td>-</td>
-                    <td>082114953334</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>UMUM</td>
-                    <td>10</td>
-                    <td>ADITYA KERTANUGRAHA</td>
-                    <td>JL. DEMANG LEBAR DAUN NO.3 SEBELAH KANTOR. BPK</td>
-                    <td>-</td>
-                    <td>082177680509</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>UMUM</td>
-                    <td>100</td>
-                    <td>FEBRI</td>
-                    <td>PALEMBANG</td>
-                    <td>-</td>
-                    <td>081379221117</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>UMUM</td>
-                    <td>1000</td>
-                    <td>IBU DIAH</td>
-                    <td>BUKIT KENCANA</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>UMUM</td>
-                    <td>1001</td>
-                    <td>CV BERMAKARYA</td>
-                    <td>JL. SELINCAH RAYA 2 NO 335 RT 19 RW 13 SIALANG, SAKO</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>UMUM</td>
-                    <td>1002</td>
-                    <td>Purwanto</td>
-                    <td>Korpri Sukarame / Bengkel Hanif Jaya Jl. Pramuka</td>
-                    <td>-</td>
-                    <td>081510067125</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>UMUM</td>
-                    <td>1003</td>
-                    <td>SUPONO</td>
-                    <td>JL. H. KOMARUDIN GG. ABADI NO RAJA BASA</td>
-                    <td>-</td>
-                    <td>085218857451</td>
-                    <td>-</td>
-                </tr>
-                <tr>
-                    <td>UMUM</td>
-                    <td>1004</td>
-                    <td>KABA</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>081273184889</td>
-                    <td>-</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Filter Tanggal -->
+    <!-- TRANSAKSI TABLE -->
     <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">List Transaksi</h5>
+        </div>
         <div class="card-body">
-            <form class="row g-3" method="GET" action="">
-                <div class="col-md-3">
-                    <label class="form-label">Tanggal Transaksi</label>
-                    <input type="date" class="form-control" name="start_date" value="2025-04-14">
+            <div class="row mb-3">
+                <div class="col-md-3 mb-2">
+                    <label for="startDate">Dari Tanggal</label>
+                    <input type="date" id="startDate" class="form-control">
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">s/d</label>
-                    <input type="date" class="form-control" name="end_date" value="2025-04-14">
+                <div class="col-md-3 mb-2">
+                    <label for="endDate">Sampai Tanggal</label>
+                    <input type="date" id="endDate" class="form-control">
                 </div>
-                <div class="col-md-6 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary">Cari</button>
+                <div class="col-md-3 mb-2 d-flex align-items-end">
+                    <button id="applyDateFilter" class="btn btn-primary mr-2">Terapkan</button>
+                    <button id="resetFilterTanggal" class="btn btn-secondary">Reset</button>
                 </div>
-            </form>
+            </div>
+
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>No Transaksi</th>
+                        <th>Tanggal</th>
+                        <th>Customer</th>
+                        <th>Total</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyTransaksi">
+                    @foreach ($transactions as $transaction)
+                        <tr>
+                            <td>{{ $transaction->no_transaksi }}</td>
+                            <td>{{ $transaction->tanggal }}</td>
+                            <td>{{ $transaction->customer->nama ?? 'N/A' }}</td>
+                            <td class="text-right">Rp {{ number_format($transaction->grand_total, 0, ' ,', '.') }}</td>
+                            <td>
+                                <a href="{{ route('transaksi.nota', $transaction->id) }}" class="btn btn-primary btn-sm">Lihat Nota</a>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+            <!-- TOTAL PENJUALAN -->
+            <div id="totalTransaksiCustomer" class="mt-3 text-right font-weight-bold text-danger">
+                <!-- Total penjualan customer terpilih akan muncul di sini -->
+            </div>
         </div>
     </div>
 
-    <!-- Data Penjualan -->
-    <div class="table-responsive">
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>No.</th>
-                    <th>No Transaksi</th>
-                    <th>Tanggal</th>
-                    <th>Keterangan</th>
-                    <th>Harga</th>
-                    <th>P</th>
-                    <th>L</th>
-                    <th>Qty</th>
-                    <th>Total</th>
-                    <th>Disc(%)</th>
-                    <th>Disc(Rp.)</th>
-                    <th>Sub Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Dummy Data Kosong -->
-                <tr>
-                    <td colspan="12" class="text-center">Tidak ada data transaksi</td>
-                </tr>
-            </tbody>
-        </table>
+    <div class="d-flex justify-content-center">
     </div>
 </div>
+@endsection
+@section('scripts')
+<script>
+    $(document).ready(function () {
+        let selectedCustomerName = '';
+
+        // Format rupiah
+        function formatRupiah(angka) {
+            return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        // HIGHLIGHT SELECTED ROW
+        $('<style>').prop('type', 'text/css').html(`
+            #tbodyCustomer tr.selected {
+                background-color: #f8d7da !important;
+                font-weight: bold;
+            }
+        `).appendTo('head');
+
+        // Filter customer by keyword
+        $('#searchInput').on('input', function () {
+            const keyword = $(this).val().toLowerCase();
+            $('#tbodyCustomer tr').each(function () {
+                const kode = $(this).find('td:nth-child(2)').text().toLowerCase();
+                const nama = $(this).find('td:nth-child(3)').text().toLowerCase();
+                $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
+            });
+        });
+
+        // Handle click customer
+        $('#tbodyCustomer tr').on('click', function () {
+            $('#tbodyCustomer tr').removeClass('selected');
+            $(this).addClass('selected');
+            selectedCustomerName = $(this).find('td:nth-child(3)').text().trim();
+            applyFilters();
+        });
+
+        // Apply date filter
+        $('#applyDateFilter').on('click', function () {
+            applyFilters();
+        });
+
+        // Reset
+        $('#resetFilterTanggal').click(function () {
+            $('#startDate, #endDate, #searchInput').val('');
+            selectedCustomerName = '';
+            $('#tbodyCustomer tr, #tbodyTransaksi tr').show();
+            $('#totalTransaksiCustomer').html('');
+            $('#tbodyCustomer tr').removeClass('selected');
+        });
+
+        function applyFilters() {
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+            let total = 0;
+
+            $('#tbodyTransaksi tr').each(function () {
+                const namaRow = $(this).find('td:nth-child(3)').text().trim();
+                const tanggalRow = $(this).find('td:nth-child(2)').text().trim();
+                const totalText = $(this).find('td:nth-child(4)').text().replace(/[^\d]/g, '');
+                const totalValue = parseInt(totalText) || 0;
+
+                const cocokCustomer = selectedCustomerName ? namaRow === selectedCustomerName : true;
+                const cocokTanggal = checkInDateRange(tanggalRow, startDate, endDate);
+
+                if (cocokCustomer && cocokTanggal) {
+                    $(this).show();
+                    total += totalValue;
+                } else {
+                    $(this).hide();
+                }
+            });
+
+            if (selectedCustomerName) {
+                $('#totalTransaksiCustomer').html(
+                    `Total Penjualan <strong>${selectedCustomerName}</strong>: Rp ${formatRupiah(total)}`
+                );
+            } else {
+                $('#totalTransaksiCustomer').html('');
+            }
+        }
+
+        function checkInDateRange(dateStr, start, end) {
+            if (!start && !end) return true;
+            if (!start && end) return dateStr <= end;
+            if (start && !end) return dateStr >= start;
+            return dateStr >= start && dateStr <= end;
+        }
+    });
+</script>
+
 @endsection

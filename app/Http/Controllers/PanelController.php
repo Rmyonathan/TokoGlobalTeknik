@@ -315,7 +315,6 @@ class PanelController extends Controller
                             ];
 
                             $this->createPanel($requestedName, $panel->cost, $panel->price, $requestedLength, true, $panel->id);
-
                         }
 
                         // Create a new panel for leftover length if usable

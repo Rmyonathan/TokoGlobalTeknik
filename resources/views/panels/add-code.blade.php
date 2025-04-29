@@ -103,7 +103,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Quick length selection buttons
     const lengthButtons = document.querySelectorAll('.length-btn');
     const lengthInput = document.getElementById('length');
-
     lengthButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
