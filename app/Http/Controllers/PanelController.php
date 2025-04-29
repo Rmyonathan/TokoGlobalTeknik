@@ -50,14 +50,16 @@ class PanelController extends Controller
         //     ->get();
 
         $panels = Panel::where('name', 'like', "%{$keyword}%")
-        ->orWhere('group_id', 'like', "%{$keyword}%")
-        ->orderBy('group_id')  // optional for grouping clarity
-        ->get()
-        ->groupBy('group_id')
-        ->map(function ($group) {
-            return $group->first(); // only return one panel per group
-        })
-        ->values();
+            ->orWhere('group_id', 'like', "%{$keyword}%")
+            ->orderBy('group_id')
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->group_id . '|' . $item->name;
+            })
+            ->map(function ($groupedItems) {
+                return $groupedItems->first();
+            })
+            ->values();
 
         return response()->json($panels);
     }
