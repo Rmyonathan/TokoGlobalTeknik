@@ -1,3 +1,4 @@
+<!-- resources/views/datapenjualanpercustomer.blade.php -->
 @extends('layout.Nav')
 
 @section('content')
@@ -65,6 +66,8 @@
                     <button id="resetFilterTanggal" class="btn btn-secondary">Reset</button>
                 </div>
             </div>
+        </form>
+    </div>
 
             <table class="table table-bordered">
                 <thead>

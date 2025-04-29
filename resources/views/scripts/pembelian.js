@@ -49,9 +49,58 @@ $(document).ready(function() {
 
     // Hide dropdown when clicking outside
     $(document).click(function (e) {
-        if (!$(e.target).closest('#supplier, #supplierDropdown').length) {
+        if (!$(e.target).closest('#supplier, #supplierDropdown, #kode_barang, #kodeBarangDropdown').length) {
             $('#supplierDropdown').hide();
+            $('#kodeBarangDropdown').hide();
         }
+    });
+    
+    // NEW: Search Kode Barang
+    $('#kode_barang').on('input', function () {
+        const keyword = $(this).val();
+        if (keyword.length > 0) {
+            $.ajax({
+                url: window.kodeBarangSearchUrl, // Make sure to define this in your blade template
+                method: "GET",
+                data: { keyword },
+                success: function (data) {
+                    let dropdown = '';
+                    if (data.length > 0) {
+                        data.forEach(item => {
+                            dropdown += `<a class="dropdown-item kode-barang-item" 
+                                            data-kode="${item.kode_barang}" 
+                                            data-name="${item.attribute}"
+                                            data-length="${item.length}">
+                                         ${item.kode_barang} - ${item.attribute} (${item.length} m)
+                                         </a>`;
+                        });
+                    } else {
+                        dropdown = '<a class="dropdown-item disabled">Kode barang tidak ditemukan! Tambahkan di Master Data.</a>';
+                    }
+                    $('#kodeBarangDropdown').html(dropdown).show();
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error searching kode barang:', error);
+                    alert('Terjadi kesalahan saat mencari kode barang.');
+                }
+            });
+        } else {
+            $('#kodeBarangDropdown').hide();
+        }
+    });
+
+    // Select Kode Barang
+    $(document).on('click', '.kode-barang-item', function () {
+        const kodeBarang = $(this).data('kode');
+        const namaBarang = $(this).data('name');
+        const length = $(this).data('length');
+        
+        $('#kode_barang').val(kodeBarang);
+        $('#nama_barang').val(namaBarang);
+        $('#panjang').val(length);
+        $('#kodeBarangDropdown').hide();
+        
+        updateItemPreview();
     });
     
     // Toggle discount inputs
@@ -122,26 +171,44 @@ $(document).ready(function() {
             return;
         }
         
-        const total = harga * qty;
-        
-        const newItem = {
-            kodeBarang, namaBarang, keterangan, harga, qty, panjang, diskon, total
-        };
-        
-        items.push(newItem);
-        renderItems();
-        calculateTotals();
-        
-        // Reset form and close modal
-        $('#addItemForm')[0].reset();
-        $('#itemPreview').empty();
-        $('#addItemModal').modal('hide');
+        // Check if kode_barang is valid by searching for it
+        $.ajax({
+            url: window.kodeBarangSearchUrl,
+            method: "GET",
+            data: { keyword: kodeBarang },
+            async: false, // Make this synchronous to ensure check completes before continuing
+            success: function(data) {
+                // If no matching kode barang found
+                if (data.length === 0 || !data.some(item => item.kode_barang === kodeBarang)) {
+                    alert('Kode barang tidak terdaftar! Silakan tambahkan di Master Data terlebih dahulu.');
+                    return false;
+                }
+                
+                // If valid, add item
+                const total = harga * qty;
+                
+                const newItem = {
+                    kodeBarang, namaBarang, keterangan, harga, qty, panjang, diskon, total
+                };
+                
+                items.push(newItem);
+                renderItems();
+                calculateTotals();
+                
+                // Reset form and close modal
+                $('#addItemForm')[0].reset();
+                $('#itemPreview').empty();
+                $('#addItemModal').modal('hide');
+            },
+            error: function() {
+                alert('Terjadi kesalahan saat memvalidasi kode barang.');
+            }
+        });
     });
     
     // Item search functionality
     $('#findItem').click(function() {
-        // Here you would typically have a function to search for items
-        alert('Fitur pencarian barang akan diimplementasikan');
+        $('#kodeBarangSearchModal').modal('show');
     });
     
     // Function to render items table
@@ -285,4 +352,57 @@ $(document).ready(function() {
     
     // Initialize item preview
     updateItemPreview();
+
+    // Kode Barang search modal
+    $('#searchKodeBarangBtn').click(function() {
+        const keyword = $('#searchKodeBarangInput').val();
+        if (keyword.length > 0) {
+            $.ajax({
+                url: window.kodeBarangSearchUrl,
+                method: "GET",
+                data: { keyword },
+                success: function(data) {
+                    let html = '';
+                    if (data.length > 0) {
+                        data.forEach(item => {
+                            html += `<tr>
+                                <td>${item.kode_barang}</td>
+                                <td>${item.attribute}</td>
+                                <td>${item.length} m</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-primary select-kode-barang"
+                                        data-kode="${item.kode_barang}" 
+                                        data-name="${item.attribute}"
+                                        data-length="${item.length}">
+                                        <i class="fas fa-check"></i> Pilih
+                                    </button>
+                                </td>
+                            </tr>`;
+                        });
+                    } else {
+                        html = '<tr><td colspan="4" class="text-center">Tidak ada data ditemukan</td></tr>';
+                    }
+                    $('#kodeBarangSearchResults').html(html);
+                },
+                error: function() {
+                    alert('Terjadi kesalahan saat mencari kode barang.');
+                }
+            });
+        }
+    });
+
+    // Select Kode Barang from search modal
+    $(document).on('click', '.select-kode-barang', function() {
+        const kodeBarang = $(this).data('kode');
+        const namaBarang = $(this).data('name');
+        const length = $(this).data('length');
+        
+        $('#kode_barang').val(kodeBarang);
+        $('#nama_barang').val(namaBarang);
+        $('#panjang').val(length);
+        
+        $('#kodeBarangSearchModal').modal('hide');
+        
+        updateItemPreview();
+    });
 });

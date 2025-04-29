@@ -45,7 +45,7 @@ class Panel extends Model
     {
         return $this->belongsTo(Panel::class, 'kode_barang', 'id');
     }
-    
+
     public function kodeBarang()
     {
         return $this->belongsTo(KodeBarang::class, 'group_id', 'kode_barang');

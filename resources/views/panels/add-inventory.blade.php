@@ -36,7 +36,7 @@
                             @error('group_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Select the item code.</small>                        
+                            <small class="form-text text-muted">Select the item code.</small>
                         </div>
                         <div class="form-group">
                             <label for="cost"><i class="fas fa-ruler mr-1"></i> Cost (per meters)</label>

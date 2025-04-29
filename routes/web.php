@@ -121,11 +121,22 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/panels/delete/{id}', [PanelController::class, 'deleteInventory'])
     ->name('panels.delete-inventory');
 
+    //ROute edit and delete kode barang -yoyo
+    Route::get('/code/edit/{id}', [KodeBarangController::class, 'edit'])->name('code.edit');
+    Route::put('/code/update/{id}', [KodeBarangController::class, 'update'])->name('code.update');
+    Route::delete('/code/delete/{id}', [KodeBarangController::class, 'destroy'])->name('code.delete');
+
     // Route::get('/master/barang', function () {
     //     return view('master.barang');
     // })->name('master.barang');
 
     Route::get('/master/barang', [PanelController::class, 'viewBarang'])->name('master.barang');
+
+    // Mutasi Stok Barang
+    Route::get('master.mutasistokbarang', function () {
+        return view('master.mutasistokbarang');
+        })->name('master.mutasistokbarang');
+
 
     Route::get('master/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::post('master/customers', [CustomerController::class, 'store'])->name('customers.store');
@@ -217,6 +228,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/searchfaktur', [TransaksiController::class,'getTransaksiByCustomer'])->name('api.faktur.search');
     Route::get('/api/suratjalan/transaksiitem/{transaksiId}', [TransaksiController::class, 'getRincianTransaksi'])->name('api.rinciantransaksi');
     Route::get('/api/transaksi/items/{transaksiId}', [TransaksiController::class, 'getTransaksiItems'])->name('api.transaksi.items');
+    Route::get('/kode-barang/search', [KodeBarangController::class, 'searchKodeBarang'])->name('kodeBarang.search');
 
     // Surat Jalan
     Route::prefix('suratjalan')->group(function () {
@@ -241,6 +253,10 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/update/{id}', [PembelianController::class, 'update'])->name('pembelian.update');
     Route::delete('/delete/{id}', [PembelianController::class, 'destroy'])->name('pembelian.delete');
 
+    // Stock Management Routes
+    Route::get('/stock/mutasi', [StockController::class, 'mutasiStock'])->name('stock.mutasi');
+    Route::get('/stock/print-good', [StockController::class, 'printGoodStock'])->name('stock.print.good');
+    Route::get('/stock/get', [StockController::class, 'getStock'])->name('stock.get');
+    Route::get('/stock/mutations', [StockController::class, 'getStockMutations'])->name('stock.mutations');
+
 });
-
-
