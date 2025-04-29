@@ -25,7 +25,6 @@ use App\Models\Bookings;
 use App\Models\Logistics;
 use App\Models\Transactions;
 use App\Models\Customer;
-use App\Models\KodeBarang;
 use App\Models\Pembelian;
 use App\Models\Transaksi;
 
