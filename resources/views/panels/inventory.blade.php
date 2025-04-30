@@ -33,10 +33,10 @@
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Group ID</th>
+                                        <th>Kode Barang</th>
                                         <th>Name</th>
-                                        <th>Cost</th>
-                                        <th>Price</th>
+                                        <th>Harga Beli</th>
+                                        <th>Harga Jual</th>
                                         <th>Length (meters)</th>
                                         <th>Available Quantity</th>
                                         <th>Total Length (meters)</th>

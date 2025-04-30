@@ -7,18 +7,21 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <a href="{{ route('panels.create-inventory') }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus mr-1"></i> Tambah Barang
-            </a>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <a href="{{ route('panels.create-inventory') }}" class="btn btn-primary btn-sm me-2">
+                    <i class="fas fa-plus mr-1"></i> Tambah Barang
+                </a>
 
-            <a href="{{ route('code.create-code') }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus mr-1"></i> Tambah Kode Barang
-            </a>
+                <a href="{{ route('code.create-code') }}" class="btn btn-sm me-2" style="background-color: #28a745; color: white;">
+                    <i class="fas fa-upload"></i> Tambah Kode Barang
+                </a>
+            </div>
 
-            <a href="{{ route('code.view-code') }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus mr-1"></i> List Kode Barang
+            <a href="{{ route('code.view-code') }}" class="btn btn-sm" style="background-color: #3f8efc; color: white;">
+                <i class="fas fa-file-alt"></i> List Kode Barang
             </a>
+        </div>
 
         </div>
         <div class="card-body">
@@ -77,10 +80,10 @@
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Group ID</th>
+                                    <th>Kode Barang</th>
                                     <th>Name</th>
-                                    <th>Cost</th>
-                                    <th>Price</th>
+                                    <th>Harga Beli</th>
+                                    <th>Harga Jual</th>
                                     <th>Length (meters)</th>
                                     <th>Available Quantity</th>
                                     <th>Total Length (meters)</th>

@@ -11,7 +11,7 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
         
-    <table class="table table-bordered">
+    <table class="table table-bordered" style="border: 5px solid black; border-collapse: collapse;">
         <thead>
             <tr>
                 <th>Kode Customer</th>
@@ -47,7 +47,7 @@
 <!-- Add Customer Modal -->
 <div class="modal fade" id="addCustomerModal" tabindex="-1" role="dialog" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content" style="border: 3px solid black;">
             <form action="{{ route('customers.store') }}" method="POST">
                 @csrf
                 <div class="modal-header">
@@ -103,7 +103,7 @@
         <form action="{{ route('customers.update', $customer) }}" method="POST">
             @csrf
             @method('PUT')
-            <div class="modal-content">
+            <div class="modal-content" style="border: 3px solid black;">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editCustomerModalLabel-{{ $customer->id }}">Edit Pelanggan</h5>
                     <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
@@ -127,7 +127,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="telepon" class="form-label">Telepon</label>
-                        <input type="text" name="telepon" class="form-control" value="{{ $customer->telepon }}">
+                        <input type="text" name="telepon" class="form-control" value="{{ $customer->telepon }}"/>
                     </div>
                 </div>
                 <div class="modal-footer">
