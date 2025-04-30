@@ -1,104 +1,102 @@
 @extends('layout.Nav')
 
 @section('content')
-<div class="container">
-    <h2 class="mb-4">Master Cara Bayar</h2>
-    
-    <form action="#" method="POST">
-        @csrf
-        <div class="row mb-3">
-            <div class="col-md-3">
-                <label for="cara_bayar" class="form-label">Cara Bayar</label>
-                <input type="text" class="form-control" id="cara_bayar" name="cara_bayar">
-            </div>
-            <div class="col-md-4">
-                <label for="keterangan" class="form-label">Keterangan</label>
-                <input type="text" class="form-control" id="keterangan" name="keterangan">
-            </div>
-            <div class="col-md-3">
-                <label for="kode_account" class="form-label">Kode Account</label>
-                <select class="form-select" id="kode_account" name="kode_account">
-                    <option selected disabled>Pilih Kode Account</option>
-                    <option value="111020">111020</option>
-                    <option value="111003">111003</option>
-                    <option value="111004">111004</option>
-                    <option value="111005">111005</option>
-                    <option value="111046">111046</option>
-                    <option value="111030">111030</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label for="lokasi" class="form-label">Lokasi</label>
-                <select class="form-select" id="lokasi" name="lokasi">
-                    <option value="AL">AL</option>
-                    <option value="ML">ML</option>
-                    <option value="SL">SL</option>
-                </select>
-            </div>
-        </div>
+<div class="container py-3">
+    <div class="title-box mb-4">
+        <h2><i class="fas fa-wallet mr-2"></i> Master Cara Bayar</h2>
+    </div>
 
-        <div class="mb-4">
-            <button type="submit" class="btn btn-primary">Simpan</button>
-            <button type="reset" class="btn btn-warning">Hapus</button>
-            <button type="button" class="btn btn-info">Refresh</button>
-            <a href="/" class="btn btn-danger">Exit</a>
-        </div>
-    </form>
+    @if (session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
 
-    <h5>Display Data Cara Bayar</h5>
-    <table class="table table-bordered">
-        <thead class="table-light">
-            <tr>
-                <th>Cara Bayar</th>
-                <th>Keterangan</th>
-                <th>Kode Account</th>
-                <th>Lokasi</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>BCA 15106000</td>
-                <td>TRANSFER BCA 151-066000</td>
-                <td>111020</td>
-                <td>AL</td>
-            </tr>
-            <tr>
-                <td>BCA 151065666</td>
-                <td>TRANSFER BCA 151065666</td>
-                <td>111003</td>
-                <td>AL</td>
-            </tr>
-            <tr>
-                <td>BCA 1510714888</td>
-                <td>TRANSFER BCA 1510714888</td>
-                <td>111004</td>
-                <td>AL</td>
-            </tr>
-            <tr>
-                <td>BCA 1510727777</td>
-                <td>TRANSFER BCA 1510727777</td>
-                <td>111005</td>
-                <td>AL</td>
-            </tr>
-            <tr>
-                <td>BCA 1510837777</td>
-                <td>TRANSFER BCA 1510837777 CAB LAMPUNG</td>
-                <td>111046</td>
-                <td>AL</td>
-            </tr>
-            <tr>
-                <td>BCA 15106000</td>
-                <td>TRANSFER REKENING BCA 151-060600</td>
-                <td>111020</td>
-                <td>AL</td>
-            </tr>
-            <tr>
-                <td>BCA 151150015</td>
-                <td>TRANSFER BCA 151150015</td>
-                <td>111030</td>
-                <td>AL</td>
-            </tr>
-        </tbody>
-    </table>
+    <!-- Form Tambah -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            Tambah Cara Bayar
+        </div>
+        <div class="card-body">
+            <form action="{{ route('master.cara_bayar.store') }}" method="POST">
+                @csrf
+                <div class="form-row align-items-end">
+                    <div class="form-group col-md-3">
+                        <label for="metode">Metode Pembayaran</label>
+                        <select class="form-control" name="metode" required>
+                            <option value="">-- Pilih Metode --</option>
+                            <option value="Tunai">Tunai</option>
+                            <option value="Non Tunai">Non Tunai</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label for="nama">Cara Bayar</label>
+                        <input type="text" name="nama" class="form-control" placeholder="Misal: Cash, Transfer BCA xxx" required>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <button type="submit" class="btn btn-success btn-block"><i class="fas fa-plus"></i> Tambah</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <input type="text" id="searchCaraBayar" class="form-control" placeholder="Cari berdasarkan metode atau nama...">
+        </div>
+    </div>
+
+    <!-- Table List -->
+    <div class="card">
+        <div class="card-header">
+            List Cara Bayar
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>No</th>
+                        <th>Metode</th>
+                        <th>Nama Cara Bayar</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="caraBayarTable">
+                    @foreach($cara_bayar as $index => $item)
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $item->metode }}</td>
+                        <td>{{ $item->nama }}</td>
+                        <td>
+                            <form action="{{ route('master.cara_bayar.destroy', $item->id) }}" method="POST" onsubmit="return confirm('Yakin mau hapus cara bayar ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Hapus</button>
+                            </form>
+                        </td>
+                    </tr>
+                    @endforeach
+                    @if(count($cara_bayar) === 0)
+                        <tr><td colspan="4" class="text-center">Data belum ada</td></tr>
+                    @endif
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+    $(document).ready(function() {
+        $('#searchCaraBayar').on('keyup', function() {
+            const keyword = $(this).val().toLowerCase();
+            $('#caraBayarTable tr').filter(function() {
+                $(this).toggle(
+                    $(this).text().toLowerCase().indexOf(keyword) > -1
+                );
+            });
+        });
+    });
+</script>
 @endsection

@@ -18,6 +18,7 @@ use App\Http\Controllers\SuratJalanController;
 use App\Http\Controllers\SuratJalanItemController;
 use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\StockController;
+use App\Http\Controllers\CaraBayarController;
 use App\Models\StokOwner;
 use App\Models\Supplier;
 use App\Models\KodeBarang;
@@ -204,16 +205,20 @@ Route::middleware(['web', 'role'])->group(function () {
 
     // History Pembelian
     Route::get('/pembelian/historypembelian', function () {
-            return view('pembelian.historypembelian'); // karena file-nya langsung di views/
-        })->name('pembelian.historypembelian');
+        return view('pembelian.historypembelian'); // karena file-nya langsung di views/
+    })->name('pembelian.historypembelian');
+    
+    // Cara Bayar
+    Route::prefix('master')->group(function () {
+        Route::get('/cara_bayar', [CaraBayarController::class, 'index'])->name('master.cara_bayar');
+        Route::post('/cara_bayar', [CaraBayarController::class, 'store'])->name('master.cara_bayar.store');
+        Route::delete('/cara_bayar/{id}', [CaraBayarController::class, 'destroy'])->name('master.cara_bayar.destroy');
+    });
 
-    // Master Cara Bayar (web.php)
-    Route::get('/master/cara_bayar', function () {
-        return view('master.cara_bayar'); // karena file-nya langsung di views/
-    })->name('cara_bayar.form');
-
-    Route::post('/mastercarabayar', [TransaksiController::class, 'store'])
-    ->name('panels.mastercarabayar');
+    Route::get('/api/cara-bayar/by-metode', function (Illuminate\Http\Request $request) {
+        $metode = $request->query('metode');
+        return \App\Models\CaraBayar::where('metode', $metode)->get();
+    });     
 
     // API for ajax calls
     Route::prefix('api')->group(function () {

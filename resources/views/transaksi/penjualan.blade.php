@@ -57,21 +57,17 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="pembayaran">Pembayaran</label>
-                            <select class="form-control" id="pembayaran" name="pembayaran">
+                            <label for="metode_pembayaran">Metode Pembayaran</label>
+                            <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
                                 <option value="Tunai">Tunai</option>
-                                <option value="Transfer">Transfer</option>
-                                <option value="Kredit">Kredit</option>
+                                <option value="Non Tunai">Non Tunai</option>
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label for="cara_bayar">Cara Bayar</label>
                             <select class="form-control" id="cara_bayar" name="cara_bayar">
-                                <option value="Cash">Cash</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="Debit">Debit</option>
-                                <option value="Cicilan">Cicilan</option>
+                                <option value="">-- Pilih Metode Dulu --</option>
                             </select>
                         </div>
 
@@ -188,11 +184,8 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Cara Bayar</label>
-                        <select class="form-control" id="cara_bayar_akhir">
-                            <option value="Cash">Cash</option>
-                            <option value="Credit Card">Credit Card</option>
-                            <option value="Debit">Debit</option>
-                            <option value="Cicilan">Cicilan</option>
+                        <select class="form-control" id="cara_bayar_akhir" disabled>
+                            <option value="">-- Belum Dipilih --</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -314,6 +307,35 @@ $(document).ready(function() {
     // Initialize variables
     let items = [];
     let grandTotal = 0;
+
+    // Metode Pembayaran
+    $('#metode_pembayaran').on('change', function () {
+        const metode = $(this).val();
+        $('#cara_bayar').html('<option value="">Loading...</option>');
+        
+        $.ajax({
+            url: '{{ url("api/cara-bayar/by-metode") }}',
+            method: 'GET',
+            data: { metode: metode },
+            success: function (data) {
+                let options = '<option value="">-- Pilih Cara Bayar --</option>';
+                data.forEach(cb => {
+                    options += `<option value="${cb.nama}">${cb.nama}</option>`;
+                });
+                $('#cara_bayar').html(options);
+            },
+            error: function () {
+                $('#cara_bayar').html('<option value="">Gagal load data</option>');
+            }
+        });
+    });
+
+    $('#cara_bayar').on('change', function () {
+        const selected = $(this).val();
+        $('#cara_bayar_akhir')
+            .html(`<option value="${selected}">${selected}</option>`)
+            .val(selected);
+    });
 
     // Search customers
     $('#customer').on('input', function () {
@@ -598,7 +620,7 @@ $(document).ready(function() {
                 kode_customer: $('#kode_customer').val(),
                 sales: $('#sales').val(),
                 lokasi: $('#lokasi').val(),
-                pembayaran: $('#pembayaran').val(),
+                pembayaran: $('#metode_pembayaran').val(),
                 cara_bayar: $('#cara_bayar').val(),
                 tanggal_jadi: $('#tanggal_jadi').val(),
                 items: items,
@@ -637,12 +659,13 @@ $(document).ready(function() {
             });
 
             // Tombol Kembali
-            $('#backToFormBtn').click(function() {
+            $('#backToFormBtn').off('click').on('click', function(){
                 $('#invoiceModal').modal('hide');
                 $('#transactionForm')[0].reset();
                 items = [];
                 renderItems();
                 calculateTotals();
+                window.location.href = "{{ route('transaksi.penjualan') }}";
             });
 
             // You would typically send this data to your backend using AJAX

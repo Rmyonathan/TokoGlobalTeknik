@@ -425,7 +425,7 @@
                                 <a class="nav-link" href="<?php echo e(route('suppliers.index')); ?>"><i class="fas fa-people-carry-box"></i> Suppliers</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="<?php echo e(route('cara_bayar.form')); ?>"><i class="fas fa-file-invoice-dollar"></i> Master Cara Bayar</a>
+                                <a class="nav-link" href="<?php echo e(route('master.cara_bayar')); ?>"><i class="fas fa-file-invoice-dollar"></i> Master Cara Bayar</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('stock.mutasi')); ?>"><i class="fas fa-exchange-alt"></i> Mutasi Stok Barang</a>
