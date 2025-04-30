@@ -147,17 +147,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const quantities = [];
     const backgroundColors = [];
 
-    @foreach($inventory['inventory_by_length'] as $item)
-        lengths.push('{{ number_format($item['length'], 2) }}m');
-        quantities.push({{ $item['quantity'] }});
-
         // Generate different colors
         backgroundColors.push(
             'rgb(' + Math.floor(Math.random() * 200) + ','
             + Math.floor(Math.random() * 200) + ','
             + Math.floor(Math.random() * 200) + ')'
         );
-    @endforeach
 
     const inventoryChart = new Chart(ctx, {
         type: 'pie',
