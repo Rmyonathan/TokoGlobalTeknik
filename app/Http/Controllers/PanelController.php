@@ -516,7 +516,11 @@ class PanelController extends Controller
             $getAttribute = Panel::find($parent_panel_id);
             $getAttribute = $getAttribute->group_id;
             $getAttribute = KodeBarang::where('kode_barang', $getAttribute)->first();
-            $new_name = $getAttribute->name;
+
+            $getNewName = KodeBarang::where('attribute', $getAttribute->attribute)
+                                 ->where('length', $length)->first();
+            $getNewName = Panel::where('group_id', $getNewName->kode_barang)->first();
+            $new_name = $getNewName->name;
             $getAttribute = $getAttribute->attribute;
             $getCode = KodeBarang::where('attribute', $getAttribute)
                               ->where('length', $length)

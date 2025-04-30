@@ -8,6 +8,10 @@ use App\Models\Saldo;
 use App\Models\Bookings;
 use App\Models\XItems;
 use App\Models\Items;
+use App\Models\Pembelian;
+use App\Models\Transaksi;
+use App\Models\PembelianItem;
+use App\Models\TransaksiItem;
 use Illuminate\Http\Request;
 
 class KasController extends Controller
@@ -26,27 +30,116 @@ class KasController extends Controller
         ]);
     }
 
-    public function viewKas()
+    public function viewKas(Request $request)
     {
-        $cashTransactions = Kas::where('type', '!=', 'Hutang')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-        $saldo = Saldo::find(1);
-        // Calculate debit and credit totals
-        $debitTotal = Kas::whereIn('type', ['Debit','Bonus'])->sum('transaction');
-        $kreditTotal = Kas::where('type', 'Kredit')->sum('transaction');
+        $value = $request->input('value');
+        $tanggal_awal = $request->input('tanggal_awal');
+        $tanggal_akhir = $request->input('tanggal_akhir');
 
-        // Calculate grand total as debit - credit
-        $grandTotal = $debitTotal - $kreditTotal;
+        $pembelianQuery = Pembelian::all();
+        $penjualanQuery = Transaksi::all();
 
-        return view('viewkas', [
-            "cashTransactions" => $cashTransactions,
-            "saldo" => $saldo,
-            "grandTotal" => $grandTotal,
-            "debitTotal" => $debitTotal,
-            "kreditTotal" => $kreditTotal,
-        ]);
+        $array_pembelian = [];
+        $array_penjualan = [];
+
+        // Handle Pembelian
+        foreach ($pembelianQuery as $pembelian) {
+            $items = PembelianItem::where('nota', $pembelian->nota)->get();
+            $items_list = [];
+
+            foreach ($items as $item) {
+                $items_list[] = $item->kode_barang . ' x ' . $item->qty;
+            }
+
+            $array_pembelian[] = [
+                'Name' => $pembelian->nota,
+                'Deskripsi' => implode(', ', $items_list),
+                'Grand total' => $pembelian->grand_total,
+                'Date' => $pembelian->created_at,
+                'Type' => 'Debit'
+            ];
+        }
+
+        // Handle Penjualan
+        foreach ($penjualanQuery as $penjualan) {
+            $items = TransaksiItem::where('no_transaksi', $penjualan->no_transaksi)->get();
+            $items_list = [];
+
+            foreach ($items as $item) {
+                $items_list[] = $item->kode_barang . ' x ' . $item->qty;
+            }
+
+            $array_penjualan[] = [
+                'Name' => $penjualan->no_transaksi,
+                'Deskripsi' => implode(', ', $items_list),
+                'Grand total' => $penjualan->grand_total,
+                'Date' => $penjualan->created_at,
+                'Type' => 'Kredit'
+            ];
+        }
+
+        // Gabungkan dan urutkan berdasarkan tanggal
+        $gabungan = array_merge($array_pembelian, $array_penjualan);
+        usort($gabungan, function ($a, $b) {
+            return strtotime($a['Date']) <=> strtotime($b['Date']);
+        });
+
+        $saldo = 0;
+
+        foreach ($gabungan as $key => $row) {
+            if ($row['Type'] == 'Kredit') {
+                $saldo += $row['Grand total'];
+            } elseif ($row['Type'] == 'Debit') {
+                $saldo -= $row['Grand total'];
+            }
+
+            $gabungan[$key]['Saldo'] = $saldo;
+        }
+
+        if ($value) {
+            $gabungan = collect($gabungan)->filter(function ($item) use ($value) {
+                return stripos($item['Name'], $value) !== false;
+            })->values()->all();
+        }
+
+        // // Get mutations for the filtered products
+        // $mutations = collect([]);
+        // $openingBalance = 0;
+        // $selectedStock = null;
+
+        // // Check if we should show mutations (either a single result or user clicked on an item)
+        // $selectedKodeBarang = $request->input('selected_kode_barang');
+
+        // if ($selectedKodeBarang) {
+        //     // User specifically selected an item to view mutations for
+        //     $selectedStock = $stocks->where('kode_barang', $selectedKodeBarang)->first();
+        // } elseif ($stocks->count() == 1) {
+        //     // Only one stock item found in search, automatically show its mutations
+        //     $selectedStock = $stocks->first();
+        // }
+
+        // Apply date filters if provided
+        $gabungan = collect($gabungan);
+        if ($tanggal_awal) {
+            $gabungan = $gabungan->filter(function ($item) use ($tanggal_awal) {
+                return \Carbon\Carbon::parse($item['Date'])->toDateString() >= $tanggal_awal;
+            });
+        }
+
+        if ($tanggal_akhir) {
+            $gabungan = $gabungan->filter(function ($item) use ($tanggal_akhir) {
+                return \Carbon\Carbon::parse($item['Date'])->toDateString() <= $tanggal_akhir;
+            });
+        }
+
+        $gabungan = $gabungan->values()->all();
+
+        //     $mutations = $mutationsQuery->get();
+        // }
+
+        return view('viewKas', compact('gabungan', 'value', 'tanggal_awal', 'tanggal_akhir'));
     }
+
 
     public function hutangLunas()
     {
@@ -76,27 +169,27 @@ class KasController extends Controller
 
 
     public function viewDebt(Request $request)
-    {   
+    {
         // Start with a base query for all transactions
         $baseQuery = Kas::query();
-        
+
         // Apply name search filter across all transaction types if provided
         if ($request->filled('searchN')) {
             $searchN = $request->input('searchN');
             $baseQuery->where('name', 'like', '%' . $searchN . '%');
         }
-        
+
         // Get the names that match the search criteria
         $matchingNames = $baseQuery->pluck('name')->unique();
-        
+
         // Now create the final query that only shows Hutang type
         $query = Kas::where('type', 'Hutang');
-        
+
         // If a search was performed, restrict to only the matching names
         if ($request->filled('searchN')) {
             $query->whereIn('name', $matchingNames);
         }
-        
+
         // Get the paginated results
         $cashTransactions = $query->orderBy('created_at', 'desc')->paginate(10);
 
