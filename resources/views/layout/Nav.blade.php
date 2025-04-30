@@ -243,7 +243,15 @@
             background-color: var(--light-color);
             border-radius: 8px;
             overflow: hidden;
+            border: 5px solid black; /* Menambahkan border */
+            border-collapse: collapse; /* Pastikan border antar sel ter-collapse dengan benar */
         }
+
+        .table th, .table td {
+            border: 1px solid black; /* Border pada sel tabel */
+            padding: 8px;
+        }
+
 
         .table thead th {
             background-color: var(--primary-color);
@@ -480,7 +488,7 @@
                                         <a class="nav-link" href="<?php echo e(route('pembelian.historypembelian')); ?>"><i class="fas fa-clock-rotate-left"></i> History Pembelian</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-clock-rotate-left"></i> List Nota Pembelian</a>
+                                            <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-file-invoice-dollar mr-2"></i> List Nota Pembelian</a>
                                             </li>
                                            
                                     </ul>
