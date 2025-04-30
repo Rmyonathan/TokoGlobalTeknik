@@ -59,6 +59,7 @@
                         <div class="form-group">
                             <label for="metode_pembayaran">Metode Pembayaran</label>
                             <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
+                                <option selected disabled value=""> Pilih Metode Pembayaran</option>
                                 <option value="Tunai">Tunai</option>
                                 <option value="Non Tunai">Non Tunai</option>
                             </select>
@@ -67,7 +68,7 @@
                         <div class="form-group">
                             <label for="cara_bayar">Cara Bayar</label>
                             <select class="form-control" id="cara_bayar" name="cara_bayar">
-                                <option value="">-- Pilih Metode Dulu --</option>
+                                <option value="">Pilih Metode Dulu</option>
                             </select>
                         </div>
 
@@ -581,9 +582,9 @@ $(document).ready(function() {
         // Calculate PPN
         let ppnAmount = 0;
         if ($('#ppn_checkbox').is(':checked')) {
-            ppnAmount = ((subtotal - discountAmount - discRp) * 11) / 100; // Using 11% for PPN
+            ppnAmount = ((subtotal - discountAmount - discRp) * 0.11); // Using 11% for PPN
         }
-        $('#ppn_amount').val(ppnAmount.toFixed(2));
+        $('#ppn_amount').val(formatCurrency(ppnAmount));
 
         // Calculate DP
         let dpAmount = 0;

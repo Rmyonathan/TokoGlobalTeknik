@@ -12,7 +12,7 @@
 
     <!-- Form Tambah -->
     <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-dark text-white">
             Tambah Cara Bayar
         </div>
         <div class="card-body">
