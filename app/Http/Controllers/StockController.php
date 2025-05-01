@@ -21,7 +21,7 @@ class StockController extends Controller
         $value = $request->input('value');
         $tanggal_awal = $request->input('tanggal_awal');
         $tanggal_akhir = $request->input('tanggal_akhir');
-        
+
         // Get all available stocks
         $stocksQuery = Stock::select(
             'stocks.kode_barang',
@@ -31,7 +31,7 @@ class StockController extends Controller
             'stocks.so',
             'stocks.satuan'
         );
-        
+
         // Apply filters if provided
         if ($value) {
             if ($kolom === 'kode_barang') {
@@ -40,17 +40,17 @@ class StockController extends Controller
                 $stocksQuery->where('stocks.nama_barang', 'like', "%{$value}%");
             }
         }
-        
+
         $stocks = $stocksQuery->get();
-        
+
         // Get mutations for the filtered products
         $mutations = collect([]);
         $openingBalance = 0;
         $selectedStock = null;
-        
+
         // Check if we should show mutations (either a single result or user clicked on an item)
         $selectedKodeBarang = $request->input('selected_kode_barang');
-        
+
         if ($selectedKodeBarang) {
             // User specifically selected an item to view mutations for
             $selectedStock = $stocks->where('kode_barang', $selectedKodeBarang)->first();
@@ -58,45 +58,45 @@ class StockController extends Controller
             // Only one stock item found in search, automatically show its mutations
             $selectedStock = $stocks->first();
         }
-        
+
         if ($selectedStock) {
             // Build query for mutations
             $mutationsQuery = StockMutation::where('kode_barang', $selectedStock->kode_barang)
                 ->where('so', $selectedStock->so)
                 ->orderBy('tanggal')
                 ->orderBy('id');
-            
+
             // Apply date filters if provided
             if ($tanggal_awal) {
                 // Get opening balance for the specified date
                 $openingBalance = $this->getOpeningBalance(
                     $selectedStock->kode_barang,
-                    $selectedStock->so, 
+                    $selectedStock->so,
                     $tanggal_awal
                 );
-                
+
                 $mutationsQuery->whereDate('tanggal', '>=', $tanggal_awal);
             }
-            
+
             if ($tanggal_akhir) {
                 $mutationsQuery->whereDate('tanggal', '<=', $tanggal_akhir);
             }
-            
+
             $mutations = $mutationsQuery->get();
         }
-        
+
         return view('stock.mutasi_stock', compact(
-            'stocks', 
-            'mutations', 
-            'openingBalance', 
-            'kolom', 
-            'value', 
-            'tanggal_awal', 
+            'stocks',
+            'mutations',
+            'openingBalance',
+            'kolom',
+            'value',
+            'tanggal_awal',
             'tanggal_akhir',
             'selectedStock'
         ));
     }
-    
+
     /**
      * Print good stock report
      */
@@ -104,7 +104,7 @@ class StockController extends Controller
     {
         $kolom = $request->input('kolom', 'kode_barang');
         $value = $request->input('value');
-        
+
         $query = Stock::select(
             'stocks.kode_barang',
             'stocks.nama_barang',
@@ -112,7 +112,7 @@ class StockController extends Controller
             'stocks.satuan',
             'stocks.so'
         );
-        
+
         if ($value) {
             if ($kolom === 'kode_barang') {
                 $query->where('stocks.kode_barang', 'like', "%{$value}%");
@@ -120,12 +120,12 @@ class StockController extends Controller
                 $query->where('stocks.nama_barang', 'like', "%{$value}%");
             }
         }
-        
+
         $stocks = $query->get();
-        
+
         return view('stock.print_good_stock', compact('stocks'));
     }
-    
+
     /**
      * Record a purchase for stock mutation report only (no panel inventory update)
      */
@@ -152,10 +152,10 @@ class StockController extends Controller
                     'satuan' => $satuan
                 ]
             );
-            
+
             // Calculate new total
             $newTotal = $stock->good_stock + $quantity;
-            
+
             // Record the stock movement
             StockMutation::create([
                 'kode_barang' => $kode_barang,
@@ -175,7 +175,7 @@ class StockController extends Controller
             // Update stock
             $stock->good_stock = $newTotal;
             $stock->save();
-            
+
             DB::commit();
             return true;
         } catch (Exception $e) {
@@ -184,7 +184,7 @@ class StockController extends Controller
             return false;
         }
     }
-    
+
     /**
      * Record a sale for stock mutation report only (no panel inventory update)
      */
@@ -211,10 +211,10 @@ class StockController extends Controller
                     'satuan' => $satuan
                 ]
             );
-            
+
             // Calculate new total
             $newTotal = $stock->good_stock - $quantity;
-            
+
             // Record the stock movement
             StockMutation::create([
                 'kode_barang' => $kode_barang,
@@ -234,7 +234,7 @@ class StockController extends Controller
             // Update stock
             $stock->good_stock = $newTotal;
             $stock->save();
-            
+
             DB::commit();
             return true;
         } catch (Exception $e) {
@@ -255,10 +255,10 @@ class StockController extends Controller
             ->orderBy('tanggal', 'desc')
             ->orderBy('id', 'desc')
             ->first();
-            
+
         return $latestMovement ? $latestMovement->total : 0;
     }
-    
+
     /**
      * API endpoint to get stock data for a specific product
      */
@@ -266,24 +266,24 @@ class StockController extends Controller
     {
         $kode_barang = $request->input('kode_barang');
         $so = $request->input('so', 'ALUMKA');
-        
+
         $stock = Stock::where('kode_barang', $kode_barang)
             ->where('so', $so)
             ->first();
-            
+
         if (!$stock) {
             return response()->json([
                 'success' => false,
                 'message' => 'Stock not found'
             ], 404);
         }
-        
+
         return response()->json([
             'success' => true,
             'data' => $stock
         ]);
     }
-    
+
     /**
      * API endpoint to get mutations for a specific product
      */
@@ -293,27 +293,27 @@ class StockController extends Controller
         $so = $request->input('so', 'ALUMKA');
         $tanggal_awal = $request->input('tanggal_awal');
         $tanggal_akhir = $request->input('tanggal_akhir');
-        
+
         $query = StockMutation::where('kode_barang', $kode_barang)
             ->where('so', $so)
             ->orderBy('tanggal')
             ->orderBy('id');
-            
+
         if ($tanggal_awal) {
             $query->whereDate('tanggal', '>=', $tanggal_awal);
         }
-        
+
         if ($tanggal_akhir) {
             $query->whereDate('tanggal', '<=', $tanggal_akhir);
         }
-        
+
         $mutations = $query->get();
         $openingBalance = 0;
-        
+
         if ($tanggal_awal) {
             $openingBalance = $this->getOpeningBalance($kode_barang, $so, $tanggal_awal);
         }
-        
+
         return response()->json([
             'success' => true,
             'opening_balance' => $openingBalance,
