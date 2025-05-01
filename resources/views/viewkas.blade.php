@@ -4,6 +4,41 @@
 <div class="container">
     <h2 class="title-box">Mutasi Stock Barang</h2>
 
+     <!-- Filter -->
+     <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-filter mr-2"></i>Filter
+        </div>
+        <div class="card-body">
+            <form class="form-inline" method="GET" action="/viewKas">
+                <div class="form-group mx-2 mb-2">
+                    <label class="mr-2">Name</label>
+                    <input type="text" name="value" class="form-control" placeholder="Value" value="{{ $value ?? '' }}">
+                </div>
+                <div class="form-group mx-2 mb-2">
+                    <label class="mr-2">Tanggal</label>
+                    <input type="date" name="tanggal_awal" class="form-control" value="{{ $tanggal_awal ?? '' }}">
+                    <label class="mx-2">s/d</label>
+                    <input type="date" name="tanggal_akhir" class="form-control" value="{{ $tanggal_akhir ?? '' }}">
+                </div>
+                <div class="form-group mb-2">
+                    <button type="submit" class="btn btn-primary mx-1">
+                        <i class="fas fa-search mr-1"></i> Cari
+                    </button>
+                    {{-- <button type="reset" class="btn btn-secondary mx-1" onclick="window.location='{{ route('stock.mutasi') }}'">
+                        <i class="fas fa-sync-alt mr-1"></i> Refresh
+                    </button>
+                    <a href="{{ route('stock.mutasi') }}" class="btn btn-danger mx-1">
+                        <i class="fas fa-times mr-1"></i> Exit
+                    </a>
+                    <a href="{{ route('stock.print.good') }}?kolom={{ $kolom }}&value={{ $value }}" target="_blank" class="btn btn-success mx-1">
+                        <i class="fas fa-print mr-1"></i> Cetak Good Stock
+                    </a> --}}
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Display Barang -->
     <div class="card mb-4">
         <div class="card-header">
@@ -48,40 +83,7 @@
         </div>
     </div>
 
-    <!-- Filter -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <i class="fas fa-filter mr-2"></i>Filter
-        </div>
-        <div class="card-body">
-            <form class="form-inline" method="GET" action="/viewKas">
-                <div class="form-group mx-2 mb-2">
-                    <label class="mr-2">Name</label>
-                    <input type="text" name="value" class="form-control" placeholder="Value" value="{{ $value ?? '' }}">
-                </div>
-                <div class="form-group mx-2 mb-2">
-                    <label class="mr-2">Tanggal</label>
-                    <input type="date" name="tanggal_awal" class="form-control" value="{{ $tanggal_awal ?? '' }}">
-                    <label class="mx-2">s/d</label>
-                    <input type="date" name="tanggal_akhir" class="form-control" value="{{ $tanggal_akhir ?? '' }}">
-                </div>
-                <div class="form-group mb-2">
-                    <button type="submit" class="btn btn-primary mx-1">
-                        <i class="fas fa-search mr-1"></i> Cari
-                    </button>
-                    {{-- <button type="reset" class="btn btn-secondary mx-1" onclick="window.location='{{ route('stock.mutasi') }}'">
-                        <i class="fas fa-sync-alt mr-1"></i> Refresh
-                    </button>
-                    <a href="{{ route('stock.mutasi') }}" class="btn btn-danger mx-1">
-                        <i class="fas fa-times mr-1"></i> Exit
-                    </a>
-                    <a href="{{ route('stock.print.good') }}?kolom={{ $kolom }}&value={{ $value }}" target="_blank" class="btn btn-success mx-1">
-                        <i class="fas fa-print mr-1"></i> Cetak Good Stock
-                    </a> --}}
-                </div>
-            </form>
-        </div>
-    </div>
+   
 
     {{-- <!-- Mutasi Stock -->
     @if(isset($gabungan))

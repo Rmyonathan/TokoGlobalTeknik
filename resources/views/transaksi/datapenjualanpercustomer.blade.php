@@ -46,25 +46,20 @@
     </div>
 
     <!-- TRANSAKSI TABLE -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">List Transaksi</h5>
+    <div class="row mb-3">
+        <div class="col-md-3 mb-2">
+            <label for="startDate">Dari Tanggal</label>
+            <input type="date" id="startDate" class="form-control">
         </div>
-        <div class="card-body">
-            <div class="row mb-3">
-                <div class="col-md-3 mb-2">
-                    <label for="startDate">Dari Tanggal</label>
-                    <input type="date" id="startDate" class="form-control">
-                </div>
-                <div class="col-md-3 mb-2">
-                    <label for="endDate">Sampai Tanggal</label>
-                    <input type="date" id="endDate" class="form-control">
-                </div>
-                <div class="col-md-3 mb-2 d-flex align-items-end">
-                    <button id="applyDateFilter" class="btn btn-primary mr-2">Terapkan</button>
-                    <button id="resetFilterTanggal" class="btn btn-secondary">Reset</button>
-                </div>
-            </div>
+        <div class="col-md-3 mb-2">
+            <label for="endDate">Sampai Tanggal</label>
+            <input type="date" id="endDate" class="form-control">
+        </div>
+        <div class="col-md-3 mb-2 d-flex align-items-end">
+            <button id="applyDateFilter" class="btn btn-primary mr-2">Terapkan</button>
+            <button id="resetFilter" class="btn btn-secondary">Reset</button>
+        </div>
+    </div>
 
             <table class="table table-bordered">
                 <thead>
@@ -102,94 +97,120 @@
     </div>
 </div>
 @endsection
+
+@section('styles')
+<!-- Add daterangepicker CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+@endsection
+
 @section('scripts')
+<!-- Add moment.js and daterangepicker JS -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
 <script>
-    $(document).ready(function () {
-        let selectedCustomerName = '';
+   $(document).ready(function () {
+    let selectedCustomerName = '';
 
-        // Format rupiah
-        function formatRupiah(angka) {
-            return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    // Format rupiah
+    function formatRupiah(angka) {
+        return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    // HIGHLIGHT SELECTED ROW
+    $('<style>').prop('type', 'text/css').html(`
+        #tbodyCustomer tr.selected {
+            background-color: #f8d7da !important;
+            font-weight: bold;
         }
+    `).appendTo('head');
 
-        // HIGHLIGHT SELECTED ROW
-        $('<style>').prop('type', 'text/css').html(`
-            #tbodyCustomer tr.selected {
-                background-color: #f8d7da !important;
-                font-weight: bold;
-            }
-        `).appendTo('head');
-
-        // Filter customer by keyword
-        $('#searchInput').on('input', function () {
-            const keyword = $(this).val().toLowerCase();
-            $('#tbodyCustomer tr').each(function () {
-                const kode = $(this).find('td:nth-child(2)').text().toLowerCase();
-                const nama = $(this).find('td:nth-child(3)').text().toLowerCase();
-                $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
-            });
+    // Filter customer by keyword
+    $('#searchInput').on('input', function () {
+        const keyword = $(this).val().toLowerCase();
+        $('#tbodyCustomer tr').each(function () {
+            const kode = $(this).find('td:nth-child(2)').text().toLowerCase();
+            const nama = $(this).find('td:nth-child(3)').text().toLowerCase();
+            $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
         });
-
-        // Handle click customer
-        $('#tbodyCustomer tr').on('click', function () {
-            $('#tbodyCustomer tr').removeClass('selected');
-            $(this).addClass('selected');
-            selectedCustomerName = $(this).find('td:nth-child(3)').text().trim();
-            applyFilters();
-        });
-
-        // Apply date filter
-        $('#applyDateFilter').on('click', function () {
-            applyFilters();
-        });
-
-        // Reset
-        $('#resetFilterTanggal').click(function () {
-            $('#startDate, #endDate, #searchInput').val('');
-            selectedCustomerName = '';
-            $('#tbodyCustomer tr, #tbodyTransaksi tr').show();
-            $('#totalTransaksiCustomer').html('');
-            $('#tbodyCustomer tr').removeClass('selected');
-        });
-
-        function applyFilters() {
-            const startDate = $('#startDate').val();
-            const endDate = $('#endDate').val();
-            let total = 0;
-
-            $('#tbodyTransaksi tr').each(function () {
-                const namaRow = $(this).find('td:nth-child(3)').text().trim();
-                const tanggalRow = $(this).find('td:nth-child(2)').text().trim();
-                const totalText = $(this).find('td:nth-child(4)').text().replace(/[^\d]/g, '');
-                const totalValue = parseInt(totalText) || 0;
-
-                const cocokCustomer = selectedCustomerName ? namaRow === selectedCustomerName : true;
-                const cocokTanggal = checkInDateRange(tanggalRow, startDate, endDate);
-
-                if (cocokCustomer && cocokTanggal) {
-                    $(this).show();
-                    total += totalValue;
-                } else {
-                    $(this).hide();
-                }
-            });
-
-            if (selectedCustomerName) {
-                $('#totalTransaksiCustomer').html(
-                    `Total Penjualan <strong>${selectedCustomerName}</strong>: Rp ${formatRupiah(total)}`
-                );
-            } else {
-                $('#totalTransaksiCustomer').html('');
-            }
-        }
-
-        function checkInDateRange(dateStr, start, end) {
-            if (!start && !end) return true;
-            if (!start && end) return dateStr <= end;
-            if (start && !end) return dateStr >= start;
-            return dateStr >= start && dateStr <= end;
-        }
     });
-</script>
 
+    // Handle click customer
+    $('#tbodyCustomer').on('click', 'tr', function () {
+        $('#tbodyCustomer tr').removeClass('selected');
+        $(this).addClass('selected');
+        selectedCustomerName = $(this).find('td:nth-child(3)').text().trim();
+        applyFilters();
+    });
+
+    // Apply date range filter button
+    $('#applyDateFilter').on('click', function () {
+        applyFilters();
+    });
+
+    // Reset filter button
+    $('#resetFilter').on('click', function () {
+        $('#startDate, #endDate, #searchInput').val('');
+        selectedCustomerName = '';
+        $('#tbodyCustomer tr').removeClass('selected').show();
+        $('#tbodyTransaksi tr').show();
+        $('#totalTransaksiCustomer').html('');
+        $('#noDataMessage').remove();
+    });
+
+    // Apply filters function combining customer and date range filter
+    function applyFilters() {
+        const startDate = $('#startDate').val();
+        const endDate = $('#endDate').val();
+        let total = 0;
+        let visibleRows = 0;
+
+        $('#tbodyTransaksi tr').each(function () {
+            const namaRow = $(this).find('td:nth-child(3)').text().trim();
+            const tanggalRow = $(this).find('td:nth-child(2)').text().trim();
+            const totalText = $(this).find('td:nth-child(4)').text().replace(/[^\d]/g, '');
+            const totalValue = parseInt(totalText) || 0;
+
+            const cocokCustomer = selectedCustomerName ? namaRow === selectedCustomerName : true;
+            const cocokTanggal = checkInDateRange(tanggalRow, startDate, endDate);
+
+            if (cocokCustomer && cocokTanggal) {
+                $(this).show();
+                total += totalValue;
+                visibleRows++;
+            } else {
+                $(this).hide();
+            }
+        });
+
+        // Show "no data" message if no results
+        if (visibleRows === 0) {
+            if (!$('#noDataMessage').length) {
+                $('#tbodyTransaksi').after('<div id="noDataMessage" class="alert alert-info mt-3">Tidak ada data yang cocok dengan filter yang dipilih</div>');
+            }
+        } else {
+            $('#noDataMessage').remove();
+        }
+
+        // Update total display
+        if (selectedCustomerName) {
+            $('#totalTransaksiCustomer').html(
+                `Total Penjualan <strong>${selectedCustomerName}</strong>: Rp ${formatRupiah(total)}`
+            );
+        } else {
+            $('#totalTransaksiCustomer').html('Total Penjualan: Rp ' + formatRupiah(total));
+        }
+    }
+
+    // Helper function to check if date is in range (inclusive)
+    function checkInDateRange(dateStr, start, end) {
+        if (!start && !end) return true;
+        if (!start && end) return dateStr <= end;
+        if (start && !end) return dateStr >= start;
+        return dateStr >= start && dateStr <= end;
+    }
+});
+
+
+</script>
 @endsection
