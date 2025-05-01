@@ -80,7 +80,9 @@ Route::middleware(['web', 'role'])->group(function () {
 
 
 
-    Route::post('/addTransaction', [KasController::class, 'addTransaction']);
+    Route::get('/kas/add', [KasController::class, 'create'])->name('kas.create');
+    Route::post('/kas/add', [KasController::class, 'store'])->name('kas.store');
+
 
 
 

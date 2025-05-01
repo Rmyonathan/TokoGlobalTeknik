@@ -5,7 +5,7 @@
     <div class="title-box">
         <h2><i class="fas fa-file-invoice mr-2"></i>Daftar Nota Pembelian</h2>
     </div>
-    
+
     @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         {{ session('success') }}
@@ -14,7 +14,7 @@
         </button>
     </div>
     @endif
-    
+
     @if(session('error'))
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         {{ session('error') }}
@@ -23,7 +23,30 @@
         </button>
     </div>
     @endif
-    
+
+    <!-- Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-2">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Cari No. Nota, Kode atau Nama Supplier">
+                </div>
+                <div class="col-md-3 mb-2">
+                    <label for="startDate">Dari Tanggal</label>
+                    <input type="date" id="startDate" class="form-control">
+                </div>
+                <div class="col-md-3 mb-2">
+                    <label for="endDate">Sampai Tanggal</label>
+                    <input type="date" id="endDate" class="form-control">
+                </div>
+                <div class="col-md-2 mb-2 d-flex align-items-end">
+                    <button id="applyFilter" class="btn btn-primary mr-2">Terapkan</button>
+                    <button id="resetFilter" class="btn btn-secondary">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Riwayat Transaksi Pembelian</h5>
@@ -33,7 +56,7 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered table-striped" id="purchaseTable">
                     <thead>
                         <tr>
                             <th>No. Nota</th>
@@ -48,7 +71,7 @@
                         @forelse($purchases as $purchase)
                         <tr>
                             <td>{{ $purchase->nota }}</td>
-                            <td>{{ date('d-m-Y', strtotime($purchase->tanggal)) }}</td>
+                            <td>{{ date('Y-m-d', strtotime($purchase->tanggal)) }}</td> {{-- Format Y-m-d untuk kemudahan filter --}}
                             <td>{{ $purchase->kode_supplier }} - {{ $purchase->supplierRelation->nama ?? '' }}</td>
                             <td>{{ $purchase->cara_bayar }}</td>
                             <td class="text-right">Rp {{ number_format($purchase->grand_total, 0, ',', '.') }}</td>
@@ -83,7 +106,7 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
+<!-- Delete Confirmation Modal (tetap seperti semula) -->
 <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -113,12 +136,43 @@
 @section('scripts')
 <script>
     $(document).ready(function() {
-        // Setup delete confirmation
-        $('.delete-purchase').click(function() {
-            const id = $(this).data('id');
-            $('#deleteForm').attr('action', `{{ url('pembelian/delete') }}/${id}`);
-            $('#deleteModal').modal('show');
+        function checkInDateRange(dateStr, start, end) {
+            if (!start && !end) return true;
+            if (!start && end) return dateStr <= end;
+            if (start && !end) return dateStr >= start;
+            return dateStr >= start && dateStr <= end;
+        }
+
+        function applyFilters() {
+            const keyword = $('#searchInput').val().toLowerCase();
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+
+            $('#purchaseTable tbody tr').each(function() {
+                const noNota = $(this).find('td:nth-child(1)').text().toLowerCase();
+                const supplierText = $(this).find('td:nth-child(3)').text().toLowerCase();
+                const tanggal = $(this).find('td:nth-child(2)').text();
+
+                const matchKeyword = noNota.includes(keyword) || supplierText.includes(keyword);
+                const matchDate = checkInDateRange(tanggal, startDate, endDate);
+
+                if (matchKeyword && matchDate) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+
+        $('#applyFilter').on('click', applyFilters);
+
+        $('#resetFilter').on('click', function() {
+            $('#searchInput, #startDate, #endDate').val('');
+            $('#purchaseTable tbody tr').show();
         });
+
+        // Optional: filter langsung saat mengetik
+        $('#searchInput').on('input', applyFilters);
     });
 </script>
 @endsection

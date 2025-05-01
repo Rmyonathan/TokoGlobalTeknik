@@ -2,12 +2,14 @@
 
 @section('content')
 <div class="container">
-    <h2 class="title-box">Mutasi Stock Barang</h2>
 
+    <h2 class="title-box">Mutasi Stock Barang</h2>
      <!-- Filter -->
      <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-filter mr-2"></i>Filter
+            <a href="{{ route('kas.create') }}" class="btn btn-success mb-3"> <i class="fas fa-plus"></i> Tambah Kas Baru</a>
+
         </div>
         <div class="card-body">
             <form class="form-inline" method="GET" action="/viewKas">
