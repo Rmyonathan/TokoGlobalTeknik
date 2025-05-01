@@ -29,6 +29,7 @@
             </tr>
         </thead>
         <tbody id="customerTableBody">
+        <tbody id="customerTableBody">
             @foreach($customers as $customer)
                 <tr>
                     <td>{{ $customer->kode_customer }}</td>
@@ -134,7 +135,30 @@
             </div>
         </form>
     </div>
+    </div>
 @endforeach
+@endsection
+
+@section('scripts')
+<script>
+    $(document).ready(function () {
+        // Apply search filter
+        $('#searchButton').on('click', function () {
+            const keyword = $('#searchInput').val().toLowerCase();
+            $('#customerTableBody tr').each(function () {
+                const kode = $(this).find('td:nth-child(1)').text().toLowerCase();
+                const nama = $(this).find('td:nth-child(2)').text().toLowerCase();
+                $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
+            });
+        });
+
+        // Reset search filter
+        $('#resetButton').on('click', function () {
+            $('#searchInput').val('');
+            $('#customerTableBody tr').show(); // Show all rows
+        });
+    });
+</script>
 @endsection
 
 @section('scripts')
