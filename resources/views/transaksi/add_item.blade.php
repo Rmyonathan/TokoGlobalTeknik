@@ -38,13 +38,13 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="panjang">Panjang (P)</label>
-                        <input type="number" class="form-control" id="panjang" name="panjang" value="0">
+                        <input type="number" class="form-control" id="panjang" name="panjang" value="0" readonly>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="lebar">Lebar (L)</label>
-                        <input type="number" class="form-control" id="lebar" name="lebar" value="0">
+                        <input type="number" class="form-control" id="lebar" name="lebar" value="0" readonly>
                     </div>
                 </div>
             </div>
@@ -93,7 +93,6 @@
                             <th>Disc(%)</th>
                             <th>Disc(Rp.)</th>
                             <th>Sub Total</th>
-                            <th>P</th>
                         </tr>
                     </thead>
                     <tbody id="itemPreview">
@@ -123,9 +122,9 @@ $(document).ready(function() {
         const diskon = parseInt($('#diskon').val()) || 0;
 
         // Calculate values
-        const total = harga * quantity;
-        const diskonAmount = (total * diskon) / 100;
-        const subTotal = total - diskonAmount;
+        const subTotal = harga * quantity;
+        const diskonAmount = (diskon / 100) * subTotal;
+        const total = subTotal - diskonAmount;
 
         // Update preview
         const tbody = $('#itemPreview');
@@ -138,12 +137,11 @@ $(document).ready(function() {
                 <td class="text-right">${formatCurrency(harga)}</td>
                 <td>${panjang}</td>
                 <td>${quantity}</td>
-                <td class="text-right">${formatCurrency(total)}</td>
+                <td class="text-right">${formatCurrency(subTotal)}</td>
                 <td>${satuan}</td>
                 <td>${diskon}%</td>
                 <td class="text-right">${formatCurrency(diskonAmount)}</td>
-                <td class="text-right">${formatCurrency(subTotal)}</td>
-                <td></td>
+                <td class="text-right">${formatCurrency(total)}</td>
             </tr>
         `);
     }

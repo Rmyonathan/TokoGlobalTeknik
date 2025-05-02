@@ -17,6 +17,8 @@ use App\Http\Controllers\KodeBarangController;
 use App\Http\Controllers\SuratJalanController;
 use App\Http\Controllers\SuratJalanItemController;
 use App\Http\Controllers\PembelianController;
+use App\Http\Controllers\StockController;
+use App\Http\Controllers\CaraBayarController;
 use App\Models\StokOwner;
 use App\Models\Supplier;
 use App\Models\KodeBarang;
@@ -24,6 +26,8 @@ use App\Models\Bookings;
 use App\Models\Logistics;
 use App\Models\Transactions;
 use App\Models\Customer;
+use App\Models\Pembelian;
+use App\Models\Transaksi;
 
 Route::middleware(['web'])->group(function () {
 
@@ -76,7 +80,9 @@ Route::middleware(['web', 'role'])->group(function () {
 
 
 
-    Route::post('/addTransaction', [KasController::class, 'addTransaction']);
+    Route::get('/kas/add', [KasController::class, 'create'])->name('kas.create');
+    Route::post('/kas/add', [KasController::class, 'store'])->name('kas.store');
+
 
 
 
@@ -99,7 +105,6 @@ Route::middleware(['web', 'role'])->group(function () {
     // Add to Inventory Form
     Route::get('/panels/add', [PanelController::class, 'createInventory'])
     ->name('panels.create-inventory');
-
     Route::get('/kode_barang/add', [KodeBarangController::class, 'createCode'])
     ->name('code.create-code');
 
@@ -160,6 +165,8 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/transaksi/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
     Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
 
+
+
     // Penjualan Per Customer
     Route::get('/penjualanpercustomer', [TransaksiController::class, 'penjualanPercustomer'])->name('transaksi.penjualancustomer');
     Route::get('/api/getpenjualancustomer',[TransaksiController::class, 'getPenjualan']);
@@ -202,16 +209,20 @@ Route::middleware(['web', 'role'])->group(function () {
 
     // History Pembelian
     Route::get('/pembelian/historypembelian', function () {
-            return view('pembelian.historypembelian'); // karena file-nya langsung di views/
-        })->name('pembelian.historypembelian');
+        return view('pembelian.historypembelian'); // karena file-nya langsung di views/
+    })->name('pembelian.historypembelian');
+    
+    // Cara Bayar
+    Route::prefix('master')->group(function () {
+        Route::get('/cara_bayar', [CaraBayarController::class, 'index'])->name('master.cara_bayar');
+        Route::post('/cara_bayar', [CaraBayarController::class, 'store'])->name('master.cara_bayar.store');
+        Route::delete('/cara_bayar/{id}', [CaraBayarController::class, 'destroy'])->name('master.cara_bayar.destroy');
+    });
 
-    // Master Cara Bayar (web.php)
-    Route::get('/master/cara_bayar', function () {
-        return view('master.cara_bayar'); // karena file-nya langsung di views/
-    })->name('cara_bayar.form');
-
-    Route::post('/mastercarabayar', [TransaksiController::class, 'store'])
-    ->name('panels.mastercarabayar');
+    Route::get('/api/cara-bayar/by-metode', function (Illuminate\Http\Request $request) {
+        $metode = $request->query('metode');
+        return \App\Models\CaraBayar::where('metode', $metode)->get();
+    });     
 
     // API for ajax calls
     Route::prefix('api')->group(function () {

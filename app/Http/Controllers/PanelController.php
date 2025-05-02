@@ -16,6 +16,13 @@ class PanelController extends Controller
     /**
      * Display inventory summary
      */
+    protected $stockController;
+
+    public function __construct(StockController $stockController)
+    {
+        $this->stockController = $stockController;
+    }
+
     public function inventory()
     {
         $inventory = $this->getInventorySummary();
@@ -168,6 +175,12 @@ class PanelController extends Controller
         $price = $validated['price'];
         $quantity = $validated['quantity'];
 
+        $check_panel = Panel::where('group_id', $group_id)->where('length', $length)->exists();
+
+        if ($check_panel) {
+            return response()->json(['error' => 'Panel already exists.'], 400);
+        }
+
         $result = $this->addPanelsToInventory($name, $cost, $price, $length, $group_id, $quantity);
 
         return redirect()->route('panels.inventory')
@@ -260,25 +273,6 @@ class PanelController extends Controller
                     ->limit($remainingQuantity)
                     ->get();
 
-                // foreach ($exactPanels as $panel) {
-                //     // $panel->available = false;
-                //     // $panel->save();
-
-                //     $usedPanels[] = [
-                //         'panel_id' => $panel->id,
-                //         'name' => $panel->name,
-                //         'price' => $panel->price,
-                //         'original_length' => $panel->length,
-                //         'used_length' => $requestedLength,
-                //         'remaining_length' => 0
-                //     ];
-
-                //     $remainingQuantity--;
-                //     if ($remainingQuantity <= 0) {
-                //         break;
-                //     }
-                // }
-
                 // If we still need more panels, look for longer ones to cut
                 if ($remainingQuantity > 0) {
                     // Find panels longer than requested size, sorted by length (use smallest suitable panels first)
@@ -300,6 +294,20 @@ class PanelController extends Controller
                         $panel->available = false;
                         $panel->save();
 
+                        // Record stock mutation for the used panel (decrease)
+                        $this->stockController->recordSale(
+                            $panel->group_id,
+                            $panel->name,
+                            'CUT-' . date('YmdHis') . '-' . $panel->id,
+                            now(),
+                            'PANEL-CUT-' . $panel->id,
+                            'PANEL CUTTING',
+                            1, // Quantity is 1 panel
+                            'ALUMKA',
+                            'LBR',
+                            "Used {$originalLength}m panel for cutting"
+                        );
+
                         // Cut as many times as possible from this panel
                         while ($remainingLength >= $requestedLength && $remainingQuantity > 0) {
                             $remainingLength -= $requestedLength;
@@ -314,20 +322,43 @@ class PanelController extends Controller
                                 'remaining_length' => $remainingLength
                             ];
 
-                            $this->createPanel($requestedName, $panel->cost, $panel->price, $requestedLength, true, $panel->id);
+                            // Create new panel with requested length
+                            $newPanel = $this->createPanel($requestedName, $panel->cost, $panel->price, $requestedLength, true, $panel->id);
 
+                            // Record stock mutation for the new requested length panel (increase)
+                            $newPanelObj = $newPanel['panels'];
+                            $this->stockController->recordPurchase(
+                                $newPanelObj->group_id,
+                                $newPanelObj->name,
+                                'CUT-NEW-' . date('YmdHis') . '-' . $newPanelObj->id,
+                                now(),
+                                'PANEL-CUT-NEW-' . $newPanelObj->id,
+                                'PANEL CUTTING - NEW',
+                                1, // Quantity is 1 panel
+                                'ALUMKA',
+                                'LBR',
+                                "Created {$requestedLength}m panel from cutting"
+                            );
                         }
 
                         // Create a new panel for leftover length if usable
                         if ($remainingLength >= 0.5) {
-                            // Panel::create([
-                            //     'name' => $requestedName,
-                            //     'price' => $panel->price,
-                            //     'length' => $remainingLength,
-                            //     'available' => true,
-                            //     'parent_panel_id' => $panel->id
-                            // ]);
-                            $panel = $this->createPanel($requestedName, $panel->cost, $panel->price, $remainingLength, true, $panel->id);
+                            $remainingPanel = $this->createPanel($requestedName, $panel->cost, $panel->price, $remainingLength, true, $panel->id);
+
+                            // Record stock mutation for the remaining length panel (increase)
+                            $remainingPanelObj = $remainingPanel['panels'];
+                            $this->stockController->recordPurchase(
+                                $remainingPanelObj->group_id,
+                                $remainingPanelObj->name,
+                                'CUT-REM-' . date('YmdHis') . '-' . $remainingPanelObj->id,
+                                now(),
+                                'PANEL-CUT-REM-' . $remainingPanelObj->id,
+                                'PANEL CUTTING - REMAINDER',
+                                1, // Quantity is 1 panel
+                                'ALUMKA',
+                                'LBR',
+                                "Created {$remainingLength}m remainder panel from cutting"
+                            );
                         }
                     }
                 }
@@ -485,10 +516,16 @@ class PanelController extends Controller
             $getAttribute = Panel::find($parent_panel_id);
             $getAttribute = $getAttribute->group_id;
             $getAttribute = KodeBarang::where('kode_barang', $getAttribute)->first();
+
+            $getNewName = KodeBarang::where('attribute', $getAttribute->attribute)
+                                 ->where('length', $length)->first();
+            $getNewName = Panel::where('group_id', $getNewName->kode_barang)->first();
+            $new_name = $getNewName->name;
             $getAttribute = $getAttribute->attribute;
             $getCode = KodeBarang::where('attribute', $getAttribute)
                               ->where('length', $length)
                               ->first();
+            $panel->name = $new_name;
             $panel->group_id = $getCode->kode_barang;
             $panel->save();
         }
@@ -497,4 +534,6 @@ class PanelController extends Controller
             'panels' => $panel
         ];
     }
+
+
 }

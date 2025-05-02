@@ -22,7 +22,7 @@
                             <i class="fas fa-plus mr-1"></i> Add Panels
                         </a>
                         <a href="{{ route('panels.create-order') }}" class="btn btn-secondary btn-sm ml-2">
-                            <i class="fas fa-shopping-cart mr-1"></i> Potong
+                            <i class="fas fa-cut mr-1"></i> Potong
                         </a>
                     </div>
                 </div>
@@ -33,10 +33,10 @@
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Group ID</th>
+                                        <th>Kode Barang</th>
                                         <th>Name</th>
-                                        <th>Cost</th>
-                                        <th>Price</th>
+                                        <th>Harga Beli</th>
+                                        <th>Harga Jual</th>
                                         <th>Length (meters)</th>
                                         <th>Available Quantity</th>
                                         <th>Total Length (meters)</th>
@@ -147,17 +147,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const quantities = [];
     const backgroundColors = [];
 
-    @foreach($inventory['inventory_by_length'] as $item)
-        lengths.push('{{ number_format($item['length'], 2) }}m');
-        quantities.push({{ $item['quantity'] }});
-
         // Generate different colors
         backgroundColors.push(
             'rgb(' + Math.floor(Math.random() * 200) + ','
             + Math.floor(Math.random() * 200) + ','
             + Math.floor(Math.random() * 200) + ')'
         );
-    @endforeach
 
     const inventoryChart = new Chart(ctx, {
         type: 'pie',

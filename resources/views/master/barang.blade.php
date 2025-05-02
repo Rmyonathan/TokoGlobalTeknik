@@ -7,151 +7,104 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <a href="{{ route('panels.create-inventory') }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus mr-1"></i> Tambah Barang
-            </a>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <a href="{{ route('panels.create-inventory') }}" class="btn btn-primary btn-sm me-2">
+                    <i class="fas fa-plus mr-1"></i> Tambah Barang
+                </a>
 
-            <a href="{{ route('code.create-code') }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus mr-1"></i> Tambah Kode Barang
-            </a>
-
-            <a href="{{ route('code.view-code') }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus mr-1"></i> List Kode Barang
-            </a>
-
-        </div>
-        <div class="card-body">
-            {{-- <div class="table-responsive">
-                <table class="table table-striped table-bordered">
-                    <thead class="thead-dark">
-                        <tr>
-                            <th style="border: 1px solid #000;">No</th>
-                            <th style="border: 1px solid #000;">Nama Barang</th>
-                            <th style="border: 1px solid #000;">Kategori</th>
-                            <th style="border: 1px solid #000;">Stok</th>
-                            <th style="border: 1px solid #000;">Harga</th>
-                            <th style="border: 1px solid #000;">Deskripsi</th>
-                            <th style="border: 1px solid #000;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php
-                            $dummyBarangs = [
-                                ['nama' => 'Aluminium Batangan 3m', 'kategori' => 'Material', 'stok' => 20, 'harga' => 125000, 'deskripsi' => 'Batangan aluminium panjang 3 meter cocok untuk kusen.'],
-                                ['nama' => 'Pintu Geser Aluminium', 'kategori' => 'Pintu', 'stok' => 5, 'harga' => 450000, 'deskripsi' => 'Pintu geser berbahan aluminium dengan rel atas dan bawah.'],
-                                ['nama' => 'Jendela Lipat', 'kategori' => 'Jendela', 'stok' => 12, 'harga' => 325000, 'deskripsi' => 'Jendela lipat minimalis cocok untuk ruang tamu atau dapur.'],
-                            ];
-                        @endphp
-
-                        @foreach ($dummyBarangs as $index => $barang)
-                            <tr>
-                                <td style="border: 1px solid #000;">{{ $index + 1 }}</td>
-                                <td style="border: 1px solid #000;">{{ $barang['nama'] }}</td>
-                                <td style="border: 1px solid #000;">{{ $barang['kategori'] }}</td>
-                                <td style="border: 1px solid #000;">{{ $barang['stok'] }}</td>
-                                <td style="border: 1px solid #000;">Rp {{ number_format($barang['harga'], 0, ',', '.') }}</td>
-                                <td style="border: 1px solid #000;">{{ Str::limit($barang['deskripsi'], 60) }}</td>
-                                <td style="border: 1px solid #000;">
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-success" disabled>
-                                            <i class="fas fa-edit"></i> Edit
-                                        </button>
-                                        <button class="btn btn-sm btn-danger" disabled>
-                                            <i class="fas fa-trash"></i> Hapus
-                                        </button>
-                                        <button class="btn btn-sm btn-secondary" disabled>
-                                            <i class="fas fa-tools"></i> Servis
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div> --}}
-            <div class="card-body">
-                @if(isset($inventory) && count($inventory['inventory_by_length']) > 0)
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Group ID</th>
-                                    <th>Name</th>
-                                    <th>Cost</th>
-                                    <th>Price</th>
-                                    <th>Length (meters)</th>
-                                    <th>Available Quantity</th>
-                                    <th>Total Length (meters)</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($inventory['inventory_by_length'] as $item)
-                                    <tr>
-                                        <td>{{ $item['id'] }}</td>
-                                        <td>{{ $item['group_id'] }}</td>
-                                        <td>{{ $item['name'] }}</td>
-                                        <td>Rp. {{ number_format($item['cost'], 2) }}</td>
-                                        <td>Rp. {{ number_format($item['price'], 2) }}</td>
-                                        <td>{{ number_format($item['length'], 2) }}</td>
-                                        <td>{{ $item['quantity'] }}</td>
-                                        <td>{{ number_format($item['length'] * $item['quantity'], 2) }}</td>
-                                        <td style="border: 1px solid #000;">
-                                            <div class="btn-group" role="group">
-                                                <form action="{{ route('panels.edit-inventory', ['id' => $item['group_id']]) }}" method="GET" enctype="multipart/form-data">
-                                                    @csrf
-                                                    <button class="btn btn-sm btn-success">
-                                                        <i class="fas fa-edit"></i> Edit
-                                                    </button>
-                                                </form>
-                                                <form action="{{ route('panels.delete-inventory', ['id' => $item['group_id']]) }}" method="POST" enctype="multipart/form-data">
-                                                    @csrf
-                                                    <button class="btn btn-sm btn-danger">
-                                                        <i class="fas fa-trash"></i> Hapus
-                                                    </button>
-                                                </form>
-                                                {{-- <button class="btn btn-sm btn-secondary" disabled>
-                                                    <i class="fas fa-tools"></i> Servis
-                                                </button> --}}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-primary">
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th>Total</th>
-                                    <th>{{ $inventory['total_panels'] }}</th>
-                                    <th>
-                                        @php
-                                            $totalLength = 0;
-                                            foreach($inventory['inventory_by_length'] as $item) {
-                                                $totalLength += $item['length'] * $item['quantity'];
-                                            }
-                                            echo number_format($totalLength, 2);
-                                        @endphp
-                                    </th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                @else
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle mr-1"></i> No panels currently in inventory.
-                    </div>
-                    <a href="{{ route('panels.create-inventory') }}" class="btn btn-primary">
-                        <i class="fas fa-plus mr-1"></i> Add Panels to Inventory
-                    </a>
-                @endif
+                <a href="{{ route('code.create-code') }}" class="btn btn-sm me-2" style="background-color: #28a745; color: white;">
+                    <i class="fas fa-upload"></i> Tambah Kode Barang
+                </a>
             </div>
+
+            <a href="{{ route('code.view-code') }}" class="btn btn-sm" style="background-color: #3f8efc; color: white;">
+                <i class="fas fa-file-alt"></i> List Kode Barang
+            </a>
+        </div>
+
+        <div class="card-body">
+            @if(isset($inventory) && count($inventory['inventory_by_length']) > 0)
+
+                {{-- Search Bar --}}
+                <div class="mb-3 d-flex">
+                    <div class="me-2" style="flex: 1;">
+                        <input type="text" id="searchInput" class="form-control" placeholder="Cari Nama atau Kode Barang" />
+                    </div>
+                
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Kode Barang</th>
+                                <th>Name</th>
+                                <th>Harga Beli</th>
+                                <th>Harga Jual</th>
+                                <th>Length (meters)</th>
+                                <th>Available Quantity</th>
+                                <th>Total Length (meters)</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyBarang">
+                            @foreach($inventory['inventory_by_length'] as $item)
+                                <tr>
+                                    <td>{{ $item['id'] }}</td>
+                                    <td>{{ $item['group_id'] }}</td>
+                                    <td>{{ $item['name'] }}</td>
+                                    <td>Rp. {{ number_format($item['cost'], 2) }}</td>
+                                    <td>Rp. {{ number_format($item['price'], 2) }}</td>
+                                    <td>{{ number_format($item['length'], 2) }}</td>
+                                    <td>{{ $item['quantity'] }}</td>
+                                    <td>{{ number_format($item['length'] * $item['quantity'], 2) }}</td>
+                                    <td style="border: 1px solid #000;">
+                                        <div class="btn-group" role="group">
+                                            <form action="{{ route('panels.edit-inventory', ['id' => $item['group_id']]) }}" method="GET">
+                                                @csrf
+                                                <button class="btn btn-sm btn-success">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </button>
+                                            </form>
+                                            <form action="{{ route('panels.delete-inventory', ['id' => $item['group_id']]) }}" method="POST">
+                                                @csrf
+                                                <button class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i> Hapus
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-primary">
+                                <th></th><th></th><th></th><th></th><th></th><th></th>
+                                <th>Total</th>
+                                <th>{{ $inventory['total_panels'] }}</th>
+                                <th>
+                                    @php
+                                        $totalLength = 0;
+                                        foreach($inventory['inventory_by_length'] as $item) {
+                                            $totalLength += $item['length'] * $item['quantity'];
+                                        }
+                                        echo number_format($totalLength, 2);
+                                    @endphp
+                                </th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            @else
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle mr-1"></i> No panels currently in inventory.
+                </div>
+                <a href="{{ route('panels.create-inventory') }}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-1"></i> Add Panels to Inventory
+                </a>
+            @endif
         </div>
     </div>
 </section>
@@ -166,4 +119,26 @@
         border: 2px solid #000;
     }
 </style>
+@endsection
+
+@section('scripts')
+<script>
+    $(document).ready(function () {
+        // Live search on input without button
+        $('#searchInput').on('input', function () {
+            const keyword = $(this).val().toLowerCase();
+            $('#tbodyBarang tr').each(function () {
+                const kode = $(this).find('td:nth-child(2)').text().toLowerCase();
+                const nama = $(this).find('td:nth-child(3)').text().toLowerCase();
+                $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
+            });
+        });
+
+        // Reset search functionality
+        $('#resetButton').on('click', function () {
+            $('#searchInput').val(''); // Clear the search input
+            $('#tbodyBarang tr').show(); // Show all rows
+        });
+});
+</script>
 @endsection

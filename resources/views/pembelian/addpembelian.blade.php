@@ -49,22 +49,18 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="pembayaran">Pembayaran</label>
-                            <select class="form-control" id="pembayaran" name="pembayaran">
+                            <label for="metode_pembayaran">Metode Pembayaran</label>
+                            <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
+                                <option selected disabled value=""> Pilih Metode Pembayaran</option>
                                 <option value="Tunai">Tunai</option>
-                                <option value="Transfer">Transfer</option>
-                                <option value="Kredit">Kredit</option>
-                                <option value="Debit">Debit</option>
+                                <option value="Non Tunai">Non Tunai</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="cara_bayar">Cara Bayar</label>
                             <select class="form-control" id="cara_bayar" name="cara_bayar">
-                                <option value="Cash">Cash</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="Debit">Debit</option>
-                                <option value="Cicilan">Cicilan</option>
+                                <option value="">Pilih Metode Dulu</option>
                             </select>
                         </div>
                     </div>
@@ -418,6 +414,33 @@
 
 {{-- Include the external JS file using file_get_contents to load directly from views directory --}}
 <script>
+$('#metode_pembayaran').on('change', function () {
+        const metode = $(this).val();
+        $('#cara_bayar').html('<option value="">Loading...</option>');
+        
+        $.ajax({
+            url: '{{ url("api/cara-bayar/by-metode") }}',
+            method: 'GET',
+            data: { metode: metode },
+            success: function (data) {
+                let options = '<option value="">-- Pilih Cara Bayar --</option>';
+                data.forEach(cb => {
+                    options += `<option value="${cb.nama}">${cb.nama}</option>`;
+                });
+                $('#cara_bayar').html(options);
+            },
+            error: function () {
+                $('#cara_bayar').html('<option value="">Gagal load data</option>');
+            }
+        });
+    });
+
+    $('#cara_bayar').on('change', function () {
+        const selected = $(this).val();
+        $('#cara_bayar_akhir')
+            .html(`<option value="${selected}">${selected}</option>`)
+            .val(selected);
+    });    
 {!! file_get_contents(resource_path('views/scripts/pembelian.js')) !!}
 </script>
 @endsection
