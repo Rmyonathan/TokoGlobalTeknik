@@ -71,74 +71,14 @@
         </div>
     </div>
 
-    <!-- Detail Transaksi & Items Section -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Rincian Transaksi</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped" id="itemsTable">
-                    <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Kode Barang</th>
-                            <th>Nama Barang</th>
-                            <th>Qty</th>
-                            <th>Harga Satuan</th>
-                            <th>Disc %</th>
-                            <th>Disc Rp</th>
-                            <th>Sub Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="itemsList">
-                        <!-- Dynamic items will be added here -->
-                    </tbody>
-                </table>
-            </div>
-            <div class="form-group text-right mt-4">
-                <button type="button" class="btn btn-success" id="saveSuratJalan">
-                    <i class="fas fa-save"></i> Simpan Surat Jalan
-                </button>
-                <button type="button" class="btn btn-secondary" id="resetForm">
-                    <i class="fas fa-times"></i> Reset
-                </button>
-            </div>
-        </div>
-    </div>
-
-<!-- Modal Cetakan Surat Jalan -->
-<div class="modal fade" id="printsuratjalanModal" tabindex="-1" role="dialog" aria-labelledby="printsuratjalanModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="printsuratjalanModalLabel">Surat Jalan Transaksi</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <!-- Print Surat Jalan Content -->
-                <div id="suratjalanContent">
-                    <h4>No Surat Jalan: <span id="suratjalanNo"></span></h4>
-                    <h5>No Faktur: <span id="suratjalanNoTransaksi"></span></h5>
-                    <p>Tanggal: <span id="suratjalanTanggal"></span></p>
-                    <p>Customer: <span id="suratjalanCustomer"></span></p>
-                    <p>Alamat: <span id="suratjalanAlamat"></span></p>
-                    <p>Grand Total: <span id="suratjalanGrandTotal"></span></p>
-                    <!-- Tambahkan detail lainnya jika diperlukan -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" id="printInvoiceBtn">
-                    <i class="fas fa-print"></i> Print
-                </button>
-                <button type="button" class="btn btn-secondary" href="{{ route('suratjalan.create') }}" id="backToFormBtn">
-                    <i class="fas fa-arrow-left"></i> Kembali
-                </button>
-            </div>
-        </div>
-    </div>
+<!-- Tombol Simpan & Reset -->
+<div class="mt-3 text-right">
+    <button type="button" class="btn btn-success" id="saveSuratJalan">
+        <i class="fas fa-save"></i> Simpan Surat Jalan
+    </button>
+    <a href="{{ route('suratjalan.create') }}" class="btn btn-secondary">
+        <i class="fas fa-redo"></i> Reset Form
+    </a>
 </div>
 
 @endsection
