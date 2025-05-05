@@ -270,4 +270,9 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/stock/get', [StockController::class, 'getStock'])->name('stock.get');
     Route::get('/stock/mutations', [StockController::class, 'getStockMutations'])->name('stock.mutations');
 
+    // Purchase Order Routes
+    Route::get('/pembelian.purchaseorder', function () {
+        return view('pembelian.purchaseorder'); // karena file-nya langsung di views/
+    })->name('purchaseorder.form');
+
 });
