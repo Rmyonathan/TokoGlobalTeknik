@@ -10,8 +10,9 @@
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0">Daftar Purchase Order</h5>
         </div>
-        <div class="card-body p-0">
-            <table class="table table-striped mb-0">
+        <div class="card-body p-0 d-flex justify-content-center">
+            <table class="table table-striped mb-0" style="width: 95%;">
+
                 <thead class="thead-dark">
                     <tr>
                         <th>No. PO</th>
