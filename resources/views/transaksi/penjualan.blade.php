@@ -197,6 +197,9 @@
                         <button type="button" class="btn btn-success" id="saveTransaction">
                             <i class="fas fa-save"></i> Simpan Transaksi
                         </button>
+                        <button type="button" class="btn btn-warning" id="buatPOBtn">
+                            <i class="fas fa-file-alt"></i> Buat PO
+                        </button>
                         <button type="button" class="btn btn-secondary" id="cancelTransaction">
                             <i class="fas fa-times"></i> Batal
                         </button>
