@@ -71,14 +71,70 @@
         </div>
     </div>
 
-<!-- Tombol Simpan & Reset -->
-<div class="mt-3 text-right">
-    <button type="button" class="btn btn-success" id="saveSuratJalan">
-        <i class="fas fa-save"></i> Simpan Surat Jalan
-    </button>
-    <a href="{{ route('suratjalan.create') }}" class="btn btn-secondary">
-        <i class="fas fa-redo"></i> Reset Form
-    </a>
+    <!-- Detail Transaksi & Items Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Rincian Transaksi</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="itemsTable">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Kode Barang</th>
+                            <th>Nama Barang</th>
+                            <th>Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsList">
+                        <!-- Dynamic items will be added here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="form-group text-right mt-4">
+                <button type="button" class="btn btn-success" id="saveSuratJalan">
+                    <i class="fas fa-save"></i> Simpan Surat Jalan
+                </button>
+                <button type="button" class="btn btn-secondary" id="resetForm">
+                    <i class="fas fa-times"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+<!-- Modal Cetakan Surat Jalan -->
+<div class="modal fade" id="printsuratjalanModal" tabindex="-1" role="dialog" aria-labelledby="printsuratjalanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="printsuratjalanModalLabel">Surat Jalan Transaksi</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Print Surat Jalan Content -->
+                <div id="suratjalanContent">
+                    <h4>No Surat Jalan: <span id="suratjalanNo"></span></h4>
+                    <h5>No Faktur: <span id="suratjalanNoTransaksi"></span></h5>
+                    <p>Tanggal: <span id="suratjalanTanggal"></span></p>
+                    <p>Customer: <span id="suratjalanCustomer"></span></p>
+                    <p>Alamat: <span id="suratjalanAlamat"></span></p>
+                    <p>Grand Total: <span id="suratjalanGrandTotal"></span></p>
+                    <!-- Tambahkan detail lainnya jika diperlukan -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="printInvoiceBtn">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button type="button" class="btn btn-secondary" href="{{ route('suratjalan.create') }}" id="backToFormBtn">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 @endsection
@@ -106,10 +162,10 @@ $(document).ready(function() {
                     let dropdown = '';
                     if (data.length > 0) {
                         data.forEach(customer => {
-                            dropdown += `<a class="dropdown-item customer-item" 
+                            dropdown += <a class="dropdown-item customer-item" 
                             data-kode="${customer.kode_customer}" 
                             data-name="${customer.nama}">
-                            ${customer.kode_customer} - ${customer.nama}</a>`;
+                            ${customer.kode_customer} - ${customer.nama}</a>;
                         });
                     } else {
                         dropdown = '<a class="dropdown-item disabled">Tidak ada customer ditemukan</a>';
@@ -130,7 +186,7 @@ $(document).ready(function() {
         const kodeCustomer = $(this).data('kode');
         const namaCustomer = $(this).data('name');
         $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
-        $('#customer').val(`${kodeCustomer} - ${namaCustomer}`); // Tampilkan kode dan nama customer di input utama
+        $('#customer').val(${kodeCustomer} - ${namaCustomer}); // Tampilkan kode dan nama customer di input utama
         $('#customerDropdown').hide();
 
         // Customer has been selected, now get a list of transactions by this customer so we can show it in the dropdown
@@ -147,13 +203,13 @@ $(document).ready(function() {
                         let dropdown = '';
                         if (data.length > 0) {
                             data.forEach(transaksi => {
-                                dropdown += `<a class="dropdown-item transaksi-item" 
+                                dropdown += <a class="dropdown-item transaksi-item" 
                                 data-transaksi_id="${transaksi.id}"
                                 data-no_transaksi="${transaksi.no_transaksi}" 
                                 data-kode_customer="${transaksi.kode_customer}"
                                 data-tanggal_transaksi="${transaksi.tanggal}"
                                 data-grand_total="${transaksi.grand_total}">
-                                ${transaksi.no_transaksi} By ${transaksi.kode_customer}</a>`;
+                                ${transaksi.no_transaksi} By ${transaksi.kode_customer}</a>;
                             });
                         } else {
                             dropdown = '<a class="dropdown-item disabled">Tidak ada transaksi ditemukan</a>';
@@ -195,7 +251,7 @@ $(document).ready(function() {
                     let html = '';
                     items = [];
                     response.forEach(function(item, index) {
-                        html += `
+                        html += 
                             <tr>
                                 <td>${index+1}</td>
                                 <td>${item.kode_barang}</td>
@@ -206,7 +262,7 @@ $(document).ready(function() {
                                 <td class="text-right">${formatCurrency(item.diskon * item.total)}</td>
                                 <td class="text-right">${formatCurrency(item.total)}</td>
                             </tr>
-                        `;
+                        ;
                         items.push({
                             kode_barang: item.kode_barang,
                             nama_barang: item.nama_barang,
