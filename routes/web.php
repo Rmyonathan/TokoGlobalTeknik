@@ -272,7 +272,7 @@ Route::middleware(['web', 'role'])->group(function () {
 
     // Purchase Order Routes
     Route::get('/pembelian.purchaseorder', function () {
-        return view('pembelian.purchaseorder'); // karena file-nya langsung di views/
+        return view('pembelian.purchaseorder');
     })->name('purchaseorder.form');
 
 });
