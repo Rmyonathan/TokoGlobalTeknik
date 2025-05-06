@@ -85,10 +85,6 @@
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
                             <th>Qty</th>
-                            <th>Harga Satuan</th>
-                            <th>Disc %</th>
-                            <th>Disc Rp</th>
-                            <th>Sub Total</th>
                         </tr>
                     </thead>
                     <tbody id="itemsList">
@@ -166,10 +162,10 @@ $(document).ready(function() {
                     let dropdown = '';
                     if (data.length > 0) {
                         data.forEach(customer => {
-                            dropdown += `<a class="dropdown-item customer-item" 
+                            dropdown += <a class="dropdown-item customer-item" 
                             data-kode="${customer.kode_customer}" 
                             data-name="${customer.nama}">
-                            ${customer.kode_customer} - ${customer.nama}</a>`;
+                            ${customer.kode_customer} - ${customer.nama}</a>;
                         });
                     } else {
                         dropdown = '<a class="dropdown-item disabled">Tidak ada customer ditemukan</a>';
@@ -190,7 +186,7 @@ $(document).ready(function() {
         const kodeCustomer = $(this).data('kode');
         const namaCustomer = $(this).data('name');
         $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
-        $('#customer').val(`${kodeCustomer} - ${namaCustomer}`); // Tampilkan kode dan nama customer di input utama
+        $('#customer').val(${kodeCustomer} - ${namaCustomer}); // Tampilkan kode dan nama customer di input utama
         $('#customerDropdown').hide();
 
         // Customer has been selected, now get a list of transactions by this customer so we can show it in the dropdown
@@ -207,13 +203,13 @@ $(document).ready(function() {
                         let dropdown = '';
                         if (data.length > 0) {
                             data.forEach(transaksi => {
-                                dropdown += `<a class="dropdown-item transaksi-item" 
+                                dropdown += <a class="dropdown-item transaksi-item" 
                                 data-transaksi_id="${transaksi.id}"
                                 data-no_transaksi="${transaksi.no_transaksi}" 
                                 data-kode_customer="${transaksi.kode_customer}"
                                 data-tanggal_transaksi="${transaksi.tanggal}"
                                 data-grand_total="${transaksi.grand_total}">
-                                ${transaksi.no_transaksi} By ${transaksi.kode_customer}</a>`;
+                                ${transaksi.no_transaksi} By ${transaksi.kode_customer}</a>;
                             });
                         } else {
                             dropdown = '<a class="dropdown-item disabled">Tidak ada transaksi ditemukan</a>';
@@ -255,7 +251,7 @@ $(document).ready(function() {
                     let html = '';
                     items = [];
                     response.forEach(function(item, index) {
-                        html += `
+                        html += 
                             <tr>
                                 <td>${index+1}</td>
                                 <td>${item.kode_barang}</td>
@@ -266,7 +262,7 @@ $(document).ready(function() {
                                 <td class="text-right">${formatCurrency(item.diskon * item.total)}</td>
                                 <td class="text-right">${formatCurrency(item.total)}</td>
                             </tr>
-                        `;
+                        ;
                         items.push({
                             kode_barang: item.kode_barang,
                             nama_barang: item.nama_barang,

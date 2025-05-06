@@ -34,14 +34,14 @@
                             <label for="customer">Customer</label>
                             <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan kode atau nama customer">
                             <input type="hidden" id="kode_customer" name="kode_customer"> <!-- Hanya kode_customer yang dikirim -->
-                            <div id="customerDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
+                            <div id="customerDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
                         </div>
 
                         <div class="form-group">
                             <label for="sales">Sales</label>
                             <input type="text" id="sales" name="sales_display" class="form-control" placeholder="Masukkan kode atau nama sales">
                             <input type="hidden" id="kode_sales" name="sales"> <!-- Hanya kode_sales yang dikirim -->
-                            <div id="salesDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
+                            <div id="salesDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
                         </div>
 
                     </div>
