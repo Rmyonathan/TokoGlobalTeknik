@@ -677,6 +677,55 @@ $(document).ready(function() {
         }
     });
 
+    // Button Buat PO
+    $('#buatPOBtn').click(function(){
+        if (confirm('Simpan sebagai PO (tidak mempengaruhi stok)?')) {
+            if (!$('#kode_customer').val()) {
+                alert('Pilih customer dari daftar yang tersedia!');
+                return;
+            }
+
+            if (items.length === 0) {
+                alert('Tidak ada barang yang ditambahkan!');
+                return;
+            }
+
+            const poData = {
+                tanggal: $('#tanggal').val(),
+                kode_customer: $('#kode_customer').val(),
+                sales: $('#sales').val(),
+                lokasi: $('#lokasi').val(),
+                pembayaran: $('#metode_pembayaran').val(),
+                cara_bayar: $('#cara_bayar').val(),
+                items: items,
+                subtotal: $('#total').val().replace(/\./g, ''),
+                discount: $('#discount_amount').val().replace(/\./g, ''),
+                disc_rupiah: $('#disc_rp').val(),
+                ppn: $('#ppn_amount').val().replace(/\./g, ''),
+                dp: $('#dp_amount').val(),
+                grand_total: grandTotal
+            };
+
+            $.ajax({
+                url: "{{ route('purchase-order.store') }}", // Ubah ini ke route PO
+                method: "POST",
+                data: poData,
+                success: function(response) {
+                    alert('PO berhasil disimpan!');
+
+                    // Opsional: reset form
+                    $('#transactionForm')[0].reset();
+                    items = [];
+                    renderItems();
+                    calculateTotals();
+                },
+                error: function(xhr) {
+                    alert('Gagal menyimpan PO: ' + xhr.responseJSON.message);
+                }
+            });
+        }
+    });
+
     // Cancel transaction
     $('#cancelTransaction').click(function() {
         if (confirm('Batalkan transaksi? Semua data akan hilang.')) {

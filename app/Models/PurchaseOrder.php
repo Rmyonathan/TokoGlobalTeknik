@@ -19,4 +19,9 @@ class PurchaseOrder extends Model
     {
         return $this->hasMany(PurchaseOrderItem::class);
     }
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'kode_customer', 'kode_customer');
+    }
+
 }

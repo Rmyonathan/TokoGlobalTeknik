@@ -10,7 +10,7 @@ class PurchaseOrderItem extends Model
 
     protected $fillable = [
         'purchase_order_id', 'kode_barang', 'nama_barang',
-        'keterangan', 'harga', 'length', 'qty', 'total', 'diskon',
+        'keterangan', 'harga', 'panjang', 'qty', 'total', 'diskon',
     ];
 
     public function purchaseOrder()

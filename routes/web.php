@@ -277,16 +277,16 @@ Route::middleware(['web', 'role'])->group(function () {
     //     return view('transaksi.purchaseorder');
     // })->name('purchaseorder.form');
 
+    //
     // Route ke halaman list PO
-    Route::get('/transaksi/purchase-order', [PurchaseOrderController::class, 'index'])->name('purchase-order.index');
-
+    Route::get('/transaksi.purchaseorder', [PurchaseOrderController::class, 'index'])->name('transaksi.purchaseorder');
     // Route ke halaman detail PO
-    Route::get('/transaksi/purchase-order/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
-
+    Route::get('/transaksi/purchaseorder/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
     // Route buat nyimpen PO dari form penjualan
-    Route::post('/transaksi/purchase-order/store', [PurchaseOrderController::class, 'store'])->name('purchase-order.store');
-
+    Route::post('/transaksi/purchaseorder/store', [PurchaseOrderController::class, 'store'])->name('purchase-order.store');
     // Route buat nyelesain PO (ubah jadi completed dan isi tanggal_jadi)
-    Route::post('/transaksi/purchase-order/{id}/complete', [PurchaseOrderController::class, 'complete'])->name('purchase-order.complete');
+    Route::post('/transaksi/purchaseorder/{id}/complete', [PurchaseOrderController::class, 'complete'])->name('purchase-order.complete');
+
+    Route::patch('/transaksi/purchaseorder/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-order.cancel');
 
 });
