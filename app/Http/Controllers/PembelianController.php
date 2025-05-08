@@ -181,7 +181,9 @@ class PembelianController extends Controller
     public function listNota()
     {
         // Fetch all purchases
-        $purchases = Pembelian::with('items')->orderBy('created_at', 'desc')->get();
+        $purchases = Pembelian::with('items')
+            ->orderBy('created_at', 'desc')
+            ->paginate(5);
 
         return view('pembelian.lihat_nota_pembelian', compact('purchases'));
     }

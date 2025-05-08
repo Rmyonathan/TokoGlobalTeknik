@@ -1,5 +1,55 @@
 @extends('layout.Nav')
 
+<style>
+    .form-group.position-relative {
+        margin-bottom: 1rem;
+    }
+
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1000;
+        display: none;
+        width: 100%;
+        padding: 0.5rem 0;
+        margin: 0;
+        background-color: #fff;
+        border: 1px solid rgba(0,0,0,.15);
+        border-radius: 0.25rem;
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 1rem;
+        clear: both;
+        font-weight: 400;
+        color: #212529;
+        text-align: inherit;
+        white-space: nowrap;
+        background-color: transparent;
+        border: 0;
+        text-decoration: none;
+    }
+
+    .dropdown-item:hover {
+        color: #16181b;
+        text-decoration: none;
+        background-color: #f8f9fa;
+    }
+
+    .dropdown-item.active,
+    .dropdown-item:active {
+        color: #fff;
+        text-decoration: none;
+        background-color: #007bff;
+    }
+</style>
+
 @section('content')
 <div class="container">
     <div class="title-box">
@@ -40,14 +90,14 @@
 
                     <!-- Kanan -->
                     <div class="col-md-6">
-                        <div class="form-group">
+                        <div class="form-group position-relative">
                             <label for="customer">Customer</label>
                             <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan kode atau nama customer">
                             <input type="hidden" id="kode_customer" name="kode_customer"> <!-- Hanya kode_customer yang dikirim -->
                             <div id="customerDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group position-relative">
                             <label for="no_transaksi">No Faktur</label>
                             <input type="text" id="no_faktur" name="no_faktur_display" class="form-control" autocomplete="off" placeholder="Masukkan nomor faktur">
                             <input type="hidden" id="no_transaksi" name="no_transaksi">
@@ -85,10 +135,6 @@
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
                             <th>Qty</th>
-                            <th>Harga Satuan</th>
-                            <th>Disc %</th>
-                            <th>Disc Rp</th>
-                            <th>Sub Total</th>
                         </tr>
                     </thead>
                     <tbody id="itemsList">
@@ -166,10 +212,11 @@ $(document).ready(function() {
                     let dropdown = '';
                     if (data.length > 0) {
                         data.forEach(customer => {
-                            dropdown += `<a class="dropdown-item customer-item" 
-                            data-kode="${customer.kode_customer}" 
-                            data-name="${customer.nama}">
-                            ${customer.kode_customer} - ${customer.nama}</a>`;
+                            dropdown += `<a href='#' class="dropdown-item customer-item" 
+                                data-kode="${customer.kode_customer}" 
+                                data-name="${customer.nama}">
+                                ${customer.kode_customer} - ${customer.nama}
+                            </a>`;
                         });
                     } else {
                         dropdown = '<a class="dropdown-item disabled">Tidak ada customer ditemukan</a>';
@@ -186,11 +233,12 @@ $(document).ready(function() {
     });
 
     // Select customer from dropdown
-    $(document).on('click', '.customer-item', function () {
+    $(document).on('click', '.customer-item', function(e) {
+        e.preventDefault();
         const kodeCustomer = $(this).data('kode');
         const namaCustomer = $(this).data('name');
-        $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
         $('#customer').val(`${kodeCustomer} - ${namaCustomer}`); // Tampilkan kode dan nama customer di input utama
+        $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
         $('#customerDropdown').hide();
 
         // Customer has been selected, now get a list of transactions by this customer so we can show it in the dropdown
@@ -207,12 +255,12 @@ $(document).ready(function() {
                         let dropdown = '';
                         if (data.length > 0) {
                             data.forEach(transaksi => {
-                                dropdown += `<a class="dropdown-item transaksi-item" 
-                                data-transaksi_id="${transaksi.id}"
-                                data-no_transaksi="${transaksi.no_transaksi}" 
-                                data-kode_customer="${transaksi.kode_customer}"
-                                data-tanggal_transaksi="${transaksi.tanggal}"
-                                data-grand_total="${transaksi.grand_total}">
+                                dropdown += `<a href="#" class="dropdown-item transaksi-item" 
+                                    data-transaksi_id="${transaksi.id}"
+                                    data-no_transaksi="${transaksi.no_transaksi}" 
+                                    data-kode_customer="${transaksi.kode_customer}"
+                                    data-tanggal_transaksi="${transaksi.tanggal}"
+                                    data-grand_total="${transaksi.grand_total}">
                                 ${transaksi.no_transaksi} By ${transaksi.kode_customer}</a>`;
                             });
                         } else {
@@ -255,18 +303,14 @@ $(document).ready(function() {
                     let html = '';
                     items = [];
                     response.forEach(function(item, index) {
-                        html += `
-                            <tr>
+                        html += 
+                            `<tr>
                                 <td>${index+1}</td>
                                 <td>${item.kode_barang}</td>
                                 <td>${item.nama_barang}</td>
                                 <td>${item.qty}</td>
-                                <td class="text-right">${formatCurrency(item.harga)}</td>
-                                <td>${item.diskon} %</td>
-                                <td class="text-right">${formatCurrency(item.diskon * item.total)}</td>
-                                <td class="text-right">${formatCurrency(item.total)}</td>
-                            </tr>
-                        `;
+                            </tr>`
+                        ;
                         items.push({
                             kode_barang: item.kode_barang,
                             nama_barang: item.nama_barang,
@@ -332,7 +376,7 @@ $(document).ready(function() {
                     let suratJalanId = response.id
 
                     $('#printInvoiceBtn').off('click').on('click', function() {
-                        window.location.href = "{{ url('suratjalan/detail') }}/" + suratJalanId;
+                        window.open("{{ url('suratjalan/detail') }}/" + suratJalanId, '_blank');
                     });
 
                     $('#backToFormBtn').off('click').on('click', function(){

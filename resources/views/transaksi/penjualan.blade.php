@@ -34,14 +34,14 @@
                             <label for="customer">Customer</label>
                             <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan kode atau nama customer">
                             <input type="hidden" id="kode_customer" name="kode_customer"> <!-- Hanya kode_customer yang dikirim -->
-                            <div id="customerDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
+                            <div id="customerDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
                         </div>
 
                         <div class="form-group">
                             <label for="sales">Sales</label>
                             <input type="text" id="sales" name="sales_display" class="form-control" placeholder="Masukkan kode atau nama sales">
                             <input type="hidden" id="kode_sales" name="sales"> <!-- Hanya kode_sales yang dikirim -->
-                            <div id="salesDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
+                            <div id="salesDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
                         </div>
 
                     </div>
@@ -196,6 +196,9 @@
                     <div class="form-group text-right mt-4">
                         <button type="button" class="btn btn-success" id="saveTransaction">
                             <i class="fas fa-save"></i> Simpan Transaksi
+                        </button>
+                        <button type="button" class="btn btn-warning" id="buatPOBtn">
+                            <i class="fas fa-file-alt"></i> Buat PO
                         </button>
                         <button type="button" class="btn btn-secondary" id="cancelTransaction">
                             <i class="fas fa-times"></i> Batal
@@ -671,6 +674,55 @@ $(document).ready(function() {
 
             // You would typically send this data to your backend using AJAX
             console.log('Transaction data:', transactionData);
+        }
+    });
+
+    // Button Buat PO
+    $('#buatPOBtn').click(function(){
+        if (confirm('Simpan sebagai PO (tidak mempengaruhi stok)?')) {
+            if (!$('#kode_customer').val()) {
+                alert('Pilih customer dari daftar yang tersedia!');
+                return;
+            }
+
+            if (items.length === 0) {
+                alert('Tidak ada barang yang ditambahkan!');
+                return;
+            }
+
+            const poData = {
+                tanggal: $('#tanggal').val(),
+                kode_customer: $('#kode_customer').val(),
+                sales: $('#sales').val(),
+                lokasi: $('#lokasi').val(),
+                pembayaran: $('#metode_pembayaran').val(),
+                cara_bayar: $('#cara_bayar').val(),
+                items: items,
+                subtotal: $('#total').val().replace(/\./g, ''),
+                discount: $('#discount_amount').val().replace(/\./g, ''),
+                disc_rupiah: $('#disc_rp').val(),
+                ppn: $('#ppn_amount').val().replace(/\./g, ''),
+                dp: $('#dp_amount').val(),
+                grand_total: grandTotal
+            };
+
+            $.ajax({
+                url: "{{ route('purchase-order.store') }}", // Ubah ini ke route PO
+                method: "POST",
+                data: poData,
+                success: function(response) {
+                    alert('PO berhasil disimpan!');
+
+                    // Opsional: reset form
+                    $('#transactionForm')[0].reset();
+                    items = [];
+                    renderItems();
+                    calculateTotals();
+                },
+                error: function(xhr) {
+                    alert('Gagal menyimpan PO: ' + xhr.responseJSON.message);
+                }
+            });
         }
     });
 

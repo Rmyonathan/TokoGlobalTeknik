@@ -408,6 +408,7 @@
     window.supplierSearchUrl = "{{ route('api.suppliers.search') }}";
     window.storeTransactionUrl = "{{ route('pembelian.store') }}";
     window.printInvoiceUrl = "{{ url('pembelian/lihatnota') }}/";
+    window.backToPembelian = "{{ route('pembelian.index') }}"
     window.kodeBarangSearchUrl = "{{ route('kodeBarang.search') }}";
     window.csrfToken = "{{ csrf_token() }}";
 </script>

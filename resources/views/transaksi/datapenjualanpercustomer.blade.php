@@ -1,5 +1,32 @@
 @extends('layout.Nav')
 
+<style>
+    .scroll-table {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .scroll-table table {
+        margin-bottom: 0;
+    }
+
+    .scroll-table thead th {
+        position: sticky;
+        top: 0;
+        background-color: #fff;
+        z-index: 10;
+    }
+
+    #tbodyCustomer tr {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    #tbodyCustomer tr:hover {
+    background-color: #ffe8e8;
+    }
+</style>
+
 @section('content')
 <div class="container py-2">
     <div class="title-box">
@@ -16,8 +43,8 @@
                 <input type="text" id="searchInput" class="form-control" placeholder="Cari Nama atau Kode Customer">
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped">
+            <div class="table-responsive scroll-table">
+                <table class="table table-bordered table-striped p-2">
                     <thead class="thead-dark">
                         <tr>
                             <th>No</th>
@@ -66,31 +93,33 @@
                 </div>
             </div>
 
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>No Transaksi</th>
-                        <th>Tanggal</th>
-                        <th>Customer</th>
-                        <th>Total</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="tbodyTransaksi">
-                    @foreach ($transactions as $transaction)
+            <div class="table-responsive scroll-table">
+                <table class="table table-bordered">
+                    <thead>
                         <tr>
-                            <td>{{ $transaction->no_transaksi }}</td>
-                            <td>{{ $transaction->tanggal }}</td>
-                            <td>{{ $transaction->customer->nama ?? 'N/A' }}</td>
-                            <td class="text-right">Rp {{ number_format($transaction->grand_total, 0, ' ,', '.') }}</td>
-                            <td>
-                                <a href="{{ route('transaksi.nota', $transaction->id) }}" class="btn btn-primary btn-sm">Lihat Nota</a>
-                            </td>
+                            <th>No Transaksi</th>
+                            <th>Tanggal</th>
+                            <th>Customer</th>
+                            <th>Total</th>
+                            <th>Aksi</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
-
+                    </thead>
+                    <tbody id="tbodyTransaksi">
+                        @foreach ($transactions as $transaction)
+                            <tr>
+                                <td>{{ $transaction->no_transaksi }}</td>
+                                <td>{{ $transaction->tanggal }}</td>
+                                <td>{{ $transaction->customer->nama ?? 'N/A' }}</td>
+                                <td class="text-right">Rp {{ number_format($transaction->grand_total, 0, ' ,', '.') }}</td>
+                                <td>
+                                    <a href="{{ route('transaksi.nota', $transaction->id) }}" class="btn btn-primary btn-sm">Lihat Nota</a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            
             <!-- TOTAL PENJUALAN -->
             <div id="totalTransaksiCustomer" class="mt-3 text-right font-weight-bold text-danger">
                 <!-- Total penjualan customer terpilih akan muncul di sini -->
@@ -106,7 +135,7 @@
 <script>
     $(document).ready(function () {
         let selectedCustomerName = '';
-
+        
         // Format rupiah
         function formatRupiah(angka) {
             return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -137,6 +166,14 @@
             selectedCustomerName = $(this).find('td:nth-child(3)').text().trim();
             applyFilters();
         });
+
+        // Auto-select first customer & trigger click
+        setTimeout(function () {
+            const firstRow = $('#tbodyCustomer tr').first();
+            if (firstRow.length > 0) {
+                firstRow.trigger('click');
+            }
+        }, 100); // kasih delay sedikit buat jaga-jaga render DOM
 
         // Apply date filter
         $('#applyDateFilter').on('click', function () {

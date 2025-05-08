@@ -19,6 +19,8 @@ use App\Http\Controllers\SuratJalanItemController;
 use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\CaraBayarController;
+use App\Http\Controllers\PurchaseOrderController;
+
 use App\Models\StokOwner;
 use App\Models\Supplier;
 use App\Models\KodeBarang;
@@ -233,7 +235,6 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::post('/customers/create', [TransaksiController::class, 'createCustomer'])->name('api.customers.create');
     });
     
-    Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     Route::get('/api/customers', [CustomerController::class, 'searchsuratjalan'])->name('api.customers');
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
     Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
@@ -271,5 +272,22 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/stock/print-good', [StockController::class, 'printGoodStock'])->name('stock.print.good');
     Route::get('/stock/get', [StockController::class, 'getStock'])->name('stock.get');
     Route::get('/stock/mutations', [StockController::class, 'getStockMutations'])->name('stock.mutations');
+
+    // // Purchase Order Routes
+    // Route::get('/transaksi.purchaseorder', function () {
+    //     return view('transaksi.purchaseorder');
+    // })->name('purchaseorder.form');
+
+    //
+    // Route ke halaman list PO
+    Route::get('/transaksi.purchaseorder', [PurchaseOrderController::class, 'index'])->name('transaksi.purchaseorder');
+    // Route ke halaman detail PO
+    Route::get('/transaksi/purchaseorder/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
+    // Route buat nyimpen PO dari form penjualan
+    Route::post('/transaksi/purchaseorder/store', [PurchaseOrderController::class, 'store'])->name('purchase-order.store');
+    // Route buat nyelesain PO (ubah jadi completed dan isi tanggal_jadi)
+    Route::post('/transaksi/purchaseorder/{id}/complete', [PurchaseOrderController::class, 'completeTransaction'])->name('purchase-order.complete');
+    // Route buat cancel PO
+    Route::patch('/transaksi/purchaseorder/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-order.cancel');
 
 });

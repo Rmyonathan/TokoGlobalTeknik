@@ -521,6 +521,9 @@
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-envelope-open-text"></i> List Nota Penjualan</a>
                                         </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.purchaseorder')); ?>"><i class="fas fa-money-bill-wave mr-2"></i>Purchase Order</a>
+                                        </li>
                                     </ul>
                                 </div>
                             </li>
@@ -566,6 +569,7 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/viewKas"><i class="fas fa-money-bill-wave mr-2"></i>Kas</a>
                 </li>
+
             </ul>
         </div>
     </nav>
@@ -574,6 +578,17 @@
     <div class="main-container" id="mainContainer">
         <!-- Content will be loaded here -->
         <?php echo $__env->yieldContent('content'); ?>
+        @if(session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger">
+                {{ session('error') }}
+            </div>
+        @endif
     </div>
 
     <script>
