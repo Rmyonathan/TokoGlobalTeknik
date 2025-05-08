@@ -125,6 +125,7 @@ Route::middleware(['web', 'role'])->group(function () {
     ->name('panels.update-inventory');
     Route::post('/panels/delete/{id}', [PanelController::class, 'deleteInventory'])
     ->name('panels.delete-inventory');
+    Route::get('/api/kode-barang/search', [PanelController::class, 'searchKodeBarang'])->name('api.kode-barang.search');
 
     //ROute edit and delete kode barang -yoyo
     Route::get('/code/edit/{id}', [KodeBarangController::class, 'edit'])->name('code.edit');
@@ -164,6 +165,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/transaksi/store', [TransaksiController::class, 'store'])->name('transaksi.store');
     Route::get('/transaksi/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
     Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
+    Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
 
 
 

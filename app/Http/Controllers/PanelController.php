@@ -10,6 +10,8 @@ use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
 use Exception;
+use Illuminate\Support\Facades\Log;
+
 
 class PanelController extends Controller
 {
@@ -535,5 +537,24 @@ class PanelController extends Controller
         ];
     }
 
+    public function searchKodeBarang(Request $request)
+    {
+        $keyword = $request->keyword;
+        Log::info('Searching for kode barang with keyword: ' . $keyword);
+    
+        try {
+            // Use the model directly with the correct table
+            $kodeBarang = KodeBarang::where('kode_barang', 'like', "%{$keyword}%")
+                ->orWhere('attribute', 'like', "%{$keyword}%")
+                ->limit(10)
+                ->get(['kode_barang', 'attribute', 'length']);
+    
+            Log::info('Search results count: ' . count($kodeBarang));
+            return response()->json($kodeBarang);
+        } catch (\Exception $e) {
+            Log::error('Error in searchKodeBarang: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
 }
