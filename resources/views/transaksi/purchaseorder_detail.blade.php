@@ -46,7 +46,7 @@
                     <td>{{ $item->nama_barang }}</td>
                     <td>{{ $item->keterangan }}</td>
                     <td class="text-right">Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
-                    <td>{{ $item->length }}</td>
+                    <td>{{ $item->panjang }}</td>
                     <td>{{ $item->qty }}</td>
                     <td>{{ $item->diskon }}%</td>
                     <td class="text-right">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
@@ -62,17 +62,24 @@
     <div class="d-flex justify-content-around mt-5">
         <a href="{{ route('transaksi.purchaseorder') }}" class="btn btn-secondary">Kembali ke Daftar PO</a>
         @if($po->status === 'pending')
-        <form action="{{ route('purchase-order.complete', $po->id) }}" method="POST" class="d-inline-block" onsubmit="return confirm('Yakin ingin selesaikan transaksi ini?');">
-            @csrf
-            <button type="submit" class="btn btn-success">Selesaikan Transaksi</button>
-        </form>
-        
-        <form action="{{ route('purchase-order.cancel', $po->id) }}" method="POST" class="d-inline-block" onsubmit="return confirm('Yakin ingin membatalkan PO ini?');">
-            @csrf
-            @method('PATCH')
-            <button type="submit" class="btn btn-danger">Batalkan PO</button>
-        </form>
+            {{-- Form Selesaikan Transaksi --}}
+            <form action="{{ route('purchase-order.complete', ['id' => $po->id]) }}" method="POST" class="d-inline-block">
+                @csrf
+                <button type="submit" class="btn btn-success" onclick="return confirm('Yakin ingin selesaikan transaksi ini?');">
+                    Selesaikan Transaksi
+                </button>
+            </form>
+
+            {{-- Form Batalkan PO --}}
+            <form action="{{ route('purchase-order.cancel', ['id' => $po->id]) }}" method="POST" class="d-inline-block">
+                @csrf
+                @method('PATCH')
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Yakin ingin membatalkan PO ini?');">
+                    Batalkan PO
+                </button>
+            </form>
+        </div>
+        @endif
     </div>
-    @endif
 </div>
 @endsection

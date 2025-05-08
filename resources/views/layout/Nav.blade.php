@@ -530,6 +530,17 @@
     <div class="main-container" id="mainContainer">
         <!-- Content will be loaded here -->
         <?php echo $__env->yieldContent('content'); ?>
+        @if(session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger">
+                {{ session('error') }}
+            </div>
+        @endif
     </div>
 
     <script>
