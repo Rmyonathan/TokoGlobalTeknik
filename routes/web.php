@@ -273,5 +273,3 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/stock/mutations', [StockController::class, 'getStockMutations'])->name('stock.mutations');
 
 });
-
-
