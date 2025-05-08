@@ -10,6 +10,9 @@ use App\Models\Panel;
 use App\Models\Transaksi;
 use App\Models\TransaksiItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+
 
 class PurchaseOrderController extends Controller
 {
@@ -114,14 +117,14 @@ class PurchaseOrderController extends Controller
 
     public function completeTransaction($id)
     {
-        \Log::info('CompleteTransaction started for PO ID: ' . $id); // Debug log
+        Log::info('CompleteTransaction started for PO ID: ' . $id); // Debug log
 
         $po = PurchaseOrder::with('items', 'customer')->findOrFail($id);
     
         DB::beginTransaction();
     
         try {
-            \Log::info('PO Data:', $po->toArray()); // Debug log
+            Log::info('PO Data:', $po->toArray()); // Debug log
 
             // Generate a new transaction number
             $lastTransaction = Transaksi::orderBy('created_at', 'desc')->first();
@@ -204,11 +207,11 @@ class PurchaseOrderController extends Controller
             ]);
     
             DB::commit();
-            \Log::info('Transaction completed successfully'); // Debug log
+            Log::info('Transaction completed successfully'); // Debug log
     
             return redirect()->route('transaksi.penjualan')->with('success', 'Transaksi berhasil diselesaikan.');
         } catch (\Exception $e) {
-            \Log::error('Error in completeTransaction: ' . $e->getMessage()); // Debug log
+            Log::error('Error in completeTransaction: ' . $e->getMessage()); // Debug log
             DB::rollBack();
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
