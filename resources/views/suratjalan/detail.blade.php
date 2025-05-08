@@ -123,15 +123,62 @@
             border-top: 1px solid #000;
             padding-top: 5px;
         }
+        
         @media print {
             .no-print {
-                display: none;
+                display: none !important;
             }
+            @page {
+                size: 8.5in 11in;
+                margin: 0.5in;
+            }
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            .container {
+                width: 100%;
+                max-width: none;
+                padding: 0;
+            }
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border: 1px solid #0056b3;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border: 1px solid #545b62;
+            color: white;
+        }
+
+        .mr-2 {
+            margin-right: 8px;
         }
     </style>
 
 </head>
 <body>
+    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <a href="{{ route('suratjalan.history') }}" class="btn btn-secondary mr-2">
+            <i class="fas fa-arrow-left"></i> Kembali
+        </a>
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="fas fa-print"></i> Print
+        </button>
+    </div>
     <div class="container">
         <div class="header">
             <h1>CV. ALUMKA CIPTA PRIMA</h1>
