@@ -16,6 +16,14 @@
                     <form action="{{ route('code.store-code') }}" method="POST">
                         @csrf
                         <div class="form-group">
+                            <label for="name"><i class="fas fa-ruler mr-1"></i> Panel Name</label>
+                            <input type="text" step="0.01" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required>
+                            @error('name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Enter the name of the aluminum panels.</small>
+                        </div>
+                        <div class="form-group">
                             <label for="attribute"><i class="fas fa-ruler mr-1"></i> Group Name</label>
                             <input type="text" step="0.01" class="form-control @error('attribute') is-invalid @enderror" id="attribute" name="attribute" value="{{ old('attribute') }}" required>
                             @error('attribute')
@@ -38,6 +46,22 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="form-text text-muted">Enter the length of the aluminum panels in meters.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="cost"><i class="fas fa-ruler mr-1"></i> Harga Beli (per meters)</label>
+                            <input type="number" step="0.01" class="form-control @error('cost') is-invalid @enderror" id="cost" name="cost" value="{{ old('cost') }}" required>
+                            @error('cost')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Enter the price.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="price"><i class="fas fa-ruler mr-1"></i> Harga Jual (per meters)</label>
+                            <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ old('price') }}" required>
+                            @error('price')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Enter the price.</small>
                         </div>
                         <div class="form-row">
                             <div class="col-md-6">

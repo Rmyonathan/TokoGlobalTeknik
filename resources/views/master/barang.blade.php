@@ -3,18 +3,22 @@
 @section('content')
 <section id="barang">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Manajemen Barang</h2>
+        <h2>Master Barang</h2>
     </div>
 
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-                <a href="{{ route('panels.create-inventory') }}" class="btn btn-primary btn-sm me-2">
+                {{-- <a href="{{ route('panels.create-inventory') }}" class="btn btn-primary btn-sm me-2">
                     <i class="fas fa-plus mr-1"></i> Tambah Barang
                 </a>
 
                 <a href="{{ route('code.create-code') }}" class="btn btn-sm me-2" style="background-color: #28a745; color: white;">
                     <i class="fas fa-upload"></i> Tambah Kode Barang
+                </a> --}}
+
+                <a href="{{ route('code.create-code') }}" class="btn btn-primary btn-sm me-2">
+                    <i class="fas fa-plus mr-1"></i> Tambah Barang
                 </a>
             </div>
 
@@ -82,11 +86,13 @@
                                     <th>ID</th>
                                     <th>Kode Barang</th>
                                     <th>Name</th>
+                                    <th>Group</th>
                                     <th>Harga Beli</th>
                                     <th>Harga Jual</th>
                                     <th>Length (meters)</th>
                                     <th>Available Quantity</th>
                                     <th>Total Length (meters)</th>
+                                    <th>Status</th>
                                     <th>Aksi</th>
                                 </tr>
                             </thead>
@@ -96,11 +102,13 @@
                                         <td>{{ $item['id'] }}</td>
                                         <td>{{ $item['group_id'] }}</td>
                                         <td>{{ $item['name'] }}</td>
+                                        <td>{{ $item['group'] }}</td>
                                         <td>Rp. {{ number_format($item['cost'], 2) }}</td>
                                         <td>Rp. {{ number_format($item['price'], 2) }}</td>
                                         <td>{{ number_format($item['length'], 2) }}</td>
                                         <td>{{ $item['quantity'] }}</td>
                                         <td>{{ number_format($item['length'] * $item['quantity'], 2) }}</td>
+                                        <td>{{ $item['status'] }}</td>
                                         <td style="border: 1px solid #000;">
                                             <div class="btn-group" role="group">
                                                 <form action="{{ route('panels.edit-inventory', ['id' => $item['group_id']]) }}" method="GET" enctype="multipart/form-data">
@@ -125,6 +133,8 @@
                             </tbody>
                             <tfoot>
                                 <tr class="table-primary">
+                                    <th></th>
+                                    <th></th>
                                     <th></th>
                                     <th></th>
                                     <th></th>
