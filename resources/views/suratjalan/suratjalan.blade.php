@@ -277,7 +277,7 @@ $(document).ready(function() {
                                     data-kode_customer="${transaksi.kode_customer}"
                                     data-tanggal_transaksi="${transaksi.tanggal}"
                                     data-grand_total="${transaksi.grand_total}">
-                                ${transaksi.no_transaksi} By ${transaksi.kode_customer}</a>`;
+                                ${transaksi.no_transaksi} Tanggal ${transaksi.tanggal}</a>`;
                             });
                         } else {
                             dropdown = '<a class="dropdown-item disabled">Tidak ada transaksi ditemukan</a>';

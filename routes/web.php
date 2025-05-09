@@ -20,6 +20,7 @@ use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\CaraBayarController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\PerusahaanController;
 
 use App\Models\StokOwner;
 use App\Models\Supplier;
@@ -214,6 +215,13 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::post('/cara_bayar', [CaraBayarController::class, 'store'])->name('master.cara_bayar.store');
         Route::delete('/cara_bayar/{id}', [CaraBayarController::class, 'destroy'])->name('master.cara_bayar.destroy');
     });
+
+    Route::get('/perusahaan', [PerusahaanController::class, 'index'])->name('perusahaan.index');
+    Route::get('/perusahaan/create', [PerusahaanController::class, 'create'])->name('perusahaan.create');
+    Route::post('/perusahaan', [PerusahaanController::class, 'store'])->name('perusahaan.store');
+    Route::get('/perusahaan/{id}/edit', [PerusahaanController::class, 'edit'])->name('perusahaan.edit');
+    Route::put('/perusahaan/{id}', [PerusahaanController::class, 'update'])->name('perusahaan.update');
+    Route::delete('/perusahaan/{id}', [PerusahaanController::class, 'destroy'])->name('perusahaan.destroy');
 
     Route::get('/api/cara-bayar/by-metode', function (Illuminate\Http\Request $request) {
         $metode = $request->query('metode');
