@@ -225,6 +225,7 @@ $(document).ready(function() {
         $('#nama_barang').val(panelName);
         $('#harga').val(panelPrice);
         $('#panjang').val(panelLength);
+        $('#keterangan').val(panelName);
 
         $('#kodeBarangDropdown').hide();
     });

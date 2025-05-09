@@ -206,7 +206,8 @@ class PurchaseOrderController extends Controller
             DB::commit();
             \Log::info('Transaction completed successfully'); // Debug log
     
-            return redirect()->route('transaksi.penjualan')->with('success', 'Transaksi berhasil diselesaikan.');
+            return redirect()->route('transaksi.listnota')->with('success', 'Transaksi berhasil diselesaikan.');
+
         } catch (\Exception $e) {
             \Log::error('Error in completeTransaction: ' . $e->getMessage()); // Debug log
             DB::rollBack();
