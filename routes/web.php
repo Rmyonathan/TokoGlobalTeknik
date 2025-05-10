@@ -187,16 +187,6 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/transaksi/lihatnota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.lihatnota');
     Route::get('/lihat_nota', [TransaksiController::class, 'listNota'])->name('transaksi.listnota');
 
-    // Surat Jalan
-    Route::get('/suratjalan', function () {
-        return view('suratjalan.suratjalan');
-        })->name('suratjalan.form');
-
-    // History Surat Jalan
-    Route::get('/suratjalan/historysuratjalan', function () {
-        return view('suratjalan.historysuratjalan');
-        })->name('suratjalan.historysuratjalan');
-
     // Pembelian
     // Pembelian Barang (dummy atau real)
     Route::get('/pembelian', function () {
