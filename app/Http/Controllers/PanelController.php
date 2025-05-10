@@ -486,7 +486,7 @@ class PanelController extends Controller
      * @param int $quantity Number of panels to add
      * @return array Status of the operation
      */
-    private function addPanelsToInventory(string $name, float $cost, float $price, float $length, string $group_id, int $quantity): array
+    public function addPanelsToInventory(string $name, float $cost, float $price, float $length, string $group_id, int $quantity): array
     {
         $panels = [];
 

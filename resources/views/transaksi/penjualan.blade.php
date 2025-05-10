@@ -679,52 +679,69 @@ $(document).ready(function() {
 
     // Button Buat PO
     $('#buatPOBtn').click(function(){
-        if (confirm('Simpan sebagai PO (tidak mempengaruhi stok)?')) {
-            if (!$('#kode_customer').val()) {
-                alert('Pilih customer dari daftar yang tersedia!');
-                return;
-            }
-
-            if (items.length === 0) {
-                alert('Tidak ada barang yang ditambahkan!');
-                return;
-            }
-
-            const poData = {
-                tanggal: $('#tanggal').val(),
-                kode_customer: $('#kode_customer').val(),
-                sales: $('#sales').val(),
-                lokasi: $('#lokasi').val(),
-                pembayaran: $('#metode_pembayaran').val(),
-                cara_bayar: $('#cara_bayar').val(),
-                items: items,
-                subtotal: $('#total').val().replace(/\./g, ''),
-                discount: $('#discount_amount').val().replace(/\./g, ''),
-                disc_rupiah: $('#disc_rp').val(),
-                ppn: $('#ppn_amount').val().replace(/\./g, ''),
-                dp: $('#dp_amount').val(),
-                grand_total: grandTotal
-            };
-
-            $.ajax({
-                url: "{{ route('purchase-order.store') }}", // Ubah ini ke route PO
-                method: "POST",
-                data: poData,
-                success: function(response) {
-                    alert('PO berhasil disimpan!');
-
-                    // Opsional: reset form
-                    $('#transactionForm')[0].reset();
-                    items = [];
-                    renderItems();
-                    calculateTotals();
-                },
-                error: function(xhr) {
-                    alert('Gagal menyimpan PO: ' + xhr.responseJSON.message);
-                }
-            });
+    if (confirm('Simpan sebagai PO (tidak mempengaruhi stok)?')) {
+        if (!$('#kode_customer').val()) {
+            alert('Pilih customer dari daftar yang tersedia!');
+            return;
         }
-    });
+
+        if (items.length === 0) {
+            alert('Tidak ada barang yang ditambahkan!');
+            return;
+        }
+
+        // Format items for PO
+        const poItems = items.map(item => ({
+            kodeBarang: item.kodeBarang,
+            namaBarang: item.namaBarang,
+            keterangan: item.keterangan || '',
+            harga: item.harga,
+            panjang: item.panjang || 0,
+            qty: item.qty,
+            total: item.total,
+            diskon: item.diskon || 0
+        }));
+
+        // Create the PO data
+        const formData = new FormData();
+        
+        // Add form fields
+        formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+        formData.append('tanggal', $('#tanggal').val());
+        formData.append('kode_customer', $('#kode_customer').val());
+        formData.append('sales', $('#kode_sales').val());
+        formData.append('lokasi', $('#lokasi').val());
+        formData.append('pembayaran', $('#metode_pembayaran').val());
+        formData.append('cara_bayar', $('#cara_bayar').val());
+        formData.append('subtotal', parseFloat($('#total').val().replace(/\./g, '')) || 0);
+        formData.append('discount', $('#discount_checkbox').is(':checked') ? parseFloat($('#discount_percent').val()) || 0 : 0);
+        formData.append('disc_rupiah', $('#disc_rp_checkbox').is(':checked') ? parseFloat($('#disc_rp').val()) || 0 : 0);
+        formData.append('ppn', $('#ppn_checkbox').is(':checked') ? parseFloat($('#ppn_amount').val().replace(/\./g, '')) || 0 : 0);
+        formData.append('dp', $('#dp_checkbox').is(':checked') ? parseFloat($('#dp_amount').val()) || 0 : 0);
+        formData.append('grand_total', grandTotal);
+        
+        // Add items as JSON string
+        formData.append('items', JSON.stringify(poItems));
+
+        // Send to server
+        $.ajax({
+            url: "{{ route('purchase-order.store') }}",
+            method: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                alert('PO berhasil disimpan!');
+                // Redirect to PO list
+                window.location.href = "{{ route('transaksi.purchaseorder') }}";
+            },
+            error: function(xhr) {
+                console.error('Error:', xhr.responseText);
+                alert('Gagal menyimpan PO: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Unknown error'));
+            }
+        });
+    }
+});
 
     // Cancel transaction
     $('#cancelTransaction').click(function() {

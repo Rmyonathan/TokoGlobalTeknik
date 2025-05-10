@@ -218,28 +218,22 @@
             <thead>
                 <tr>
                     <th width="2.5%">No.</th>
-                    <th width="10%">Kode Barang</th>
                     <th width="17.5%">Nama Barang</th>
                     <th width="25%">Keterangan</th>
                     <th width="7.5%">Panjang (m)</th>
-                    <th width="10%">Harga Satuan</th>
                     <th width="5%">Jumlah</th>
                     <th width="5%">Satuan</th>
-                    <th width="12.5%">Sub Total</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($suratJalan->transaksi->items as $i => $item)
                 <tr>
                     <td class="text-center">{{ $i + 1 }}</td>
-                    <td>{{ $item->kode_barang }}</td>
                     <td>{{ $item->nama_barang }}</td>
                     <td>{{ $item->keterangan }}</td>
                     <td>{{ $item->panjang }}</td>
-                    <td class= "text-right">Rp {{ number_format($item->harga, 2, ' ,' , '.') }}</td>
                     <td class="text-center">{{ $item->qty }}</td>
                     <td class="text-center">Pcs</td>
-                    <td class="text-right">Rp {{ number_format($item->total, 2, ' ,' , '.') }}</td>
                 </tr>
                 @endforeach
             </tbody>

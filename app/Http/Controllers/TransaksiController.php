@@ -19,38 +19,6 @@ class TransaksiController extends Controller
      * Display the sales transaction form.
      */
 
-     public function index(Request $request)
-     {
-         // Start with a base query
-         $query = Transaksi::with('customer');
-         
-         // Apply search filter if provided
-         if ($request->has('search') && $request->search) {
-             $keyword = $request->search;
-             $query->where(function($q) use ($keyword) {
-                 $q->where('no_transaksi', 'like', "%{$keyword}%")
-                   ->orWhereHas('customer', function($q2) use ($keyword) {
-                       $q2->where('nama', 'like', "%{$keyword}%");
-                   });
-             });
-         }
-         
-         // Apply date range filter
-         if ($request->has('start_date') && $request->start_date) {
-             $query->whereDate('tanggal', '>=', $request->start_date);
-         }
-         
-         if ($request->has('end_date') && $request->end_date) {
-             $query->whereDate('tanggal', '<=', $request->end_date);
-         }
-         
-         // Get paginated results
-         $transactions = $query->orderBy('tanggal', 'desc')
-                               ->paginate(10); // Show 10 items per page
-         
-         return view('transaksi.lihat_nota', compact('transactions'));
-     }
-
     protected $stockController;
 
     public function __construct(StockController $stockController)
@@ -398,35 +366,11 @@ class TransaksiController extends Controller
         return $pdf->stream('nota.pdf'); // or use `stream()` to open in browser
     }
 
-    public function listNota(Request $request)
+    public function listNota()
     {
-        // Start with a base query
-        $query = Transaksi::with('customer');
-        
-        // Apply search filter if provided
-        if ($request->has('search') && $request->search) {
-            $keyword = $request->search;
-            $query->where(function($q) use ($keyword) {
-                $q->where('no_transaksi', 'like', "%{$keyword}%")
-                ->orWhereHas('customer', function($q2) use ($keyword) {
-                    $q2->where('nama', 'like', "%{$keyword}%");
-                });
-            });
-        }
-        
-        // Apply date range filter
-        if ($request->has('start_date') && $request->start_date) {
-            $query->whereDate('tanggal', '>=', $request->start_date);
-        }
-        
-        if ($request->has('end_date') && $request->end_date) {
-            $query->whereDate('tanggal', '<=', $request->end_date);
-        }
-        
-        // Get paginated results
-        $transactions = $query->orderBy('created_at', 'desc')
-                            ->paginate(10); // Show 10 items per page
-        
+        // Fetch all transactions (penjualan & pembelian)
+        $transactions = Transaksi::with('items')->orderBy('created_at', 'desc')->get();
+
         return view('transaksi.lihat_nota', compact('transactions'));
     }
 

@@ -243,6 +243,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/suratjalan/transaksiitem/{transaksiId}', [TransaksiController::class, 'getRincianTransaksi'])->name('api.rinciantransaksi');
     Route::get('/api/transaksi/items/{transaksiId}', [TransaksiController::class, 'getTransaksiItems'])->name('api.transaksi.items');
     Route::get('/kode-barang/search', [KodeBarangController::class, 'searchKodeBarang'])->name('kodeBarang.search');
+    Route::get('/api/stok-owner/search', [StokOwnerController::class, 'search'])->name('api.stok-owner.search');
 
     // Surat Jalan
     Route::prefix('suratjalan')->group(function () {
@@ -289,5 +290,6 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/transaksi/purchaseorder/{id}/complete', [PurchaseOrderController::class, 'completeTransaction'])->name('purchase-order.complete');
     // Route buat cancel PO
     Route::patch('/transaksi/purchaseorder/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-order.cancel');
+    
 
 });
