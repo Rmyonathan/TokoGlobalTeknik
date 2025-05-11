@@ -252,15 +252,4 @@ class PurchaseOrderController extends Controller
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
-
-    public function cancel($id)
-    {
-        $po = PurchaseOrder::findOrFail($id);
-        if ($po->status === 'pending') {
-            $po->update(['status' => 'cancelled']);
-        }
-
-        return redirect()->route('transaksi.purchaseorder')->with('success', 'PO dibatalkan.');
-}
-
 }
