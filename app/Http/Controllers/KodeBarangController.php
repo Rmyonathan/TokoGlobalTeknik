@@ -33,6 +33,9 @@ class KodeBarangController extends Controller
     {
         // Validate the request
         $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'cost' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
             'attribute' => 'required|string|max:255',
             'kode_barang' => 'required|string|max:255',
             'length' => 'required|numeric|min:0.1',
@@ -48,11 +51,24 @@ class KodeBarangController extends Controller
             'length.required' => 'Panel length is required',
             'length.numeric' => 'Panel length must be a number',
             'length.min' => 'Panel length must be at least 0.1 meters',
+
+            'name.required' => 'Panel name is required',
+            'name.string' => 'Panel name must be a valid string',
+            'name.max' => 'Panel name may not be greater than 255 characters',
+
+            'cost.required' => 'Cost is required',
+            'cost.numeric' => 'Cost must be a valid number',
+            'cost.min' => 'Cost must be at least 0',
+
+            'price.required' => 'Price is required',
+            'price.numeric' => 'Price must be a valid number',
+            'price.min' => 'Price must be at least 0',
         ]);
 
         // $attribute = $validated['attribute'];
         // $length = $validated['length'];
         // $kode_barang = $validated['kode_barang'];
+        $validated['status'] = 'Active';
 
         KodeBarang::create($validated);
 
@@ -135,16 +151,16 @@ class KodeBarangController extends Controller
         return redirect()->route('code.view-code')
             ->with('success', "Successfully deleted code!");
     }
-    
+
     public function searchKodeBarang(Request $request)
     {
         $keyword = $request->input('keyword');
-        
+
         $kodeBarang = KodeBarang::where('kode_barang', 'like', "%{$keyword}%")
             ->orWhere('attribute', 'like', "%{$keyword}%")
             ->limit(10)
             ->get();
-        
+
         return response()->json($kodeBarang);
     }
 }

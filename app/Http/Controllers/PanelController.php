@@ -31,7 +31,7 @@ class PanelController extends Controller
 
     public function viewBarang()
     {
-        $inventory = $this->getInventorySummary();
+        $inventory = $this->getKodeSummary();
         return view('master.barang', compact('inventory'));
     }
 
@@ -40,7 +40,7 @@ class PanelController extends Controller
      */
     public function createOrder()
     {
-        $panel = Panel::select('name')->distinct()->get();
+        $panel = KodeBarang::all();
         $inventory = $this->getInventorySummary();
         return view('panels.order', compact('inventory', 'panel'));
     }
@@ -125,7 +125,7 @@ class PanelController extends Controller
 
     public function editInventory(Request $request)
     {
-        $panel = Panel::where('group_id', $request->id)->first();
+        $panel = KodeBarang::where('kode_barang', $request->id)->first();
         $quantity = Panel::where('group_id', $request->id)->count();
         return view('panels.edit', [
             'panel' => $panel,
@@ -196,6 +196,7 @@ class PanelController extends Controller
             'length' => 'required|numeric|min:0.1',
             'cost' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
+            'status' => 'required',
             'quantity' => 'required|integer|min:1',
         ], [
             'group_id.required' => 'Item code is required',
@@ -229,8 +230,17 @@ class PanelController extends Controller
         $cost = $validated['cost'];
         $price = $validated['price'];
         $quantity = $validated['quantity'];
+        $status = $validated['status'];
 
         Panel::where('group_id', $group_id)->delete();
+
+        $kode = KodeBarang::where('kode_barang', $group_id)->first();
+        $kode->name = $name;
+        $kode->length = $length;
+        $kode->cost = $cost;
+        $kode->price = $price;
+        $kode->status = $status;
+        $kode->save();
 
         // $parts = explode('-', $group_id);
         // $group_id = $parts[0];
@@ -256,6 +266,104 @@ class PanelController extends Controller
      * @param int $requestedQuantity Quantity of panels requested
      * @return array Status of the operation
      */
+
+    public function repackOrder(Request $request) {
+        // Validate input fields
+        $validated = $request->validate([
+            'penambah' => 'required|string|max:255',
+            'pengurang' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:1',
+        ], [
+            'penambah.required' => 'Item code is required',
+            'penambah.string' => 'Item code must be a valid string',
+            'penambah.max' => 'Item code may not be greater than 255 characters',
+
+            'pengurang.required' => 'Item code is required',
+            'pengurang.string' => 'Item code must be a valid string',
+            'pengurang.max' => 'Item code may not be greater than 255 characters',
+
+            'quantity.required' => 'Quantity is required',
+            'quantity.integer' => 'Quantity must be a whole number',
+            'quantity.min' => 'Quantity must be at least 1',
+        ]);
+
+        // Get the codes
+        $penambah = KodeBarang::where('kode_barang', $validated['penambah'])->first();
+        $pengurang = KodeBarang::where('kode_barang', $validated['pengurang'])->first();
+        $qty = $validated['quantity'];
+
+        // Add debugging
+        // \Log::info('Processing order with data:', [
+        //     'penambah' => $penambah->kode_barang,
+        //     'penambah_length' => $penambah->length,
+        //     'pengurang' => $pengurang->kode_barang,
+        //     'pengurang_length' => $pengurang->length,
+        //     'qty' => $qty
+        // ]);
+
+        // Perform validation with improved parentheses for clarity
+        if (
+            // Case 1: Penambah is longer but doesn't divide evenly
+            (($penambah->length >= ($pengurang->length * $qty)) &&
+            ($penambah->length - ($pengurang->length * $qty) != 0))
+            ||
+            // Case 2: Penambah is shorter but doesn't fit evenly
+            (($penambah->length < ($pengurang->length * $qty)) &&
+            (($pengurang->length * $qty) % $penambah->length != 0))
+            ||
+            (($qty * $pengurang->length) > (Panel::where('group_id', $penambah)->where('available', True)->count() * $penambah->length))
+        ) {
+            // Add debugging
+            \Log::warning('Invalid conversion ratio detected', [
+                'calculation1' => ($penambah->length >= ($pengurang->length * $qty)),
+                'calculation2' => ($penambah->length - ($pengurang->length * $qty) != 0),
+                'calculation3' => ($penambah->length < ($pengurang->length * $qty)),
+                'calculation4' => (($pengurang->length * $qty) % $penambah->length != 0),
+            ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['error' => 'Invalid conversion ratio.'], 400);
+            } else {
+                return redirect()->back()->with('error', 'Invalid conversion ratio.');
+            }
+        } else {
+            $reduction = 0;
+            if ($penambah->length - ($pengurang->length * $qty) == 0) {
+                $reduction = 1;
+            } else {
+                $reduction = ($qty * $pengurang->length) / $penambah->length;
+            }
+
+            $panelPenambah = Panel::where('group_id', $penambah->kode_barang)
+                            ->where('available', true)
+                            ->limit((int) $reduction)
+                            ->get();
+
+            foreach ($panelPenambah as $p) {
+                $p->available = false;
+                $p->save();
+            }
+
+            $name = $pengurang->name;
+            $price = $pengurang->price;
+            $cost = $pengurang->cost;
+            $length = $pengurang->length;
+            $group_id = $pengurang->kode_barang;
+
+            $this->addPanelsToInventory($name, $cost, $price, $length, $group_id, $qty);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Successfully processed order for {$qty} panels of {$request->pengurang}."
+                ]);
+            } else {
+                return redirect()->route('panels.inventory')
+                    ->with('success', "Successfully processed order for {$qty} panels of {$request->pengurang}.");
+            }
+        }
+    }
+
     private function processOrder(string $requestedName, float $requestedLength, int $requestedQuantity): array
     {
         // Start a database transaction using Eloquent model
@@ -441,7 +549,7 @@ class PanelController extends Controller
     private function getInventorySummary(): array
     {
         // Using Eloquent to get all available panels
-        $panels = Panel::where('available', true)->get();
+        $panels = Panel::where('available', True)->get();
 
         // Manually group the panels
         $groupedPanels = [];
@@ -477,6 +585,47 @@ class PanelController extends Controller
         ];
     }
 
+    private function getKodeSummary(): array
+    {
+        // Using Eloquent to get all available panels
+        $panels = KodeBarang::all();
+
+        // Manually group the panels
+        $groupedPanels = [];
+        foreach ($panels as $panel) {
+            $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->group_id;
+
+            if (!isset($groupedPanels[$key])) {
+                $groupedPanels[$key] = [
+                    'id' => $panel->id,
+                    'length' => $panel->length,
+                    'name' => $panel->name,
+                    'cost' => $panel->cost,
+                    'price' => $panel->price,
+                    'group_id' => $panel->kode_barang,
+                    'group' => $panel->attribute,
+                    'status' => $panel->status,
+                    'quantity' => Panel::where('group_id', $panel->kode_barang)->where('available', True)->count()
+                ];
+            } else {
+                $groupedPanels[$key]['quantity']++;
+            }
+        }
+
+        // Convert to array values
+        $inventory = array_values($groupedPanels);
+
+        // Sort by length
+        usort($inventory, function($a, $b) {
+            return $a['length'] <=> $b['length'];
+        });
+
+        return [
+            'total_panels' => count($panels),
+            'inventory_by_length' => $inventory
+        ];
+    }
+
     /**
      * Add new panels to inventory
      *
@@ -484,7 +633,7 @@ class PanelController extends Controller
      * @param int $quantity Number of panels to add
      * @return array Status of the operation
      */
-    private function addPanelsToInventory(string $name, float $cost, float $price, float $length, string $group_id, int $quantity): array
+    public function addPanelsToInventory(string $name, float $cost, float $price, float $length, string $group_id, int $quantity): array
     {
         $panels = [];
 

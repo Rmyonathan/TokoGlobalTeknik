@@ -102,7 +102,9 @@ Route::middleware(['web', 'role'])->group(function () {
     ->name('panels.create-order');
 
     // Process Order
-    Route::post('/panels/order', [PanelController::class, 'storeOrder'])
+    // Route::post('/panels/order', [PanelController::class, 'storeOrder'])
+    // ->name('panels.store-order');
+    Route::post('/panels/order', [PanelController::class, 'repackOrder'])
     ->name('panels.store-order');
 
     // Add to Inventory Form
@@ -177,7 +179,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
     Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
     Route::get('/api/suppliers/search', [SupplierController::class, 'search'])->name('api.suppliers.search');
-    
+
     // Display Transaksi Penjualan
     Route::get('transaksi.penjualan', function () {
         return view('transaksi.displaypenjualan');
@@ -225,7 +227,8 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::get('/customers/search', [TransaksiController::class, 'searchCustomers'])->name('api.customers.search');
         Route::post('/customers/create', [TransaksiController::class, 'createCustomer'])->name('api.customers.create');
     });
-    
+
+    Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     Route::get('/api/customers', [CustomerController::class, 'searchsuratjalan'])->name('api.customers');
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
     Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
@@ -243,7 +246,7 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::get('/detail/{id}', [SuratJalanController::class, 'detail'])->name('suratjalan.detail');
     });
 
-    
+
     // Main transaction page pembelian
     Route::get('/pembelian', [PembelianController::class, 'index'])->name('pembelian.index');
     Route::post('/pembelian/store', [PembelianController::class, 'store'])->name('pembelian.store'); // Store transaction

@@ -25,7 +25,7 @@
                         </div>
                         <div class="form-group">
                             <label for="group_id"><i class="fas fa-ruler mr-1"></i>Kode Barang</label>
-                            <input type="text" step="0.01" class="form-control @error('group_id') is-invalid @enderror" id="group_id" name="group_id" value="{{ $panel->group_id }}" readonly>
+                            <input type="text" step="0.01" class="form-control @error('group_id') is-invalid @enderror" id="group_id" name="group_id" value="{{ $panel->kode_barang }}" readonly>
                             @error('group_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -63,6 +63,18 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="form-text text-muted">Enter the number of panels to add to inventory.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status"><i class="fas fa-layer-group mr-1"></i> Status</label>
+                            <select class="form-control @error('status') is-invalid @enderror" id="status" name="status" required>
+                                <option value="Active" {{ $panel->status == 'Active' ? 'selected' : '' }}>Active</option>
+                                <option value="Inactive" {{ $panel->status == 'Inactive' ? 'selected' : '' }}>Inactive</option>
+                            </select>
+                            @error('status')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Select the status of the inventory.</small>
                         </div>
 
                         <div class="form-group">

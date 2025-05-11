@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Supplier;
+use App\Models\Customer;
 use App\Models\Rooms;
 use App\Models\Saldo;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -44,6 +46,25 @@ class DatabaseSeeder extends Seeder
             'email' => 'employee3@gmail.com',
             'role' => 'third',
             'password' => Hash::make('1234567890'),
+        ]);
+
+        Supplier::factory()->create([
+            'kode_supplier' => 'SUP001',
+            'nama' => 'Supplier A',
+            'alamat' => '789 Supplier St, City, Country',
+            'pemilik' => 'Owner A',
+            'telepon_fax' => '021-4567890',
+            'contact_person' => 'Contact Person A',
+            'hp_contact_person' => '083234567890',
+            'kode_kategori' => 'CAT001',
+        ]);
+
+        Customer::factory()->create([
+            'kode_customer' => 'CUST002',
+            'nama' => 'Jane Smith',
+            'alamat' => '456 Oak St, City, Country',
+            'hp' => '082345678901',
+            'telepon' => '021-34567890',
         ]);
 
         // name	description	price	stocks	auto_stock	auto_stock_value

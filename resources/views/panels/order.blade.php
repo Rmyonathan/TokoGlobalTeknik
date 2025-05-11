@@ -19,47 +19,94 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('panels.store-order') }}" method="POST">
-                        @csrf
-                        <div id="panel-orders">
-                            <div class="panel-order border rounded p-3 mb-3">
-                                <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 remove-panel" style="z-index: 1;">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                                {{-- <div class="form-group">
-                                    <label for="name"><i class="fas fa-ruler mr-1"></i> Panel Name</label>
-                                    <input type="text" name="panels[0][name]" class="form-control" required>
-                                </div> --}}
-                                <div class="form-group" style="position: relative;">
-                                    <label for="panelName"><i class="fas fa-ruler mr-1"></i> Panel Name</label>
-                                    <input type="text" id="panelNameInput" name="panels[0][name]" class="form-control" autocomplete="off" required>
-
-                                    <div id="panelNameDropdown" class="dropdown-menu" style="width: 100%; max-height: 200px; overflow-y: auto;">
-                                        @foreach($panel as $item)
-                                            <button class="dropdown-item" type="button">{{ $item->name }}</button>
-                                        @endforeach
+                    <!-- Penambah Selection (Common for all orders) -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-plus-circle mr-1"></i> Select Penambah Code</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="searchPenambah"><i class="fas fa-search mr-1"></i> Penambah Code</label>
+                                <div class="input-group">
+                                    <input type="text" id="searchPenambah" class="form-control" placeholder="Search penambah code...">
+                                    <div class="input-group-append">
+                                        <button type="button" id="searchPenambahBtn" class="btn btn-primary">
+                                            <i class="fas fa-search"></i>
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="length"><i class="fas fa-ruler mr-1"></i> Panel Length (meters)</label>
-                                    <input type="number" name="panels[0][length]" class="form-control" step="0.01" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="quantity"><i class="fas fa-layer-group mr-1"></i> Quantity</label>
-                                    <input type="number" name="panels[0][quantity]" class="form-control" min="1" required>
+                                <div id="penambahDropdownContainer" class="position-relative">
+                                    <div id="penambahDropdown" class="dropdown-menu w-100" style="display: none;"></div>
                                 </div>
                             </div>
+                            <div id="selectedPenambahDisplay" class="alert alert-info d-none">
+                                <i class="fas fa-info-circle mr-1"></i> Selected Penambah: <strong id="selectedPenambahText"></strong>
+                            </div>
                         </div>
+                    </div>
 
+                    <!-- Pengurang Selection -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-minus-circle mr-1"></i> Add Pengurang Codes</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="searchPengurang"><i class="fas fa-search mr-1"></i> Pengurang Code</label>
+                                <div class="input-group">
+                                    <input type="text" id="searchPengurang" class="form-control" placeholder="Search pengurang code...">
+                                    <div class="input-group-append">
+                                        <button type="button" id="searchPengurangBtn" class="btn btn-primary">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="pengurangDropdownContainer" class="position-relative">
+                                    <div id="pengurangDropdown" class="dropdown-menu w-100" style="display: none;"></div>
+                                </div>
+                            </div>
 
-                        <button type="button" id="add-panel" class="btn btn-outline-primary mb-3">
-                            <i class="fas fa-plus-circle mr-1"></i> Order Another Panel
-                        </button>
+                            <div class="form-group">
+                                <label for="quantity"><i class="fas fa-layer-group mr-1"></i> Quantity</label>
+                                <input type="number" id="quantity" class="form-control" min="1" value="1">
+                            </div>
 
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-shopping-cart mr-1"></i> Process Order(s)
-                        </button>
-                    </form>
+                            <button type="button" id="addToTableBtn" class="btn btn-success">
+                                <i class="fas fa-plus mr-1"></i> Add to Table
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Orders Table -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-table mr-1"></i> Order Items</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Pengurang Code</th>
+                                            <th>Description</th>
+                                            <th>Quantity</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="orderItemsTable">
+                                        <tr id="emptyTableRow">
+                                            <td colspan="4" class="text-center text-muted">No items added yet</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Process Order Button -->
+                    <button type="button" id="processOrderBtn" class="btn btn-primary btn-lg">
+                        <i class="fas fa-shopping-cart mr-1"></i> Process Order(s)
+                    </button>
                 </div>
             </div>
         </div>
@@ -125,128 +172,465 @@
     </div>
 </div>
 
+<!-- Penambah Code Search Modal -->
+<div class="modal fade" id="penambahSearchModal" tabindex="-1" role="dialog" aria-labelledby="penambahSearchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="penambahSearchModalLabel"><i class="fas fa-search mr-1"></i> Search Penambah Code</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" id="penambahModalInput" class="form-control" placeholder="Enter code to search...">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button" id="searchPenambahModalBtn">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th>Length</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="penambahSearchResults">
+                            <!-- Search results will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pengurang Code Search Modal -->
+<div class="modal fade" id="pengurangSearchModal" tabindex="-1" role="dialog" aria-labelledby="pengurangSearchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pengurangSearchModalLabel"><i class="fas fa-search mr-1"></i> Search Pengurang Code</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" id="pengurangModalInput" class="form-control" placeholder="Enter code to search...">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button" id="searchPengurangModalBtn">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th>Length</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pengurangSearchResults">
+                            <!-- Search results will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form to submit orders -->
+<form id="orderSubmitForm" action="{{ route('panels.store-order') }}" method="POST" style="display: none;">
+    @csrf
+    <input type="hidden" name="penambah" id="formPenambah">
+    <input type="hidden" name="pengurang" id="formPengurang">
+    <input type="hidden" name="quantity" id="formQuantity">
+</form>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const input = document.getElementById('panelNameInput');
-        const dropdown = document.getElementById('panelNameDropdown');
-        const items = Array.from(dropdown.querySelectorAll('.dropdown-item'));
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize variables
+    let selectedPenambah = null;
+    let orderItems = [];
 
-        let selectedIndex = -1;
+    // DOM Elements
+    const searchPenambahInput = document.getElementById('searchPenambah');
+    const searchPenambahBtn = document.getElementById('searchPenambahBtn');
+    const searchPengurangInput = document.getElementById('searchPengurang');
+    const searchPengurangBtn = document.getElementById('searchPengurangBtn');
+    const quantityInput = document.getElementById('quantity');
+    const addToTableBtn = document.getElementById('addToTableBtn');
+    const orderItemsTable = document.getElementById('orderItemsTable');
+    const processOrderBtn = document.getElementById('processOrderBtn');
+    const selectedPenambahDisplay = document.getElementById('selectedPenambahDisplay');
+    const selectedPenambahText = document.getElementById('selectedPenambahText');
 
-        input.addEventListener('input', function () {
-            const value = input.value.toLowerCase();
-            selectedIndex = -1; // reset selection
-            let hasVisible = false;
+    // Open search modals
+    searchPenambahBtn.addEventListener('click', function() {
+        $('#penambahSearchModal').modal('show');
+    });
 
-            items.forEach(item => {
-                if (item.textContent.toLowerCase().includes(value)) {
-                    item.style.display = 'block';
-                    hasVisible = true;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
+    searchPengurangBtn.addEventListener('click', function() {
+        $('#pengurangSearchModal').modal('show');
+    });
 
-            dropdown.classList.toggle('show', hasVisible && value.length > 0);
-        });
+    // Modal search buttons
+    document.getElementById('searchPenambahModalBtn').addEventListener('click', function() {
+        const keyword = document.getElementById('penambahModalInput').value;
+        searchCodes(keyword, 'penambahSearchResults', 'select-penambah');
+    });
 
-        items.forEach((item, index) => {
-            item.addEventListener('click', function () {
-                input.value = this.textContent;
-                dropdown.classList.remove('show');
-            });
-        });
+    document.getElementById('searchPengurangModalBtn').addEventListener('click', function() {
+        const keyword = document.getElementById('pengurangModalInput').value;
+        searchCodes(keyword, 'pengurangSearchResults', 'select-pengurang');
+    });
 
-        input.addEventListener('keydown', function (e) {
-            const visibleItems = items.filter(item => item.style.display === 'block');
+    // Input search handlers
+    searchPenambahInput.addEventListener('input', function() {
+        const keyword = this.value;
+        if (keyword.length >= 2) {
+            searchCodesDropdown(keyword, 'penambah');
+        } else {
+            document.getElementById('penambahDropdown').style.display = 'none';
+        }
+    });
 
-            if (dropdown.classList.contains('show')) {
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    selectedIndex = (selectedIndex + 1) % visibleItems.length;
-                    updateSelection(visibleItems);
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    selectedIndex = (selectedIndex - 1 + visibleItems.length) % visibleItems.length;
-                    updateSelection(visibleItems);
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (visibleItems[selectedIndex]) {
-                        input.value = visibleItems[selectedIndex].textContent;
-                        dropdown.classList.remove('show');
+    searchPengurangInput.addEventListener('input', function() {
+        const keyword = this.value;
+        if (keyword.length >= 2) {
+            searchCodesDropdown(keyword, 'pengurang');
+        } else {
+            document.getElementById('pengurangDropdown').style.display = 'none';
+        }
+    });
+
+    // Function to search codes for modals
+    function searchCodes(keyword, resultsElementId, selectClass) {
+        if (keyword.length > 0) {
+            // This would normally be an AJAX request to your backend
+            // For demonstration, we'll use the panel data available in the template
+            const panels = @json($panel ?? []);
+
+            let html = '';
+            const matchingPanels = panels.filter(panel =>
+                panel.kode_barang.toLowerCase().includes(keyword.toLowerCase())
+            );
+
+            if (matchingPanels.length > 0) {
+                matchingPanels.forEach(panel => {
+                    html += `<tr>
+                        <td>${panel.kode_barang}</td>
+                        <td>${panel.attribute || 'N/A'}</td>
+                        <td>${panel.length || 'N/A'} m</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary ${selectClass}"
+                                data-kode="${panel.kode_barang}"
+                                data-name="${panel.attribute || ''}"
+                                data-length="${panel.length || 0}">
+                                <i class="fas fa-check"></i> Select
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+            } else {
+                html = '<tr><td colspan="4" class="text-center">No matching codes found</td></tr>';
+            }
+
+            document.getElementById(resultsElementId).innerHTML = html;
+
+            // Add event listeners to select buttons
+            document.querySelectorAll(`.${selectClass}`).forEach(button => {
+                button.addEventListener('click', function() {
+                    const kode = this.getAttribute('data-kode');
+                    const name = this.getAttribute('data-name');
+                    const length = this.getAttribute('data-length');
+
+                    if (selectClass === 'select-penambah') {
+                        // Set penambah
+                        selectedPenambah = {
+                            kode: kode,
+                            name: name,
+                            length: length
+                        };
+                        searchPenambahInput.value = kode;
+                        selectedPenambahDisplay.classList.remove('d-none');
+                        selectedPenambahText.textContent = `${kode} - ${name} (${length} m)`;
+                        $('#penambahSearchModal').modal('hide');
+                    } else {
+                        // Set pengurang
+                        searchPengurangInput.value = kode;
+                        searchPengurangInput.setAttribute('data-name', name);
+                        searchPengurangInput.setAttribute('data-length', length);
+                        $('#pengurangSearchModal').modal('hide');
                     }
-                }
-            }
-        });
+                });
+            });
+        }
+    }
 
-        function updateSelection(visibleItems) {
-            visibleItems.forEach(item => item.classList.remove('active'));
-            if (visibleItems[selectedIndex]) {
-                visibleItems[selectedIndex].classList.add('active');
-            }
+    // Function to create dropdown results for direct search
+    function searchCodesDropdown(keyword, type) {
+        // This would normally be an AJAX request
+        const panels = @json($panel ?? []);
+
+        const matchingPanels = panels.filter(panel =>
+            panel.kode_barang.toLowerCase().includes(keyword.toLowerCase())
+        );
+
+        const dropdownId = `${type}Dropdown`;
+        const dropdown = document.getElementById(dropdownId);
+
+        if (matchingPanels.length > 0) {
+            let html = '';
+            matchingPanels.forEach(panel => {
+                html += `<a class="dropdown-item ${type}-dropdown-item"
+                            data-kode="${panel.kode_barang}"
+                            data-name="${panel.attribute || ''}"
+                            data-length="${panel.length || 0}">
+                        ${panel.kode_barang} - ${panel.attribute || 'N/A'} (${panel.length || 'N/A'} m)
+                        </a>`;
+            });
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+
+            // Add event listeners to dropdown items
+            document.querySelectorAll(`.${type}-dropdown-item`).forEach(item => {
+                item.addEventListener('click', function() {
+                    const kode = this.getAttribute('data-kode');
+                    const name = this.getAttribute('data-name');
+                    const length = this.getAttribute('data-length');
+
+                    if (type === 'penambah') {
+                        selectedPenambah = {
+                            kode: kode,
+                            name: name,
+                            length: length
+                        };
+                        searchPenambahInput.value = kode;
+                        selectedPenambahDisplay.classList.remove('d-none');
+                        selectedPenambahText.textContent = `${kode} - ${name} (${length} m)`;
+                    } else {
+                        searchPengurangInput.value = kode;
+                        searchPengurangInput.setAttribute('data-name', name);
+                        searchPengurangInput.setAttribute('data-length', length);
+                    }
+
+                    dropdown.style.display = 'none';
+                });
+            });
+        } else {
+            dropdown.innerHTML = '<a class="dropdown-item disabled">No matching codes found</a>';
+            dropdown.style.display = 'block';
+        }
+    }
+
+    // Hide dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#searchPenambah') && !e.target.closest('#penambahDropdown')) {
+            const dropdown = document.getElementById('penambahDropdown');
+            if (dropdown) dropdown.style.display = 'none';
         }
 
-        document.addEventListener('click', function(e) {
-            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.classList.remove('show');
-            }
-        });
-    });
-
-    let panelIndex = 1;
-
-    const container = document.getElementById('panel-orders');
-    const addButton = document.getElementById('add-panel');
-
-    addButton.addEventListener('click', function () {
-        const newPanel = document.createElement('div');
-        newPanel.classList.add('panel-order', 'border', 'rounded', 'p-3', 'mb-3', 'position-relative');
-
-        newPanel.innerHTML = `
-            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2 remove-panel" style="z-index: 1;">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="form-group">
-                <label>Panel Name</label>
-                <input type="text" name="panels[${panelIndex}][name]" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label>Panel Length (meters)</label>
-                <input type="number" name="panels[${panelIndex}][length]" class="form-control" step="0.01" required>
-            </div>
-            <div class="form-group">
-                <label>Quantity</label>
-                <input type="number" name="panels[${panelIndex}][quantity]" class="form-control" min="1" required>
-            </div>
-        `;
-
-        container.appendChild(newPanel);
-        panelIndex++;
-    });
-
-    // Delegate remove button click to container
-    container.addEventListener('click', function (e) {
-        if (e.target.closest('.remove-panel')) {
-            e.target.closest('.panel-order').remove();
-            renumberInputs();
+        if (!e.target.closest('#searchPengurang') && !e.target.closest('#pengurangDropdown')) {
+            const dropdown = document.getElementById('pengurangDropdown');
+            if (dropdown) dropdown.style.display = 'none';
         }
     });
 
-    // Renumber name attributes
-    function renumberInputs() {
-        const panelForms = container.querySelectorAll('.panel-order');
-        panelForms.forEach((panel, index) => {
-            panel.querySelectorAll('input').forEach(input => {
-                if (input.name.includes('[name]')) {
-                    input.name = `panels[${index}][name]`;
-                } else if (input.name.includes('[length]')) {
-                    input.name = `panels[${index}][length]`;
-                } else if (input.name.includes('[quantity]')) {
-                    input.name = `panels[${index}][quantity]`;
-                }
+    // Add item to table
+    addToTableBtn.addEventListener('click', function() {
+        if (!selectedPenambah) {
+            alert('Please select a Penambah code first');
+            return;
+        }
+
+        const pengurangCode = searchPengurangInput.value;
+        const pengurangName = searchPengurangInput.getAttribute('data-name') || '';
+        const quantity = parseInt(quantityInput.value) || 0;
+
+        if (!pengurangCode) {
+            alert('Please select a Pengurang code');
+            return;
+        }
+
+        if (quantity <= 0) {
+            alert('Please enter a valid quantity');
+            return;
+        }
+
+        // Check if this pengurang is already in the table
+        const existingItemIndex = orderItems.findIndex(item => item.pengurang === pengurangCode);
+
+        if (existingItemIndex >= 0) {
+            // Update quantity if already exists
+            orderItems[existingItemIndex].quantity += quantity;
+        } else {
+            // Add new item
+            orderItems.push({
+                pengurang: pengurangCode,
+                pengurangName: pengurangName,
+                quantity: quantity
+            });
+        }
+
+        // Refresh table
+        renderOrderItems();
+
+        // Clear pengurang input and quantity
+        searchPengurangInput.value = '';
+        searchPengurangInput.removeAttribute('data-name');
+        searchPengurangInput.removeAttribute('data-length');
+        quantityInput.value = '1';
+    });
+
+    // Render order items table
+    function renderOrderItems() {
+        if (orderItems.length === 0) {
+            orderItemsTable.innerHTML = `
+                <tr id="emptyTableRow">
+                    <td colspan="4" class="text-center text-muted">No items added yet</td>
+                </tr>
+            `;
+            return;
+        }
+
+        let html = '';
+        orderItems.forEach((item, index) => {
+            html += `
+                <tr>
+                    <td>${item.pengurang}</td>
+                    <td>${item.pengurangName}</td>
+                    <td>${item.quantity}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger remove-item" data-index="${index}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        orderItemsTable.innerHTML = html;
+
+        // Add remove event listeners
+        document.querySelectorAll('.remove-item').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                orderItems.splice(index, 1);
+                renderOrderItems();
             });
         });
-        panelIndex = panelForms.length;
     }
+
+    // Process order button
+    processOrderBtn.addEventListener('click', function() {
+        if (!selectedPenambah) {
+            alert('Please select a Penambah code first');
+            return;
+        }
+
+        if (orderItems.length === 0) {
+            alert('Please add at least one item to the order');
+            return;
+        }
+
+        if (confirm('Are you sure you want to process these orders?')) {
+            // Process each order one by one
+            processNextOrder(0);
+        }
+    });
+
+    // Function to process orders sequentially
+    function processNextOrder(index) {
+        if (index >= orderItems.length) {
+            // All orders processed
+            alert('All orders have been processed successfully!');
+            // Reset the form
+            selectedPenambah = null;
+            orderItems = [];
+            searchPenambahInput.value = '';
+            selectedPenambahDisplay.classList.add('d-none');
+            renderOrderItems();
+
+            // Refresh page to show updated inventory
+            window.location.reload();
+            return;
+        }
+
+        const item = orderItems[index];
+
+        // Log what we're processing
+        console.log(`Processing order ${index + 1}/${orderItems.length}:`, {
+            penambah: selectedPenambah.kode,
+            pengurang: item.pengurang,
+            quantity: item.quantity
+        });
+
+        // Set form values
+        document.getElementById('formPenambah').value = selectedPenambah.kode;
+        document.getElementById('formPengurang').value = item.pengurang;
+        document.getElementById('formQuantity').value = item.quantity;
+
+        // Submit the form with AJAX
+        const formData = new FormData(document.getElementById('orderSubmitForm'));
+
+        fetch('{{ route('panels.store-order') }}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'  // Explicitly request JSON response
+            }
+        })
+        .then(response => {
+            // Check if the response is JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json().then(data => {
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error processing order');
+                    }
+                    return data;
+                });
+            } else {
+                // If not JSON, it's probably an HTML error page
+                return response.text().then(text => {
+                    console.error('Received HTML instead of JSON:', text.substring(0, 100) + '...');
+                    throw new Error('Received HTML error page. Check server logs.');
+                });
+            }
+        })
+        .then(data => {
+            console.log(`Order ${index + 1}/${orderItems.length} processed successfully:`, data);
+            // Process next order
+            processNextOrder(index + 1);
+        })
+        .catch(error => {
+            console.error(`Error processing order ${index + 1}:`, error);
+            alert(`Error processing order ${index + 1}: ${error.message}`);
+
+            // Ask if user wants to continue with next order
+            if (index + 1 < orderItems.length) {
+                if (confirm(`Continue with remaining orders?`)) {
+                    processNextOrder(index + 1);
+                }
+            }
+        });
+    }
+
+    // Initialize
+    renderOrderItems();
+});
 </script>
 @endsection

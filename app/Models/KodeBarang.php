@@ -11,13 +11,19 @@ class KodeBarang extends Model
     use HasFactory;
 
     protected $fillable = [
+        'name',
+        'price',
+        'cost',
         'kode_barang',
         'attribute',
-        'length'
+        'length',
+        'status'
     ];
 
     protected $casts = [
         'length' => 'decimal:2',
+        'cost' => 'decimal:2',
+        'price' => 'decimal:2',
     ];
 
     public function getPanels()
