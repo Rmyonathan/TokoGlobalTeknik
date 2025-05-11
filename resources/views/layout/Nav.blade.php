@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <title>Atap Management System</title>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
@@ -264,6 +265,59 @@
             border-top: 3px solid var(--secondary-color);
         }
 
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            list-style: none;
+            padding: 0;
+        }
+
+        /* Pagination items */
+        .pagination li {
+            margin: 0 5px;
+        }
+
+        /* Pagination links */
+        .pagination li a, 
+        .pagination li span {
+            display: block;
+            padding: 8px 12px;
+            text-decoration: none;
+            color: #333;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        /* Hover state */
+        .pagination li a:hover {
+            background-color: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        /* Active state */
+        .pagination li.active span {
+            background-color: #007bff;
+            color: #fff;
+            border-color: #007bff;
+        }
+
+        /* Previous/Next buttons */
+        .pagination .page-item:first-child .page-link,
+        .pagination .page-item:last-child .page-link {
+            padding: 8px 16px;
+        }
+
+        /* Disabled state */
+        .pagination .disabled span {
+            color: #888;
+            background-color: #f8f8f8;
+            border-color: #eee;
+            cursor: not-allowed;
+        }
+
         /* Responsive styles */
         @media (max-width: 1000px) {
             body {
@@ -462,9 +516,6 @@
                                             <a class="nav-link" href="<?php echo e(route('transaksi.penjualan')); ?>"><i class="fas fa-circle-plus"></i> Tambah Penjualan</a>
                                         </li>
                                         <li class="nav-item">
-                                        <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-clock-rotate-left"></i> Display Penjualan</a>
-                                        </li>
-                                        <li class="nav-item">
                                             <a class="nav-link" href="{{ route('transaksi.penjualancustomer') }}"><i class="fas fa-user-tag mr-2"></i>Data Penjualan Per Customer</a>
                                         </li>
                                         <li class="nav-item">
@@ -486,9 +537,6 @@
                                     <ul class="nav flex-column ml-3">
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembelian.index') }}"><i class="fas fa-circle-plus"></i> Tambah Pembelian</a>
-                                        </li>
-                                        <li class="nav-item">
-                                        <a class="nav-link" href="<?php echo e(route('pembelian.historypembelian')); ?>"><i class="fas fa-clock-rotate-left"></i> History Pembelian</a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-envelope-open-text"></i> List Nota Pembelian</a>

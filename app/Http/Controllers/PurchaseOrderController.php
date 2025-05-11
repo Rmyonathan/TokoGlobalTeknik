@@ -10,6 +10,9 @@ use App\Models\Panel;
 use App\Models\Transaksi;
 use App\Models\TransaksiItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+
 
 class PurchaseOrderController extends Controller
 {
@@ -55,25 +58,37 @@ class PurchaseOrderController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'tanggal' => 'required|date',
-            'kode_customer' => 'required|exists:customers,kode_customer',
-            'sales' => 'required|exists:stok_owners,kode_stok_owner',
-            'subtotal' => 'required|numeric',
-            'grand_total' => 'required|numeric',
-            'items' => 'required|array|min:1',
-            'items.*.kodeBarang' => 'required|exists:panels,group_id',
-            'items.*.harga' => 'required|numeric',
-            'items.*.qty' => 'required|numeric|min:1',
-            // Tambahin validasi lain sesuai kebutuhan
-        ]);        
-
-        DB::beginTransaction();
-
+        Log::info('PO Store Request:', $request->all());
+        
         try {
+            // Parse items if they're sent as JSON string
+            if ($request->has('items') && is_string($request->items)) {
+                $parsedItems = json_decode($request->items, true);
+                // Create a new request with the parsed items
+                $request->merge(['items' => $parsedItems]);
+            }
+    
+            // Validate the request
+            $request->validate([
+                'tanggal' => 'required|date',
+                'kode_customer' => 'required|exists:customers,kode_customer',
+                'sales' => 'required|exists:stok_owners,kode_stok_owner',
+                'subtotal' => 'required|numeric',
+                'grand_total' => 'required|numeric',
+                'items' => 'required|array|min:1',
+                'items.*.kodeBarang' => 'required|exists:panels,group_id',
+                'items.*.harga' => 'required|numeric',
+                'items.*.qty' => 'required|numeric|min:1',
+            ]);
+    
+            DB::beginTransaction();
+    
+            Log::info('PO Validation passed');
+    
+            // Create purchase order
             $po = PurchaseOrder::create([
                 'no_po' => $this->generateNoPO(),
-                'tanggal' => now(), // tanggal saat ini
+                'tanggal' => $request->tanggal,
                 'kode_customer' => $request->kode_customer,
                 'sales' => $request->sales,
                 'lokasi' => $request->lokasi,
@@ -88,12 +103,17 @@ class PurchaseOrderController extends Controller
                 'grand_total' => $request->grand_total,
                 'status' => 'pending',
             ]);
-
+    
+            Log::info('PO Created:', ['po_id' => $po->id, 'no_po' => $po->no_po]);
+    
+            // Create PO items
             foreach ($request->items as $item) {
+                Log::info('Processing item:', $item);
+                
                 $po->items()->create([
                     'kode_barang' => $item['kodeBarang'],
                     'nama_barang' => $item['namaBarang'],
-                    'keterangan' => $item['keterangan'],
+                    'keterangan' => $item['keterangan'] ?? '',
                     'harga' => $item['harga'],
                     'panjang' => $item['panjang'] ?? 0,
                     'qty' => $item['qty'],
@@ -101,27 +121,45 @@ class PurchaseOrderController extends Controller
                     'diskon' => $item['diskon'] ?? 0,
                 ]);
             }
-
+    
             DB::commit();
-
-            return response()->json(['status' => 'success', 'message' => 'Purchase Order created successfully.']);
-
-        } catch (\Throwable $e) {
+            Log::info('PO creation completed successfully');
+    
+            return response()->json([
+                'status' => 'success', 
+                'message' => 'Purchase Order created successfully.',
+                'po_id' => $po->id,
+                'no_po' => $po->no_po
+            ]);
+    
+        } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
+            Log::error('PO Creation Error:', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 
-    public function completeTransaction($id)
+    public function cancel($id)
     {
-        \Log::info('CompleteTransaction started for PO ID: ' . $id); // Debug log
+        $po = PurchaseOrder::findOrFail($id);
+        if ($po->status === 'pending') {
+            $po->update(['status' => 'cancelled']);
+        }
 
-        $po = PurchaseOrder::with('items', 'customer')->findOrFail($id);
+        return redirect()->route('transaksi.purchaseorder')->with('success', 'PO dibatalkan.');
+    }
     
-        DB::beginTransaction();
-    
-        try {
-            \Log::info('PO Data:', $po->toArray()); // Debug log
+
+    public function completeTransaction($id)
+{
+    Log::info('CompleteTransaction started for PO ID: ' . $id);
+
+    $po = PurchaseOrder::with('items', 'customer')->findOrFail($id);
+
+    DB::beginTransaction();
+
+    try {
+        Log::info('PO Data:', $po->toArray());
 
             // Generate a new transaction number
             $lastTransaction = Transaksi::orderBy('created_at', 'desc')->first();

@@ -130,6 +130,7 @@ Route::middleware(['web', 'role'])->group(function () {
     ->name('panels.update-inventory');
     Route::post('/panels/delete/{id}', [PanelController::class, 'deleteInventory'])
     ->name('panels.delete-inventory');
+    Route::get('/api/kode-barang/search', [PanelController::class, 'searchKodeBarang'])->name('api.kode-barang.search');
 
     //ROute edit and delete kode barang -yoyo
     Route::get('/code/edit/{id}', [KodeBarangController::class, 'edit'])->name('code.edit');
@@ -170,6 +171,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/transaksi/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
     Route::get('/transaksi/shownota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.shownota');
     Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
+    Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
 
     // Penjualan Per Customer
     Route::get('/penjualanpercustomer', [TransaksiController::class, 'penjualanPercustomer'])->name('transaksi.penjualancustomer');
@@ -237,6 +239,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/suratjalan/transaksiitem/{transaksiId}', [TransaksiController::class, 'getRincianTransaksi'])->name('api.rinciantransaksi');
     Route::get('/api/transaksi/items/{transaksiId}', [TransaksiController::class, 'getTransaksiItems'])->name('api.transaksi.items');
     Route::get('/kode-barang/search', [KodeBarangController::class, 'searchKodeBarang'])->name('kodeBarang.search');
+    Route::get('/api/stok-owner/search', [StokOwnerController::class, 'search'])->name('api.stok-owner.search');
 
     // Surat Jalan
     Route::prefix('suratjalan')->group(function () {
@@ -277,5 +280,6 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/transaksi/purchaseorder/{id}/complete', [PurchaseOrderController::class, 'completeTransaction'])->name('purchase-order.complete');
     // Route buat cancel PO
     Route::patch('/transaksi/purchaseorder/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-order.cancel');
+    
 
 });

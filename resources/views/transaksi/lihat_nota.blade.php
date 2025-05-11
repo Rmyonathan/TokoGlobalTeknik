@@ -5,25 +5,31 @@
     <h3>Daftar Transaksi</h3>
 
     <!-- Search and Date Filters -->
-    <div class="row mb-3">
-        <div class="col-md-4 mb-2">
-            <input type="text" id="searchInput" class="form-control" placeholder="Cari No Transaksi atau Nama Customer">
+    <form action="{{ route('transaksi.index') }}" method="GET">
+        <div class="row mb-3">
+            <div class="col-md-4 mb-2">
+                <input type="text" name="search" id="searchInput" class="form-control" 
+                       placeholder="Cari No Transaksi atau Nama Customer" 
+                       value="{{ request('search') }}">
+            </div>
+            <div class="col-md-3 mb-2">
+                <label for="start_date">Dari Tanggal</label>
+                <input type="date" name="start_date" id="start_date" class="form-control" 
+                       value="{{ request('start_date') }}">
+            </div>
+            <div class="col-md-3 mb-2">
+                <label for="end_date">Sampai Tanggal</label>
+                <input type="date" name="end_date" id="end_date" class="form-control" 
+                       value="{{ request('end_date') }}">
+            </div>
+            <div class="col-md-2 mb-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary mr-2">Terapkan</button>
+                <a href="{{ route('transaksi.index') }}" class="btn btn-secondary">Reset</a>
+            </div>
         </div>
-        <div class="col-md-3 mb-2">
-            <label for="startDate">Dari Tanggal</label>
-            <input type="date" id="startDate" class="form-control">
-        </div>
-        <div class="col-md-3 mb-2">
-            <label for="endDate">Sampai Tanggal</label>
-            <input type="date" id="endDate" class="form-control">
-        </div>
-        <div class="col-md-2 mb-2 d-flex align-items-end">
-            <button id="applyFilter" class="btn btn-primary mr-2">Terapkan</button>
-            <button id="resetFilter" class="btn btn-secondary">Reset</button>
-        </div>
-    </div>
+    </form>
 
-    <table class="table table-bordered" id="transactionTable">
+    <table class="table table-bordered" id="transactionTable" style="border: 1px">
         <thead>
             <tr>
                 <th>No Transaksi</th>
@@ -55,59 +61,4 @@
         {{ $transactions->links() }}
     </div>
 </div>
-@endsection
-
-@section('scripts')
-<script>
-    $(document).ready(function () {
-        // Format rupiah helper (optional, if you want to reformat totals)
-        function formatRupiah(angka) {
-            return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        }
-
-        // Check if date is in range
-        function checkInDateRange(dateStr, start, end) {
-            if (!start && !end) return true;
-            if (!start && end) return dateStr <= end;
-            if (start && !end) return dateStr >= start;
-            return dateStr >= start && dateStr <= end;
-        }
-
-        // Apply filters function
-        function applyFilters() {
-            const keyword = $('#searchInput').val().toLowerCase();
-            const startDate = $('#startDate').val();
-            const endDate = $('#endDate').val();
-
-            $('#transactionTable tbody tr').each(function () {
-                const noTransaksi = $(this).find('td:nth-child(1)').text().toLowerCase();
-                const tanggal = $(this).find('td:nth-child(2)').text();
-                const customer = $(this).find('td:nth-child(3)').text().toLowerCase();
-
-                // Filter by keyword in noTransaksi or customer name
-                const matchKeyword = noTransaksi.includes(keyword) || customer.includes(keyword);
-
-                // Filter by date range
-                const matchDate = checkInDateRange(tanggal, startDate, endDate);
-
-                if (matchKeyword && matchDate) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        }
-
-        // Event listeners
-        $('#applyFilter').on('click', applyFilters);
-
-        $('#resetFilter').on('click', function () {
-            $('#searchInput, #startDate, #endDate').val('');
-            $('#transactionTable tbody tr').show();
-        });
-
-        // Optional: live search as you type
-        $('#searchInput').on('input', applyFilters);
-    });
-</script>
 @endsection

@@ -54,6 +54,10 @@ class Pembelian extends Model
     {
         return $this->belongsTo(Supplier::class, 'kode_supplier', 'kode_supplier');
     }
+    public function stokOwner()
+    {
+        return $this->belongsTo(StokOwner::class, 'cabang', 'kode_stok_owner');
+    }
 
     /**
      * Get the items for the purchase.
