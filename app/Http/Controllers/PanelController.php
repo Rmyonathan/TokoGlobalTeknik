@@ -9,9 +9,9 @@ use App\Models\OrderItem;
 use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
-use Exception;
 use Illuminate\Support\Facades\Log;
 
+use Exception;
 
 class PanelController extends Controller
 {
@@ -313,10 +313,10 @@ class PanelController extends Controller
             (($penambah->length < ($pengurang->length * $qty)) &&
             (($pengurang->length * $qty) % $penambah->length != 0))
             ||
-            (($qty * $pengurang->length) > (Panel::where('group_id', $penambah)->where('available', True)->count() * $penambah->length))
+            (($qty * $pengurang->length) > (Panel::where('group_id', $penambah->kode_barang)->where('available', True)->count() * $penambah->length))
         ) {
             // Add debugging
-            \Log::warning('Invalid conversion ratio detected', [
+            Log::warning('Invalid conversion ratio detected', [
                 'calculation1' => ($penambah->length >= ($pengurang->length * $qty)),
                 'calculation2' => ($penambah->length - ($pengurang->length * $qty) != 0),
                 'calculation3' => ($penambah->length < ($pengurang->length * $qty)),
@@ -686,24 +686,5 @@ class PanelController extends Controller
         ];
     }
 
-    public function searchKodeBarang(Request $request)
-    {
-        $keyword = $request->keyword;
-        Log::info('Searching for kode barang with keyword: ' . $keyword);
-    
-        try {
-            // Use the model directly with the correct table
-            $kodeBarang = KodeBarang::where('kode_barang', 'like', "%{$keyword}%")
-                ->orWhere('attribute', 'like', "%{$keyword}%")
-                ->limit(10)
-                ->get(['kode_barang', 'attribute', 'length']);
-    
-            Log::info('Search results count: ' . count($kodeBarang));
-            return response()->json($kodeBarang);
-        } catch (\Exception $e) {
-            Log::error('Error in searchKodeBarang: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
 
 }
