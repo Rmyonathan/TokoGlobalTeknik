@@ -47,16 +47,41 @@ class PanelController extends Controller
         return view('panels.order', compact('inventory', 'panel'));
     }
 
+    public function searchAvailablePanels(Request $request){
+        $keyword = $request->get('keyword');
+        $so = $request->get('so', 'LAMPUNG'); // default SO, bisa diganti sesuai kebutuhan
+
+        // Cari panel yang cocok dengan keyword
+        $panels = Panel::where(function($q) use ($keyword) {
+                $q->where('name', 'like', "%{$keyword}%")
+                ->orWhere('group_id', 'like', "%{$keyword}%");
+            })
+            ->orderBy('group_id')
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->group_id . '|' . $item->name;
+            })
+            ->map(function ($groupedItems) {
+                return $groupedItems->first();
+            })
+            ->values();
+
+        // Filter hanya panel yang stoknya > 0 di tabel stocks
+        $filtered = $panels->filter(function($panel) use ($so) {
+            $stock = \App\Models\Stock::where('kode_barang', $panel->group_id)
+                ->where('so', $so)
+                ->first();
+            return $stock && $stock->good_stock > 0;
+        });
+
+        return response()->json($filtered->values());
+    }
+
     /**
      * Search for panels by name or ID
      */
-    public function search(Request $request)
-    {
+    public function search(Request $request){
         $keyword = $request->get('keyword');
-        // $panels = Panel::where('name', 'like', "%{$keyword}%")
-        //     ->orWhere('group_id', 'like', "%{$keyword}%")
-        //     ->limit(10)
-        //     ->get();
 
         $panels = Panel::where('name', 'like', "%{$keyword}%")
             ->orWhere('group_id', 'like', "%{$keyword}%")

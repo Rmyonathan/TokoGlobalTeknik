@@ -151,7 +151,7 @@ class PurchaseOrderController extends Controller
     
 
     public function completeTransaction($id)
-{
+    {
     Log::info('CompleteTransaction started for PO ID: ' . $id);
 
     $po = PurchaseOrder::with('items', 'customer')->findOrFail($id);

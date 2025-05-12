@@ -240,6 +240,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/transaksi/items/{transaksiId}', [TransaksiController::class, 'getTransaksiItems'])->name('api.transaksi.items');
     Route::get('/kode-barang/search', [KodeBarangController::class, 'searchKodeBarang'])->name('kodeBarang.search');
     Route::get('/api/stok-owner/search', [StokOwnerController::class, 'search'])->name('api.stok-owner.search');
+    Route::get('/api/panels/search-available', [PanelController::class, 'searchAvailablePanels'])->name('panels.searchAvailable');
 
     // Surat Jalan
     Route::prefix('suratjalan')->group(function () {
