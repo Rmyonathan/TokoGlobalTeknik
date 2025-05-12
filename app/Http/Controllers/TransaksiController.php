@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\Paginator;
 use App\Models\Transaksi;
 use App\Models\TransaksiItem;
 use App\Models\Customer;
@@ -354,7 +355,14 @@ class TransaksiController extends Controller
     {
         $transaction = Transaksi::with('items', 'customer')->findOrFail($id);
 
-        return view('transaksi.nota', compact('transaction'));
+        // Split items into chunks of 10 per page
+        $itemsPerPage = 10;
+        $groupedItems = $transaction->items->chunk($itemsPerPage);
+
+        return view('transaksi.nota', [
+            'transaction' => $transaction,
+            'groupedItems' => $groupedItems
+        ]);
     }
 
     public function nota($id)
@@ -369,7 +377,7 @@ class TransaksiController extends Controller
     public function listNota()
     {
         // Fetch all transactions (penjualan & pembelian)
-        $transactions = Transaksi::with('items')->orderBy('created_at', 'desc')->get();
+        $transactions = Transaksi::with('items')->orderBy('created_at', 'desc')->paginate(10);
 
         return view('transaksi.lihat_nota', compact('transactions'));
     }

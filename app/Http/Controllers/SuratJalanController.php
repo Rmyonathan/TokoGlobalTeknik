@@ -73,9 +73,32 @@ class SuratJalanController extends Controller
 
     }
 
-    public function history()
-    {
-        $suratJalan = SuratJalan::with('customer', 'items.transaksiItem')->get();
+    public function history(Request $request){
+        $query = SuratJalan::with('customer', 'items.transaksiItem');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $searchBy = $request->search_by ?? 'no_suratjalan';
+            if ($searchBy == 'customer') {
+                $query->whereHas('customer', function($q) use ($search) {
+                    $q->where('nama', 'like', "%$search%");
+                });
+            } elseif ($searchBy == 'alamat_suratjalan') {
+                $query->where('alamat_suratjalan', 'like', "%$search%");
+            } else {
+                $query->where($searchBy, 'like', "%$search%");
+            }
+        }
+
+        if ($request->filled('start_date')) {
+            $query->where('tanggal', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->where('tanggal', '<=', $request->end_date);
+        }
+
+        $suratJalan = $query->orderBy('tanggal', 'desc')->paginate(10)->withQueryString();
+
         return view('suratjalan.historysuratjalan', compact('suratJalan'));
     }
 

@@ -54,107 +54,129 @@ class PembelianController extends Controller
      * Store a purchase transaction.
      */
     public function store(Request $request)
-    {
-        $request->validate([
-            'nota' => 'required|string|unique:pembelian,nota',
-            'tanggal' => 'required|date',
-            'kode_supplier' => 'required|exists:suppliers,kode_supplier',
-            'cabang' => 'required|string',
-            'subtotal' => 'required|numeric',
-            'grand_total' => 'required|numeric',
-            'items' => 'required|array',
-            'items.*.kodeBarang' => 'required|string',
-            'items.*.harga' => 'required|numeric',
-            'items.*.qty' => 'required|numeric',
+{
+    // In the store method, update the validation
+    $request->validate([
+        'nota' => 'required|string|unique:pembelian,nota',
+        'tanggal' => 'required|date',
+        'kode_supplier' => 'required|exists:suppliers,kode_supplier',
+        'cabang' => 'required|exists:stok_owners,kode_stok_owner', // Changed this line
+        'subtotal' => 'required|numeric',
+        'grand_total' => 'required|numeric',
+        'items' => 'required|array',
+        'items.*.kodeBarang' => 'required|string',
+        'items.*.harga' => 'required|numeric',
+        'items.*.qty' => 'required|numeric',
+    ]);
+    
+    try {
+        DB::beginTransaction();
+        
+        // Get supplier name for stock mutation record
+        $supplier = Supplier::where('kode_supplier', $request->kode_supplier)->first();
+        $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
+        
+        // Create purchase
+        $pembelian = Pembelian::create([
+            'nota' => $request->nota,
+            'tanggal' => $request->tanggal,
+            'kode_supplier' => $request->kode_supplier,
+            'cabang' => $request->cabang,
+            'pembayaran' => $request->pembayaran ?? 'Tunai',
+            'cara_bayar' => $request->cara_bayar,
+            'subtotal' => $request->subtotal,
+            'diskon' => $request->diskon ?? 0,
+            'ppn' => $request->ppn ?? 0,
+            'grand_total' => $request->grand_total,
         ]);
-
-        try {
-            DB::beginTransaction();
-
-            // Get supplier name for stock mutation record
-            $supplier = Supplier::where('kode_supplier', $request->kode_supplier)->first();
-            $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
-
-            // Create purchase
-            $pembelian = Pembelian::create([
+        
+        // Get creator name from request or default to 'ADMIN'
+        $creator = $request->created_by ?? 'ADMIN';
+        
+        // Format transaction number for mutation record
+        $noTransaksi = "BL-" . date('m/y', strtotime($request->tanggal)) . "-" . 
+                        substr($request->nota, strrpos($request->nota, '-') + 1) . 
+                        " ({$creator})";
+        
+        // Create purchase items, update stock mutation, and add inventory
+        foreach ($request->items as $item) {
+            // Create purchase item
+            PembelianItem::create([
                 'nota' => $request->nota,
-                'tanggal' => $request->tanggal,
-                'kode_supplier' => $request->kode_supplier,
-                'cabang' => $request->cabang,
-                'pembayaran' => $request->pembayaran ?? 'Tunai',
-                'cara_bayar' => $request->cara_bayar,
-                'subtotal' => $request->subtotal,
-                'diskon' => $request->diskon ?? 0,
-                'ppn' => $request->ppn ?? 0,
-                'grand_total' => $request->grand_total,
+                'kode_barang' => $item['kodeBarang'],
+                'nama_barang' => $item['namaBarang'],
+                'keterangan' => $item['keterangan'] ?? null,
+                'harga' => $item['harga'],
+                'qty' => $item['qty'],
+                'diskon' => $item['diskon'] ?? 0,
+                'total' => $item['total'],
             ]);
-
-            // Get creator name from request or default to 'ADMIN'
-            $creator = $request->created_by ?? 'ADMIN';
-
-            // Format transaction number for mutation record
-            $noTransaksi = "BL-" . date('m/y', strtotime($request->tanggal)) . "-" .
-                           substr($request->nota, strrpos($request->nota, '-') + 1) .
-                           " ({$creator})";
-
-            // Create purchase items and update stock mutation
-            foreach ($request->items as $item) {
-                // Create purchase item
-                PembelianItem::create([
-                    'nota' => $request->nota,
-                    'kode_barang' => $item['kodeBarang'],
-                    'nama_barang' => $item['namaBarang'],
-                    'keterangan' => $item['keterangan'] ?? null,
-                    'harga' => $item['harga'],
-                    'qty' => $item['qty'],
-                    'diskon' => $item['diskon'] ?? 0,
-                    'total' => $item['total'],
-                ]);
-
-                // Record purchase in stock mutation (just for reporting - doesn't affect panel inventory)
-                $this->stockController->recordPurchase(
-                    $item['kodeBarang'],
-                    $item['namaBarang'],
-                    $noTransaksi,
-                    $request->tanggal,
-                    $request->nota,
-                    $supplierName . ' (' . $request->kode_supplier . ')',
-                    $item['qty'],
-                    $request->cabang,
-                    'LBR'
-                );
+            
+            // Record purchase in stock mutation (just for reporting)
+            $this->stockController->recordPurchase(
+                $item['kodeBarang'],
+                $item['namaBarang'],
+                $noTransaksi,
+                $request->tanggal,
+                $request->nota,
+                $supplierName . ' (' . $request->kode_supplier . ')',
+                $item['qty'],
+                $request->cabang,
+                'LBR'
+            );
+            
+            // NEW CODE: Add the purchased quantity to inventory
+            // Get the kode barang record to retrieve length and other details
+            $kodeBarang = \App\Models\KodeBarang::where('kode_barang', $item['kodeBarang'])->first();
+            
+            if ($kodeBarang) {
+                // Get a panel instance with this kode_barang to use as a template
+                $templatePanel = \App\Models\Panel::where('group_id', $item['kodeBarang'])->first();
+                
+                // Default values if no template exists
+                $panelName = $item['namaBarang'];
+                $length = $kodeBarang->length ?? 0;
+                $cost = $item['harga']; // Use purchase price as cost
+                $price = $templatePanel ? $templatePanel->price : ($item['harga'] * 1.2); // 20% markup if no template
+                
+                // If template exists, use its values
+                if ($templatePanel) {
+                    $panelName = $templatePanel->name;
+                    $length = $templatePanel->length ?? $length;
+                    $price = $templatePanel->price;
+                }
+                
+                // Use the PanelController to add panels to inventory
+                $panelController = app()->make(PanelController::class);
+                $result = $panelController->addPanelsToInventory($panelName, $cost, $price, $length, $item['kodeBarang'], $item['qty']);
+                
+                // Log the result
+                Log::info('Added panels to inventory:', ['result' => $result]);
+            } else {
+                Log::warning('KodeBarang not found for purchase item:', ['kode_barang' => $item['kodeBarang']]);
             }
-
-            DB::commit();
-
-            foreach ($request->items as $item) {
-                $kode = KodeBarang::where('kode_barang', $item['kodeBarang'])->first();
-                $name = $item['namaBarang'];
-                $cost = $kode->cost;
-                $price = $kode->price;
-                $length = $kode->length;
-                $group_id = $kode->kode_barang;
-                $quantity = $item['qty'];
-                $result = $this->panelController->addPanelsToInventory($name, $cost, $price, $length, $group_id, $quantity);
-            }
-
-            return response()->json([
-                'id' => $pembelian->id,
-                'nota' => $pembelian->nota,
-                'tanggal' => $pembelian->tanggal,
-                'supplier' => $pembelian->supplierRelation->nama ?? 'N/A',
-                'grand_total' => $pembelian->grand_total,
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ], 500);
         }
-    }
+        
+        DB::commit();
 
+        return response()->json([
+            'id' => $pembelian->id,
+            'nota' => $pembelian->nota,
+            'tanggal' => $pembelian->tanggal,
+            'supplier' => $pembelian->supplierRelation->nama ?? 'N/A',
+            'grand_total' => $pembelian->grand_total,
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error in pembelian store:', ['exception' => $e->getMessage()]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ], 500);
+    }
+}
+    
     /**
      * Search for suppliers
      */
@@ -210,190 +232,271 @@ class PembelianController extends Controller
      * Show the form for editing the specified purchase.
      */
     public function edit($id)
-    {
-        $purchase = Pembelian::with('items', 'supplierRelation')->findOrFail($id);
-
-        // Get the supplier info
-        $supplier = null;
-        if ($purchase->supplierRelation) {
-            $supplier = $purchase->kode_supplier . ' - ' . $purchase->supplierRelation->nama;
-        }
-
-        return view('pembelian.editpembelian', compact('purchase', 'supplier'));
+{
+    $purchase = Pembelian::with(['items', 'supplierRelation', 'stokOwner'])->findOrFail($id);
+    
+    // Get the supplier info
+    $supplier = null;
+    if ($purchase->supplierRelation) {
+        $supplier = $purchase->kode_supplier . ' - ' . $purchase->supplierRelation->nama;
     }
-
+    
+    // Get the cabang info
+    $cabang = null;
+    if ($purchase->stokOwner) {
+        $cabang = $purchase->cabang . ' - ' . $purchase->stokOwner->keterangan;
+    }
+    
+    return view('pembelian.editpembelian', compact('purchase', 'supplier', 'cabang'));
+}
+    
     /**
      * Update the specified purchase in storage.
      */
     public function update(Request $request, $id)
-    {
-        $request->validate([
-            'tanggal' => 'required|date',
-            'kode_supplier' => 'required|exists:suppliers,kode_supplier',
-            'cabang' => 'required|string',
-            'subtotal' => 'required|numeric',
-            'grand_total' => 'required|numeric',
-            'items' => 'required|array',
-            'items.*.kodeBarang' => 'required|string',
-            'items.*.harga' => 'required|numeric',
-            'items.*.qty' => 'required|numeric',
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            // Find purchase
-            $pembelian = Pembelian::findOrFail($id);
-            $nota = $pembelian->nota; // Keep the original nota
-
-            // Get supplier name for stock mutation record
-            $supplier = Supplier::where('kode_supplier', $request->kode_supplier)->first();
-            $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
-
-            // Get creator name from request or default to 'ADMIN'
-            $creator = $request->updated_by ?? 'ADMIN';
-
-            // Format transaction number for mutation record
-            $noTransaksi = "BL-" . date('m/y', strtotime($request->tanggal)) . "-" .
-                           substr($nota, strrpos($nota, '-') + 1) .
-                           " ({$creator}) [UPDATED]";
-
-            // First, reverse all previous stock movements from this purchase
-            // Get the original items
-            $originalItems = PembelianItem::where('nota', $nota)->get();
-            foreach ($originalItems as $item) {
-                // Record sale to reverse the original purchase in stock mutation
-                $this->stockController->recordSale(
-                    $item->kode_barang,
-                    $item->nama_barang,
-                    $noTransaksi,
-                    now(), // Use current date/time for the reversal
-                    $nota . ' (reversal)',
-                    $supplierName . ' (' . $request->kode_supplier . ')',
-                    $item->qty, // Same quantity as purchase, but as a "sale" to reduce stock
-                    $pembelian->cabang,
-                    'LBR'
-                );
+{
+    // In the store method, update the validation
+$request->validate([
+    'nota' => 'required|string|unique:pembelian,nota',
+    'tanggal' => 'required|date',
+    'kode_supplier' => 'required|exists:suppliers,kode_supplier',
+    'cabang' => 'required|exists:stok_owners,kode_stok_owner', // Changed this line
+    'subtotal' => 'required|numeric',
+    'grand_total' => 'required|numeric',
+    'items' => 'required|array',
+    'items.*.kodeBarang' => 'required|string',
+    'items.*.harga' => 'required|numeric',
+    'items.*.qty' => 'required|numeric',
+]);
+    
+    try {
+        DB::beginTransaction();
+        
+        // Find purchase
+        $pembelian = Pembelian::findOrFail($id);
+        $nota = $pembelian->nota; // Keep the original nota
+        
+        // Get supplier name for stock mutation record
+        $supplier = Supplier::where('kode_supplier', $request->kode_supplier)->first();
+        $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
+        
+        // Get creator name from request or default to 'ADMIN'
+        $creator = $request->updated_by ?? 'ADMIN';
+        
+        // Format transaction number for mutation record
+        $noTransaksi = "BL-" . date('m/y', strtotime($request->tanggal)) . "-" . 
+                        substr($nota, strrpos($nota, '-') + 1) . 
+                        " ({$creator}) [UPDATED]";
+        
+        // Get the original items to remove from inventory
+        $originalItems = PembelianItem::where('nota', $nota)->get();
+        
+        // Track panels to delete
+        $panelsToDelete = [];
+        
+        // For each original item, find and mark panels for deletion
+        foreach ($originalItems as $item) {
+            // Find panels with this group_id that match the original purchase
+            $panels = \App\Models\Panel::where('group_id', $item->kode_barang)
+                ->where('available', true)
+                ->orderBy('created_at', 'desc') // Get the most recently added first (likely from this purchase)
+                ->limit($item->qty)
+                ->get();
+            
+            foreach ($panels as $panel) {
+                $panelsToDelete[] = $panel->id;
             }
-
-            // Update purchase
-            $pembelian->update([
-                'tanggal' => $request->tanggal,
-                'kode_supplier' => $request->kode_supplier,
-                'cabang' => $request->cabang,
-                'pembayaran' => $request->pembayaran ?? 'Tunai',
-                'cara_bayar' => $request->cara_bayar,
-                'subtotal' => $request->subtotal,
-                'diskon' => $request->diskon ?? 0,
-                'ppn' => $request->ppn ?? 0,
-                'grand_total' => $request->grand_total,
-            ]);
-
-            // Delete all existing items
-            PembelianItem::where('nota', $nota)->delete();
-
-            // Create new purchase items and stock movements
-            foreach ($request->items as $item) {
-                PembelianItem::create([
-                    'nota' => $nota,
-                    'kode_barang' => $item['kodeBarang'],
-                    'nama_barang' => $item['namaBarang'],
-                    'keterangan' => $item['keterangan'] ?? null,
-                    'harga' => $item['harga'],
-                    'qty' => $item['qty'],
-                    'diskon' => $item['diskon'] ?? 0,
-                    'total' => $item['total'],
-                ]);
-
-                // Record new purchase in stock mutation
-                $this->stockController->recordPurchase(
-                    $item['kodeBarang'],
-                    $item['namaBarang'],
-                    $noTransaksi,
-                    $request->tanggal,
-                    $nota . ' (updated)',
-                    $supplierName . ' (' . $request->kode_supplier . ')',
-                    $item['qty'],
-                    $request->cabang,
-                    'LBR'
-                );
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'id' => $pembelian->id,
-                'nota' => $pembelian->nota,
-                'message' => 'Pembelian berhasil diperbarui'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ], 500);
+            
+            // Record sale to reverse the original purchase in stock mutation
+            $this->stockController->recordSale(
+                $item->kode_barang,
+                $item->nama_barang,
+                $noTransaksi,
+                now(), // Use current date/time for the reversal
+                $nota . ' (reversal)',
+                $supplierName . ' (' . $request->kode_supplier . ')',
+                $item->qty, // Same quantity as purchase, but as a "sale" to reduce stock
+                $pembelian->cabang,
+                'LBR'
+            );
         }
-    }
+        
+        // Delete the marked panels
+        if (!empty($panelsToDelete)) {
+            \App\Models\Panel::whereIn('id', $panelsToDelete)->delete();
+        }
+        
+        // Update purchase
+        $pembelian->update([
+            'tanggal' => $request->tanggal,
+            'kode_supplier' => $request->kode_supplier,
+            'cabang' => $request->cabang,
+            'pembayaran' => $request->pembayaran ?? 'Tunai',
+            'cara_bayar' => $request->cara_bayar,
+            'subtotal' => $request->subtotal,
+            'diskon' => $request->diskon ?? 0,
+            'ppn' => $request->ppn ?? 0,
+            'grand_total' => $request->grand_total,
+        ]);
+        
+        // Delete all existing items
+        PembelianItem::where('nota', $nota)->delete();
+        
+        // Create new purchase items and add new inventory
+        foreach ($request->items as $item) {
+            PembelianItem::create([
+                'nota' => $nota,
+                'kode_barang' => $item['kodeBarang'],
+                'nama_barang' => $item['namaBarang'],
+                'keterangan' => $item['keterangan'] ?? null,
+                'harga' => $item['harga'],
+                'qty' => $item['qty'],
+                'diskon' => $item['diskon'] ?? 0,
+                'total' => $item['total'],
+            ]);
+            
+            // Record new purchase in stock mutation
+            $this->stockController->recordPurchase(
+                $item['kodeBarang'],
+                $item['namaBarang'],
+                $noTransaksi,
+                $request->tanggal,
+                $nota . ' (updated)',
+                $supplierName . ' (' . $request->kode_supplier . ')',
+                $item['qty'],
+                $request->cabang,
+                'LBR'
+            );
+            
+            // NEW CODE: Add panels to inventory
+            // Get the kode barang record to retrieve length and other details
+            $kodeBarang = \App\Models\KodeBarang::where('kode_barang', $item['kodeBarang'])->first();
+            
+            if ($kodeBarang) {
+                // Get a panel instance with this kode_barang to use as a template
+                $templatePanel = Panel::where('group_id', $item['kodeBarang'])->first();
+                
+                // Default values if no template exists
+                $panelName = $item['namaBarang'];
+                $length = $kodeBarang->length ?? 0;
+                $cost = $item['harga']; // Use purchase price as cost
+                $price = $templatePanel ? $templatePanel->price : ($item['harga'] * 1.2); // 20% markup if no template
+                
+                // If template exists, use its values
+                if ($templatePanel) {
+                    $panelName = $templatePanel->name;
+                    $length = $templatePanel->length ?? $length;
+                    $price = $templatePanel->price;
+                }
+                
+                // Use the PanelController to add panels to inventory
+                $panelController = app()->make(\App\Http\Controllers\PanelController::class);
+                $result = $panelController->addPanelsToInventory($panelName, $cost, $price, $length, $item['kodeBarang'], $item['qty']);
+                
+                // Log the result
+                Log::info('Added panels to inventory during update:', ['result' => $result]);
+            } else {
+                Log::warning('KodeBarang not found for updated purchase item:', ['kode_barang' => $item['kodeBarang']]);
+            }
+        }
+        
+        DB::commit();
 
+        return response()->json([
+            'success' => true,
+            'id' => $pembelian->id,
+            'nota' => $pembelian->nota,
+            'message' => 'Pembelian berhasil diperbarui'
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error in pembelian update:', ['exception' => $e->getMessage()]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ], 500);
+    }
+}
+    
     /**
      * Remove the specified purchase from storage.
      */
     public function destroy($id)
-    {
-        try {
-            DB::beginTransaction();
-
-            // Find purchase
-            $pembelian = Pembelian::findOrFail($id);
-            $nota = $pembelian->nota;
-
-            // Get supplier name for stock mutation record
-            $supplier = $pembelian->supplierRelation;
-            $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
-
-            // Get creator name or default to 'ADMIN'
-            $creator = 'ADMIN';
-
-// Format transaction number for deletion record
-            $noTransaksi = "BL-" . date('m/y', strtotime($pembelian->tanggal)) . "-" .
-              substr($nota, strrpos($nota, '-') + 1) .
-              " ({$creator}) [DELETED]";
-
-            // Get the items to reverse stock movements
-            $items = PembelianItem::where('nota', $nota)->get();
-
-            foreach ($items as $item) {
-                // Record sale to reverse the purchase in stock mutation
-                $this->stockController->recordSale(
-                    $item->kode_barang,
-                    $item->nama_barang,
-                    $noTransaksi,
-                    now(), // Use current date/time for the deletion
-                    $nota . ' (deleted)',
-                    $supplierName . ' (' . $pembelian->kode_supplier . ')',
-                    $item->qty, // Same quantity as purchase, but as a "sale" to reduce stock
-                    $pembelian->cabang,
-                    'LBR'
-                );
+{
+    try {
+        DB::beginTransaction();
+        
+        // Find purchase
+        $pembelian = Pembelian::findOrFail($id);
+        $nota = $pembelian->nota;
+        
+        // Get supplier name for stock mutation record
+        $supplier = $pembelian->supplierRelation;
+        $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
+        
+        // Get creator name or default to 'ADMIN'
+        $creator = 'ADMIN';
+        
+        // Format transaction number for deletion record
+        $noTransaksi = "BL-" . date('m/y', strtotime($pembelian->tanggal)) . "-" . 
+                       substr($nota, strrpos($nota, '-') + 1) . 
+                       " ({$creator}) [DELETED]";
+        
+        // Get the items to remove from inventory
+        $items = PembelianItem::where('nota', $nota)->get();
+        
+        // Track panels to delete
+        $panelsToDelete = [];
+        
+        foreach ($items as $item) {
+            // Find panels with this group_id that match the purchase being deleted
+            $panels = \App\Models\Panel::where('group_id', $item->kode_barang)
+                ->where('available', true)
+                ->orderBy('created_at', 'desc') // Get the most recently added first (likely from this purchase)
+                ->limit($item->qty)
+                ->get();
+            
+            foreach ($panels as $panel) {
+                $panelsToDelete[] = $panel->id;
             }
-
-            // Delete all related items first
-            PembelianItem::where('nota', $nota)->delete();
-
-            // Delete the purchase
-            $pembelian->delete();
-
-            DB::commit();
-
-            return redirect()->route('pembelian.nota.list')
-                ->with('success', 'Nota pembelian berhasil dihapus');
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return redirect()->route('pembelian.nota.list')
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            
+            // Record sale to reverse the purchase in stock mutation
+            $this->stockController->recordSale(
+                $item->kode_barang,
+                $item->nama_barang,
+                $noTransaksi,
+                now(), // Use current date/time for the deletion
+                $nota . ' (deleted)',
+                $supplierName . ' (' . $pembelian->kode_supplier . ')',
+                $item->qty, // Same quantity as purchase, but as a "sale" to reduce stock
+                $pembelian->cabang,
+                'LBR'
+            );
         }
+        
+        // Delete the marked panels
+        if (!empty($panelsToDelete)) {
+            Log::info('Deleting panels:', ['panel_ids' => $panelsToDelete]);
+            Panel::whereIn('id', $panelsToDelete)->delete();
+        }
+        
+        // Delete all related items first
+        PembelianItem::where('nota', $nota)->delete();
+        
+        // Delete the purchase
+        $pembelian->delete();
+        
+        DB::commit();
+        
+        return redirect()->route('pembelian.nota.list')
+            ->with('success', 'Nota pembelian berhasil dihapus');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error in pembelian destroy:', ['exception' => $e->getMessage()]);
+        
+        return redirect()->route('pembelian.nota.list')
+            ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
     }
+}
 }

@@ -15,6 +15,7 @@ class CreatePurchaseOrderItemsTable extends Migration
             $table->string('nama_barang');
             $table->text('keterangan')->nullable();
             $table->double('harga')->default(0);
+            $table->double('panjang')->default(0);
             $table->integer('qty')->default(0);
             $table->double('total')->default(0);
             $table->double('diskon')->default(0);

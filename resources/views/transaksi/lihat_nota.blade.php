@@ -35,6 +35,8 @@
                 <th>No Transaksi</th>
                 <th>Tanggal</th>
                 <th>Customer</th>
+                <th>Alamat</th>
+                <th>No HP</th>
                 <th>Total</th>
                 <th>Aksi</th>
             </tr>
@@ -45,15 +47,18 @@
                     <td>{{ $transaction->no_transaksi }}</td>
                     <td>{{ $transaction->tanggal }}</td>
                     <td>{{ $transaction->customer->nama ?? 'N/A' }}</td>
+                    <td>{{ $transaction->customer->alamat ?? 'N/A' }}</td>
+                    <td>{{ $transaction->customer->hp }}</td>
                     <td class="text-right">Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</td>
                     <td>
-                        <a href="{{ route('transaksi.nota', $transaction->id) }}" class="btn btn-primary btn-sm">Lihat Nota</a>
+                        <a href="{{ route('transaksi.shownota', $transaction->id) }}" class="btn btn-primary btn-sm">Lihat Nota</a>
                     </td>
                 </tr>
             @endforeach
         </tbody>
     </table>
-
-    
+    <div class="d-flex justify-content-center">
+        {{ $transactions->links() }}
+    </div>
 </div>
 @endsection

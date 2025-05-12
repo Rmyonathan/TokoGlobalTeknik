@@ -38,15 +38,26 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="customer">Alamat Customer</label>
+                            <input type="text" id="alamatCustomer" name="customer-alamat" class="form-control" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="customer">No HP / Telp Customer</label>
+                            <input type="text" id="hpCustomer" name="customer-hp" class="form-control" readonly>
+                        </div>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <div class="form-group">
                             <label for="sales">Sales</label>
                             <input type="text" id="sales" name="sales_display" class="form-control" placeholder="Masukkan kode atau nama sales">
                             <input type="hidden" id="kode_sales" name="sales"> <!-- Hanya kode_sales yang dikirim -->
                             <div id="salesDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
                         </div>
 
-                    </div>
-
-                    <div class="col-md-6">
                         <div class="form-group">
                             <label for="lokasi">Lokasi</label>
                             <select class="form-control" id="lokasi" name="lokasi">
@@ -353,7 +364,13 @@ $(document).ready(function() {
                     let dropdown = '';
                     if (data.length > 0) {
                         data.forEach(customer => {
-                            dropdown += `<a class="dropdown-item customer-item" data-kode="${customer.kode_customer}" data-name="${customer.nama}">${customer.kode_customer} - ${customer.nama}</a>`;
+                            dropdown += `<a class="dropdown-item customer-item" 
+                                data-kode="${customer.kode_customer}" 
+                                data-name="${customer.nama}"
+                                data-alamat="${customer.alamat}"
+                                data-hp="${customer.hp}"
+                                data-telp="${customer.telepon}">
+                            ${customer.kode_customer} - ${customer.nama}</a>`;
                         });
                     } else {
                         dropdown = '<a class="dropdown-item disabled">Tidak ada customer ditemukan</a>';
@@ -373,8 +390,13 @@ $(document).ready(function() {
     $(document).on('click', '.customer-item', function () {
         const kodeCustomer = $(this).data('kode');
         const namaCustomer = $(this).data('name');
+        const alamatCustomer = $(this).data('alamat');
+        const hpCustomer = $(this).data('hp');
+        const telpCustomer = $(this).data('telp');
         $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
         $('#customer').val(`${kodeCustomer} - ${namaCustomer}`); // Tampilkan kode dan nama customer di input utama
+        $('#alamatCustomer').val(alamatCustomer);
+        $('#hpCustomer').val(`${hpCustomer} / ${telpCustomer}`);
         $('#customerDropdown').hide();
     });
 
@@ -723,25 +745,26 @@ $(document).ready(function() {
         // Add items as JSON string
         formData.append('items', JSON.stringify(poItems));
 
-        // Send to server
-        $.ajax({
-            url: "{{ route('purchase-order.store') }}",
-            method: "POST",
-            data: formData,
-            contentType: false,
-            processData: false,
-            success: function(response) {
-                alert('PO berhasil disimpan!');
-                // Redirect to PO list
-                window.location.href = "{{ route('transaksi.purchaseorder') }}";
-            },
-            error: function(xhr) {
-                console.error('Error:', xhr.responseText);
-                alert('Gagal menyimpan PO: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Unknown error'));
-            }
-        });
-    }
-});
+            $.ajax({
+                url: "{{ route('purchase-order.store') }}", // Ubah ini ke route PO
+                method: "POST",
+                data: poData,
+                success: function(response) {
+                    alert('PO berhasil disimpan!');
+
+                    // Opsional: reset form
+                    $('#transactionForm')[0].reset();
+                    items = [];
+                    renderItems();
+                    calculateTotals();
+                    window.location.href = "{{ route('transaksi.penjualan') }}";
+                },
+                error: function(xhr) {
+                    alert('Gagal menyimpan PO: ' + xhr.responseJSON.message);
+                }
+            });
+        }
+    });
 
     // Cancel transaction
     $('#cancelTransaction').click(function() {

@@ -20,6 +20,7 @@ use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\CaraBayarController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\PerusahaanController;
 
 use App\Models\StokOwner;
 use App\Models\Supplier;
@@ -168,18 +169,13 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/transaksi/penjualan', [TransaksiController::class, 'penjualan'])->name('transaksi.penjualan');
     Route::post('/transaksi/store', [TransaksiController::class, 'store'])->name('transaksi.store');
     Route::get('/transaksi/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
+    Route::get('/transaksi/shownota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.shownota');
     Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
     Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
-
-
 
     // Penjualan Per Customer
     Route::get('/penjualanpercustomer', [TransaksiController::class, 'penjualanPercustomer'])->name('transaksi.penjualancustomer');
     Route::get('/api/getpenjualancustomer',[TransaksiController::class, 'getPenjualan']);
-
-    // Route::get('transaksi.datapenjualanpercustomer', function () {
-    //     return view('transaksi.datapenjualanpercustomer');
-    //     })->name('transaksi.datapenjualanpercustomer');
 
     Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
@@ -194,16 +190,6 @@ Route::middleware(['web', 'role'])->group(function () {
     // Lihat Nota
     Route::get('/transaksi/lihatnota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.lihatnota');
     Route::get('/lihat_nota', [TransaksiController::class, 'listNota'])->name('transaksi.listnota');
-
-    // Surat Jalan
-    Route::get('/suratjalan', function () {
-        return view('suratjalan.suratjalan');
-        })->name('suratjalan.form');
-
-    // History Surat Jalan
-    Route::get('/suratjalan/historysuratjalan', function () {
-        return view('suratjalan.historysuratjalan');
-        })->name('suratjalan.historysuratjalan');
 
     // Pembelian
     // Pembelian Barang (dummy atau real)
@@ -225,6 +211,13 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::delete('/cara_bayar/{id}', [CaraBayarController::class, 'destroy'])->name('master.cara_bayar.destroy');
     });
 
+    Route::get('/perusahaan', [PerusahaanController::class, 'index'])->name('perusahaan.index');
+    Route::get('/perusahaan/create', [PerusahaanController::class, 'create'])->name('perusahaan.create');
+    Route::post('/perusahaan', [PerusahaanController::class, 'store'])->name('perusahaan.store');
+    Route::get('/perusahaan/{id}/edit', [PerusahaanController::class, 'edit'])->name('perusahaan.edit');
+    Route::put('/perusahaan/{id}', [PerusahaanController::class, 'update'])->name('perusahaan.update');
+    Route::delete('/perusahaan/{id}', [PerusahaanController::class, 'destroy'])->name('perusahaan.destroy');
+
     Route::get('/api/cara-bayar/by-metode', function (Illuminate\Http\Request $request) {
         $metode = $request->query('metode');
         return \App\Models\CaraBayar::where('metode', $metode)->get();
@@ -237,6 +230,7 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::post('/customers/create', [TransaksiController::class, 'createCustomer'])->name('api.customers.create');
     });
 
+    Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     Route::get('/api/customers', [CustomerController::class, 'searchsuratjalan'])->name('api.customers');
     Route::get('/api/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
     Route::get('/api/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
@@ -246,6 +240,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/transaksi/items/{transaksiId}', [TransaksiController::class, 'getTransaksiItems'])->name('api.transaksi.items');
     Route::get('/kode-barang/search', [KodeBarangController::class, 'searchKodeBarang'])->name('kodeBarang.search');
     Route::get('/api/stok-owner/search', [StokOwnerController::class, 'search'])->name('api.stok-owner.search');
+    Route::get('/api/panels/search-available', [PanelController::class, 'searchAvailablePanels'])->name('panels.searchAvailable');
 
     // Surat Jalan
     Route::prefix('suratjalan')->group(function () {
@@ -276,12 +271,6 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/stock/get', [StockController::class, 'getStock'])->name('stock.get');
     Route::get('/stock/mutations', [StockController::class, 'getStockMutations'])->name('stock.mutations');
 
-    // // Purchase Order Routes
-    // Route::get('/transaksi.purchaseorder', function () {
-    //     return view('transaksi.purchaseorder');
-    // })->name('purchaseorder.form');
-
-    //
     // Route ke halaman list PO
     Route::get('/transaksi.purchaseorder', [PurchaseOrderController::class, 'index'])->name('transaksi.purchaseorder');
     // Route ke halaman detail PO

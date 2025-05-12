@@ -151,7 +151,7 @@ class PurchaseOrderController extends Controller
     
 
     public function completeTransaction($id)
-{
+    {
     Log::info('CompleteTransaction started for PO ID: ' . $id);
 
     $po = PurchaseOrder::with('items', 'customer')->findOrFail($id);
@@ -161,94 +161,95 @@ class PurchaseOrderController extends Controller
     try {
         Log::info('PO Data:', $po->toArray());
 
-        // Generate a new transaction number
-        $lastTransaction = Transaksi::orderBy('created_at', 'desc')->first();
-        $lastNumber = $lastTransaction ? (int) substr($lastTransaction->no_transaksi, strrpos($lastTransaction->no_transaksi, '/') + 1) : 0;
-        $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        $noTransaksi = 'KP/WS/' . $newNumber;
-
-        // Get customer for stock mutation
-        $customer = Customer::where('kode_customer', $po->kode_customer)->first();
-        $customerName = $customer ? $customer->nama : 'Unknown Customer';
-
-        // Format transaction number for stock mutation
-        $creator = 'ADMIN'; // You can replace this with the actual user name
-        $noTransaksiMutasi = $noTransaksi . " ({$creator})";
-
-        // Create a new transaction
-        $transaksi = Transaksi::create([
-            'no_transaksi' => $noTransaksi,
-            'tanggal' => now(),
-            'kode_customer' => $po->kode_customer,
-            'sales' => $po->sales,
-            'lokasi' => $po->lokasi,
-            'pembayaran' => $po->pembayaran,
-            'cara_bayar' => $po->cara_bayar,
-            'tanggal_jadi' => now(),
-            'subtotal' => $po->subtotal,
-            'discount' => $po->discount,
-            'disc_rupiah' => $po->disc_rupiah,
-            'ppn' => $po->ppn,
-            'dp' => $po->dp,
-            'grand_total' => $po->grand_total,
-            'status' => 'baru',
-        ]);
-
-        // Create transaction items and record stock mutations
-        foreach ($po->items as $item) {
-            TransaksiItem::create([
-                'transaksi_id' => $transaksi->id,
+            // Generate a new transaction number
+            $lastTransaction = Transaksi::orderBy('created_at', 'desc')->first();
+            $lastNumber = $lastTransaction ? (int) substr($lastTransaction->no_transaksi, strrpos($lastTransaction->no_transaksi, '/') + 1) : 0;
+            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+            $noTransaksi = 'KP/WS/' . $newNumber;
+    
+            // Get customer for stock mutation
+            $customer = Customer::where('kode_customer', $po->kode_customer)->first();
+            $customerName = $customer ? $customer->nama : 'Unknown Customer';
+    
+            // Format transaction number for stock mutation
+            $creator = 'ADMIN'; // You can replace this with the actual user name
+            $noTransaksiMutasi = $noTransaksi . " ({$creator})";
+    
+            // Create a new transaction
+            $transaksi = Transaksi::create([
                 'no_transaksi' => $noTransaksi,
-                'kode_barang' => $item->kode_barang,
-                'nama_barang' => $item->nama_barang,
-                'keterangan' => $item->keterangan ?? null,
-                'harga' => $item->harga,
-                'panjang' => $item->panjang ?? 0,
-                'lebar' => $item->lebar ?? 0,
-                'qty' => $item->qty,
-                'diskon' => $item->diskon ?? 0,
-                'total' => $item->total,
+                'tanggal' => now(),
+                'kode_customer' => $po->kode_customer,
+                'sales' => $po->sales,
+                'lokasi' => $po->lokasi,
+                'pembayaran' => $po->pembayaran,
+                'cara_bayar' => $po->cara_bayar,
+                'tanggal_jadi' => now(),
+                'subtotal' => $po->subtotal,
+                'discount' => $po->discount,
+                'disc_rupiah' => $po->disc_rupiah,
+                'ppn' => $po->ppn,
+                'dp' => $po->dp,
+                'grand_total' => $po->grand_total,
+                'status' => 'baru',
             ]);
-
-            // Record the sale in stock mutation
-            $this->stockController->recordSale(
-                $item->kode_barang,
-                $item->nama_barang,
-                $noTransaksiMutasi,
-                now(),
-                $noTransaksi,
-                $customerName . ' (' . $po->kode_customer . ')',
-                $item->qty,
-                $po->lokasi ?? 'ALUMKA',
-                'LBR'
-            );
-
-            // Update panel availability
-            $panels = Panel::where('group_id', $item->kode_barang)
-                ->where('available', true)
-                ->limit($item->qty)
-                ->get();
-
-            foreach ($panels as $panel) {
-                $panel->available = false;
-                $panel->save();
+    
+            // Create transaction items and record stock mutations
+            foreach ($po->items as $item) {
+                TransaksiItem::create([
+                    'transaksi_id' => $transaksi->id,
+                    'no_transaksi' => $noTransaksi,
+                    'kode_barang' => $item->kode_barang,
+                    'nama_barang' => $item->nama_barang,
+                    'keterangan' => $item->keterangan ?? null,
+                    'harga' => $item->harga,
+                    'panjang' => $item->panjang ?? 0,
+                    'lebar' => $item->lebar ?? 0,
+                    'qty' => $item->qty,
+                    'diskon' => $item->diskon ?? 0,
+                    'total' => $item->total,
+                ]);
+    
+                // Record the sale in stock mutation
+                $this->stockController->recordSale(
+                    $item->kode_barang,
+                    $item->nama_barang,
+                    $noTransaksiMutasi,
+                    now(),
+                    $noTransaksi,
+                    $customerName . ' (' . $po->kode_customer . ')',
+                    $item->qty,
+                    $po->lokasi ?? 'ALUMKA',
+                    'LBR'
+                );
+    
+                // Update panel availability
+                $panels = Panel::where('group_id', $item->kode_barang)
+                    ->where('available', true)
+                    ->limit($item->qty)
+                    ->get();
+    
+                foreach ($panels as $panel) {
+                    $panel->available = false;
+                    $panel->save();
+                }
             }
+    
+            // Update the status of the Purchase Order
+            $po->update([
+                'status' => 'completed',
+                'tanggal_jadi' => now(),
+            ]);
+    
+            DB::commit();
+            \Log::info('Transaction completed successfully'); // Debug log
+    
+            return redirect()->route('transaksi.listnota')->with('success', 'Transaksi berhasil diselesaikan.');
+
+        } catch (\Exception $e) {
+            \Log::error('Error in completeTransaction: ' . $e->getMessage()); // Debug log
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-
-        // Update the status of the Purchase Order
-        $po->update([
-            'status' => 'completed',
-            'tanggal_jadi' => now(),
-        ]);
-
-        DB::commit();
-        Log::info('Transaction completed successfully');
-
-        return redirect()->route('transaksi.penjualan')->with('success', 'Transaksi berhasil diselesaikan.');
-    } catch (\Exception $e) {
-        Log::error('Error in completeTransaction: ' . $e->getMessage());
-        DB::rollBack();
-        return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
     }
-}
 }

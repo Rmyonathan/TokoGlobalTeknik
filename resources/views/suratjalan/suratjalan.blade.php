@@ -64,7 +64,6 @@
             <form id="suratjalanForm">
                 @csrf
                 <div class="row">
-
                     <!-- Kiri -->
                     <div class="col-md-6">
                         <div class="form-group">
@@ -86,6 +85,11 @@
                             <label for="sisa_piutang">Sisa Piutang</label>
                             <input type="number" class="form-control" id="sisa_piutang" name="sisa_piutang" value="0" min="0">
                         </div>
+
+                        <div class="form-group">
+                            <label for="alamat_suratjalan">Alamat di Surat Jalan</label>
+                            <textarea class="form-control" id="alamat_suratjalan" name="alamat_suratjalan" rows="2"></textarea>
+                        </div>
                     </div>
 
                     <!-- Kanan -->
@@ -97,23 +101,27 @@
                             <div id="customerDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
                         </div>
 
+                        <div class="form-group">
+                            <label for="customer">Alamat Customer</label>
+                            <input type="text" id="alamatCustomer" name="customer-alamat" class="form-control" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="customer">No HP / Telp Customer</label>
+                            <input type="text" id="hpCustomer" name="customer-hp" class="form-control" readonly>
+                        </div>
+
                         <div class="form-group position-relative">
                             <label for="no_transaksi">No Faktur</label>
                             <input type="text" id="no_faktur" name="no_faktur_display" class="form-control" autocomplete="off" placeholder="Masukkan nomor faktur">
                             <input type="hidden" id="no_transaksi" name="no_transaksi">
                             <input type="hidden" id="transaksi_id" name="transaksi_id">
                             <div id="notransaksiList" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
-
                         </div>
 
                         <div class="form-group">
                             <label for="tanggal_transaksi">Tanggal Transaksi</label>
                             <input type="date" class="form-control" id="tanggal_transaksi" name="tanggal_transaksi" value="{{ date('Y-m-d') }}" readonly>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="alamat_suratjalan">Alamat di Surat Jalan</label>
-                            <textarea class="form-control" id="alamat_suratjalan" name="alamat_suratjalan" rows="2"></textarea>
                         </div>
                     </div>
                 </div>
@@ -214,7 +222,10 @@ $(document).ready(function() {
                         data.forEach(customer => {
                             dropdown += `<a href='#' class="dropdown-item customer-item" 
                                 data-kode="${customer.kode_customer}" 
-                                data-name="${customer.nama}">
+                                data-name="${customer.nama}"
+                                data-alamat="${customer.alamat}"
+                                data-hp="${customer.hp}"
+                                data-telp="${customer.telepon}">
                                 ${customer.kode_customer} - ${customer.nama}
                             </a>`;
                         });
@@ -237,8 +248,13 @@ $(document).ready(function() {
         e.preventDefault();
         const kodeCustomer = $(this).data('kode');
         const namaCustomer = $(this).data('name');
+        const alamatCustomer = $(this).data('alamat');
+        const hpCustomer = $(this).data('hp');
+        const telpCustomer = $(this).data('telp');
         $('#customer').val(`${kodeCustomer} - ${namaCustomer}`); // Tampilkan kode dan nama customer di input utama
         $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
+        $('#alamatCustomer').val(alamatCustomer);
+        $('#hpCustomer').val(`${hpCustomer} / ${telpCustomer}`);
         $('#customerDropdown').hide();
 
         // Customer has been selected, now get a list of transactions by this customer so we can show it in the dropdown
@@ -261,7 +277,7 @@ $(document).ready(function() {
                                     data-kode_customer="${transaksi.kode_customer}"
                                     data-tanggal_transaksi="${transaksi.tanggal}"
                                     data-grand_total="${transaksi.grand_total}">
-                                ${transaksi.no_transaksi} By ${transaksi.kode_customer}</a>`;
+                                ${transaksi.no_transaksi} Tanggal ${transaksi.tanggal}</a>`;
                             });
                         } else {
                             dropdown = '<a class="dropdown-item disabled">Tidak ada transaksi ditemukan</a>';
