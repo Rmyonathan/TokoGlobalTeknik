@@ -519,7 +519,7 @@
                                             <a class="nav-link" href="{{ route('transaksi.penjualancustomer') }}"><i class="fas fa-user-tag mr-2"></i>Data Penjualan Per Customer</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-envelope-open-text"></i> List Nota Penjualan</a>
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.index')); ?>"><i class="fas fa-envelope-open-text"></i> List Nota Penjualan</a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('transaksi.purchaseorder')); ?>"><i class="fas fa-money-bill-wave mr-2"></i>Purchase Order</a>
