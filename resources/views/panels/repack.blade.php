@@ -87,6 +87,10 @@
                                 </tbody>
                             </table>
                         </div>
+                        <!-- After the table, add this: -->
+                    <div class="d-flex justify-content-center mt-3">
+                        {{ $cuttingHistory->links() }}
+                    </div>
                     @else
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle mr-1"></i> Belum ada history pemotongan untuk ditampilkan.
