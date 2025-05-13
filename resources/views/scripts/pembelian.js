@@ -81,9 +81,10 @@ $(document).ready(function () {
                             dropdown += `<a class="dropdown-item kode-barang-item" 
                                             data-kode="${item.kode_barang}" 
                                             data-name="${item.attribute}"
-                                            data-length="${item.length}">
-                                         ${item.kode_barang} - ${item.attribute} (${item.length} m)
-                                         </a>`;
+                                            data-length="${item.length}"
+                                            data-cost="${item.cost}">
+                                        ${item.kode_barang} - ${item.attribute} (${item.length} m)
+                                        </a>`;
                         });
                     } else {
                         dropdown =
@@ -102,17 +103,39 @@ $(document).ready(function () {
     });
 
     // Select Kode Barang
-    $(document).on("click", ".kode-barang-item", function () {
+   $(document).on("click", ".kode-barang-item", function () {
         const kodeBarang = $(this).data("kode");
         const namaBarang = $(this).data("name");
         const length = $(this).data("length");
+        const cost = $(this).data("cost");
 
         $("#kode_barang").val(kodeBarang);
         $("#nama_barang").val(namaBarang);
         $("#panjang").val(length);
+        $("#harga").val(cost);
+        
+        // Get panel name with AJAX request
+        $.ajax({
+            url: window.getPanelInfoUrl,
+            method: "GET",
+            data: { kode_barang: kodeBarang },
+            success: function(response) {
+                if (response.success && response.panel_name) {
+                    // Set both Nama Barang and Keterangan to the same Panel name
+                    $("#nama_barang").val(response.panel_name); // Update this line
+                    $("#keterangan").val(response.panel_name);
+                } else {
+                    $("#keterangan").val(namaBarang);
+                }
+                updateItemPreview();
+            },
+            error: function() {
+                $("#keterangan").val(namaBarang);
+                updateItemPreview();
+            }
+        });
+        
         $("#kodeBarangDropdown").hide();
-
-        updateItemPreview();
     });
 
     // Toggle discount inputs
@@ -432,7 +455,8 @@ $(document).ready(function () {
                                     <button type="button" class="btn btn-sm btn-primary select-kode-barang"
                                         data-kode="${item.kode_barang}" 
                                         data-name="${item.attribute}"
-                                        data-length="${item.length}">
+                                        data-length="${item.length}"
+                                        data-cost="${item.cost}">
                                         <i class="fas fa-check"></i> Pilih
                                     </button>
                                 </td>
@@ -512,13 +536,34 @@ $(document).click(function (e) {
         const kodeBarang = $(this).data("kode");
         const namaBarang = $(this).data("name");
         const length = $(this).data("length");
+        const cost = $(this).data("cost");
 
         $("#kode_barang").val(kodeBarang);
         $("#nama_barang").val(namaBarang);
         $("#panjang").val(length);
+        $("#harga").val(cost);
+        
+        // Get panel name with AJAX request
+        $.ajax({
+            url: window.getPanelInfoUrl,
+            method: "GET",
+            data: { kode_barang: kodeBarang },
+            success: function(response) {
+                if (response.success && response.panel_name) {
+                    // Set both Nama Barang and Keterangan to the same Panel name
+                    $("#nama_barang").val(response.panel_name); // Update this line
+                    $("#keterangan").val(response.panel_name);
+                } else {
+                    $("#keterangan").val(namaBarang);
+                }
+                updateItemPreview();
+            },
+            error: function() {
+                $("#keterangan").val(namaBarang);
+                updateItemPreview();
+            }
+        });
 
         $("#kodeBarangSearchModal").modal("hide");
-
-        updateItemPreview();
     });
 });

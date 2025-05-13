@@ -133,6 +133,14 @@
                 <div>FAX: (0711) 811158</div>
                 <div class="faktur-no">NO FAKTUR: {{ $purchase->nota }}</div>
             </div>
+            @if($purchase->status == 'canceled')
+            <div class="alert alert-danger">
+                <strong>DIBATALKAN</strong><br>
+                Oleh: {{ $purchase->canceled_by }}<br>
+                Pada: {{ date('d/m/Y H:i', strtotime($purchase->canceled_at)) }}<br>
+                Alasan: {{ $purchase->cancel_reason }}
+            </div>
+            @endif
             <div class="customer-info">
                 <table>
                     <tr>

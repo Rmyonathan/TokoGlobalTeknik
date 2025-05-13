@@ -64,6 +64,7 @@
                             <th>Supplier</th>
                             <th>Cara Bayar</th>
                             <th>Total</th>
+                            <th>Status</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -71,24 +72,43 @@
                         @forelse($purchases as $purchase)
                         <tr>
                             <td>{{ $purchase->nota }}</td>
-                            <td>{{ date('Y-m-d', strtotime($purchase->tanggal)) }}</td> {{-- Format Y-m-d untuk kemudahan filter --}}
+                            <td>{{ date('Y-m-d', strtotime($purchase->tanggal)) }}</td>
                             <td>{{ $purchase->kode_supplier }} - {{ $purchase->supplierRelation->nama ?? '' }}</td>
                             <td>{{ $purchase->cara_bayar }}</td>
                             <td class="text-right">Rp {{ number_format($purchase->grand_total, 0, ',', '.') }}</td>
                             <td>
+                                @if(isset($purchase->status) && $purchase->status == 'canceled')
+                                    <span class="badge badge-danger">Dibatalkan</span>
+                                @else
+                                    <span class="badge badge-success">Aktif</span>
+                                @endif
+                            </td>
+                            <td>
                                 <a href="{{ route('pembelian.nota.show', $purchase->id) }}" class="btn btn-sm btn-info" title="Lihat Nota">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ route('pembelian.edit', $purchase->id) }}" class="btn btn-sm btn-warning" title="Edit Nota">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form method="POST" action="{{ route('pembelian.delete', $purchase->id) }}" style="display:inline;">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Apakah Anda yakin ingin menghapus nota pembelian ini?');">
-                                        <i class="fas fa-trash"></i>
+                                
+                                @if(!isset($purchase->status) || $purchase->status != 'canceled')
+                                    <a href="{{ route('pembelian.edit', $purchase->id) }}" class="btn btn-sm btn-warning" title="Edit Nota">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    
+                                    <button type="button" class="btn btn-sm btn-danger cancel-btn" 
+                                            data-toggle="modal" 
+                                            data-target="#cancelModal" 
+                                            data-id="{{ $purchase->id }}"
+                                            data-nota="{{ $purchase->nota }}"
+                                            title="Batalkan Nota">
+                                        <i class="fas fa-ban"></i>
                                     </button>
-                                </form>
+                                    
+                                   
+                                @else
+                                    <button type="button" class="btn btn-sm btn-secondary" data-toggle="tooltip" title="Dibatalkan oleh: {{ $purchase->canceled_by }} pada {{ date('d/m/Y H:i', strtotime($purchase->canceled_at)) }}">
+                                        <i class="fas fa-info-circle"></i> Info
+                                    </button>
+                                @endif
+                                
                                 <a href="{{ route('pembelian.nota.show', $purchase->id) }}" class="btn btn-sm btn-primary" target="_blank" title="Cetak Nota">
                                     <i class="fas fa-print"></i>
                                 </a>
@@ -96,7 +116,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center">Tidak ada data transaksi pembelian</td>
+                            <td colspan="7" class="text-center">Tidak ada data transaksi pembelian</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -109,7 +129,7 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal (tetap seperti semula) -->
+<!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -129,6 +149,37 @@
                     @method('DELETE')
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-danger">Hapus</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Confirmation Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" role="dialog" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelModalLabel">Konfirmasi Pembatalan</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Apakah Anda yakin ingin membatalkan nota pembelian <strong id="cancel-nota-display"></strong>?</p>
+                <p class="text-danger">Perhatian: Tindakan ini akan mengembalikan stok barang dan menandai transaksi sebagai batal!</p>
+                
+                <div class="form-group">
+                    <label for="cancel_reason">Alasan Pembatalan:</label>
+                    <textarea id="cancel_reason" class="form-control" rows="3" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <form id="cancelForm" action="" method="POST">
+                    @csrf
+                    <input type="hidden" name="cancel_reason" id="cancel_reason_input">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Batalkan Transaksi</button>
                 </form>
             </div>
         </div>
@@ -176,6 +227,30 @@
 
         // Optional: filter langsung saat mengetik
         $('#searchInput').on('input', applyFilters);
+        
+        // Initialize tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+        
+        // Cancel Modal handling
+        $('.cancel-btn').click(function() {
+            const id = $(this).data('id');
+            const nota = $(this).data('nota');
+            
+            $('#cancel-nota-display').text(nota);
+            $('#cancelForm').attr('action', `{{ url('/pembelian/cancel') }}/${id}`);
+        });
+        
+        // Validate and submit the cancel form
+        $('#cancelForm').on('submit', function() {
+            const reason = $('#cancel_reason').val().trim();
+            if (!reason) {
+                alert('Alasan pembatalan harus diisi!');
+                return false;
+            }
+            
+            $('#cancel_reason_input').val(reason);
+            return true;
+        });
     });
 </script>
 @endsection

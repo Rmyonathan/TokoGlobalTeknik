@@ -22,6 +22,8 @@ class StockMutation extends Model
         'so',
         'satuan',
         'keterangan',
+        'created_by'
+
     ];
 
     protected $casts = [

@@ -241,6 +241,8 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/kode-barang/search', [KodeBarangController::class, 'searchKodeBarang'])->name('kodeBarang.search');
     Route::get('/api/stok-owner/search', [StokOwnerController::class, 'search'])->name('api.stok-owner.search');
     Route::get('/api/panels/search-available', [PanelController::class, 'searchAvailablePanels'])->name('panels.searchAvailable');
+    Route::get('/api/panel-by-kode-barang', [PanelController::class, 'getPanelByKodeBarang'])->name('panel.by.kodeBarang');
+
 
     // Surat Jalan
     Route::prefix('suratjalan')->group(function () {
@@ -264,6 +266,8 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/edit/{id}', [PembelianController::class, 'edit'])->name('pembelian.edit');
     Route::post('/update/{id}', [PembelianController::class, 'update'])->name('pembelian.update');
     Route::delete('/delete/{id}', [PembelianController::class, 'destroy'])->name('pembelian.delete');
+    Route::post('/pembelian/cancel/{id}', 'App\Http\Controllers\PembelianController@cancel')->name('pembelian.cancel');
+
 
     // Stock Management Routes
     Route::get('/stock/mutasi', [StockController::class, 'mutasiStock'])->name('stock.mutasi');

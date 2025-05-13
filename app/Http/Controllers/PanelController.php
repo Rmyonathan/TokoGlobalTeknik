@@ -653,6 +653,26 @@ class PanelController extends Controller
         ];
     }
 
+    public function getPanelByKodeBarang(Request $request)
+    {
+        $kodeBarang = $request->input('kode_barang');
+        
+        // Get the KodeBarang model to get its name
+        $kodeBarangModel = KodeBarang::where('kode_barang', $kodeBarang)->first();
+        
+        if ($kodeBarangModel) {
+            return response()->json([
+                'success' => true,
+                'panel_name' => $kodeBarangModel->name // Use KodeBarang's name field
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'panel_name' => null
+        ]);
+    }
+
     /**
      * Add new panels to inventory
      *

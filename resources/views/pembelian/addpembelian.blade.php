@@ -409,6 +409,8 @@
     window.backToPembelian = "{{ route('pembelian.index') }}"
     window.kodeBarangSearchUrl = "{{ route('kodeBarang.search') }}";
     window.stokOwnerSearchUrl = "{{ route('api.stok-owner.search') }}";
+    window.getPanelInfoUrl = "{{ route('panel.by.kodeBarang') }}";
+
     window.csrfToken = "{{ csrf_token() }}";
 </script>
 

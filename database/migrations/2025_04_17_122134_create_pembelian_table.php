@@ -29,3 +29,23 @@ class CreatePembelianTable extends Migration
         Schema::dropIfExists('pembelian');
     }
 }
+
+class AddCancelColumnsToPermbelianTable extends Migration
+{
+    public function up()
+    {
+        Schema::table('pembelian', function (Blueprint $table) {
+            $table->string('status')->default('active'); // 'active' or 'canceled'
+            $table->string('canceled_by')->nullable();
+            $table->timestamp('canceled_at')->nullable();
+            $table->text('cancel_reason')->nullable();
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('pembelian', function (Blueprint $table) {
+            $table->dropColumn(['status', 'canceled_by', 'canceled_at', 'cancel_reason']);
+        });
+    }
+}
