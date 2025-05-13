@@ -323,13 +323,13 @@ $(document).ready(function() {
                             `<tr>
                                 <td>${index+1}</td>
                                 <td>${item.kode_barang}</td>
-                                <td>${item.nama_barang}</td>
+                                <td>${item.keterangan}</td>
                                 <td>${item.qty}</td>
                             </tr>`
                         ;
                         items.push({
                             kode_barang: item.kode_barang,
-                            nama_barang: item.nama_barang,
+                            nama_barang: item.keterangan,
                             qty: item.qty,
                         })
                     });
@@ -358,7 +358,7 @@ $(document).ready(function() {
                     no_transaksi: $('#no_transaksi').val(),
                     transaksi_id: selectedtransaksiId,
                     kode_barang: item.kode_barang,
-                    nama_barang: item.nama_barang,
+                    nama_barang: item.keterangan,
                     qty: item.qty
                 };
             });

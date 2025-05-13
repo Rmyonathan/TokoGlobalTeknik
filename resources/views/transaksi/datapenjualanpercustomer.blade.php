@@ -113,6 +113,14 @@
                                 <td class="text-right">Rp {{ number_format($transaction->grand_total, 0, ' ,', '.') }}</td>
                                 <td>
                                     <a href="{{ route('transaksi.nota', $transaction->id) }}" class="btn btn-primary btn-sm">Lihat Nota</a>
+                                    @if($transaction->status !== 'cancelled')
+                                        <form action="{{ route('transaksi.cancel', $transaction->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Batalkan transaksi ini?')">
+                                            @csrf
+                                            <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+                                        </form>
+                                    @else
+                                        <span class="badge badge-danger">Cancelled</span>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

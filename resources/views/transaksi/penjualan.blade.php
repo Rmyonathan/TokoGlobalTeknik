@@ -370,7 +370,7 @@ $(document).ready(function() {
                                 data-alamat="${customer.alamat}"
                                 data-hp="${customer.hp}"
                                 data-telp="${customer.telepon}">
-                            ${customer.kode_customer} - ${customer.nama}</a>`;
+                            ${customer.kode_customer} - ${customer.nama} - ${customer.alamat} - ${customer.hp}</a>`;
                         });
                     } else {
                         dropdown = '<a class="dropdown-item disabled">Tidak ada customer ditemukan</a>';
