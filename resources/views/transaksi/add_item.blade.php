@@ -207,7 +207,13 @@ $(document).ready(function() {
                     let dropdown = '';
                     if (data.length > 0) {
                         data.forEach(panel => {
-                            dropdown += `<a class="dropdown-item panel-item" data-id="${panel.group_id}" data-name="${panel.name}" data-price="${panel.price}" data-length="${panel.length}">${panel.group_id} - ${panel.name} - ${panel.length} m</a>`;
+                            dropdown += `<a class="dropdown-item panel-item" 
+                            data-id="${panel.group_id}" 
+                            data-name="${panel.name}" 
+                            data-price="${panel.price}" 
+                            data-length="${panel.length}">
+                            
+                            ${panel.group_id} - ${panel.name} - ${panel.length} m</a>`;
                         });
                     } else {
                         dropdown = '<a class="dropdown-item disabled">Tidak ada panel ditemukan</a>';
