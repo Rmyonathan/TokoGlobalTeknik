@@ -472,7 +472,7 @@
                         <!-- Master menu items -->
                         <ul class="nav flex-column ml-3">
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('panels.inventory') }}"><i class="fas fa-boxes"></i> Inventory</a>
+                                <a class="nav-link" href="{{ route('panels.repack') }}"><i class="fas fa-boxes"></i> Repack</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('master.barang') }}"><i class="fas fa-layer-group"></i> Display Barang</a>

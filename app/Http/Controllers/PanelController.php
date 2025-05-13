@@ -28,13 +28,38 @@ class PanelController extends Controller
     public function inventory()
     {
         $inventory = $this->getInventorySummary();
-        return view('panels.inventory', compact('inventory'));
+        return view('panels.repack', compact('inventory'));
     }
 
     public function viewBarang()
     {
         $inventory = $this->getKodeSummary();
         return view('master.barang', compact('inventory'));
+    }
+
+    /**
+     * Display the repack/potong view with cutting history
+     */
+    public function repack(Request $request)
+    {
+        // Get date filter or default to today
+        $dateFilter = $request->input('date_filter');
+        
+        // Get all orders with their related order items and panels
+        $cuttingHistory = Order::with(['orderItems.panel'])
+            ->when($dateFilter, function($query) use ($dateFilter) {
+                return $query->whereDate('created_at', $dateFilter);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+        
+        // Get current inventory summary
+        $inventory = $this->getInventorySummary();
+        
+        return view('panels.repack', [
+            'cuttingHistory' => $cuttingHistory,
+            'inventory' => $inventory
+        ]);
     }
 
     /**
@@ -49,7 +74,7 @@ class PanelController extends Controller
 
     public function searchAvailablePanels(Request $request){
         $keyword = $request->get('keyword');
-        $so = $request->get('so', 'LAMPUNG'); // default SO, bisa diganti sesuai kebutuhan
+        // $so = $request->get('so', 'LAMPUNG'); // default SO, bisa diganti sesuai kebutuhan
 
         // Cari panel yang cocok dengan keyword
         $panels = Panel::where(function($q) use ($keyword) {
@@ -67,9 +92,8 @@ class PanelController extends Controller
             ->values();
 
         // Filter hanya panel yang stoknya > 0 di tabel stocks
-        $filtered = $panels->filter(function($panel) use ($so) {
+        $filtered = $panels->filter(function($panel)  {
             $stock = \App\Models\Stock::where('kode_barang', $panel->group_id)
-                ->where('so', $so)
                 ->first();
             return $stock && $stock->good_stock > 0;
         });
@@ -123,7 +147,11 @@ class PanelController extends Controller
         $errors = [];
 
         foreach ($validated['panels'] as $panel) {
-            $result = $this->processOrder($panel['name'], $panel['length'], $panel['quantity']);
+            $result = $this->processOrder(
+                $panel['name'], 
+                $panel['length'], 
+                $panel['quantity']
+            );
 
             if ($result['success']) {
                 $successMessages[] = $result['message'];
@@ -136,7 +164,7 @@ class PanelController extends Controller
             return back()->with('error', implode(' | ', $errors))->withInput();
         }
 
-        return redirect()->route('panels.inventory')
+        return redirect()->route('panels.repack')
             ->with('success', implode(' | ', $successMessages));
     }
 
@@ -293,13 +321,12 @@ class PanelController extends Controller
      * @param int $requestedQuantity Quantity of panels requested
      * @return array Status of the operation
      */
-
     public function repackOrder(Request $request) {
         // Validate input fields
         $validated = $request->validate([
-            'penambah' => 'required|string|max:255',
-            'pengurang' => 'required|string|max:255',
-            'quantity' => 'required|integer|min:1',
+        'penambah' => 'required|string|max:255',
+        'pengurang' => 'required|string|max:255',
+        'quantity' => 'required|integer|min:1',
         ], [
             'penambah.required' => 'Item code is required',
             'penambah.string' => 'Item code must be a valid string',
@@ -366,9 +393,30 @@ class PanelController extends Controller
                             ->limit((int) $reduction)
                             ->get();
 
+            // Create order record for tracking
+            $order = Order::create([
+                'total_quantity' => $qty,
+                'name' => $pengurang->name,
+                'transaction' => $pengurang->price * $pengurang->length * $qty,
+                'total_length' => $qty * $pengurang->length,
+                'status' => 'completed',
+                'notes' => "Repack from {$penambah->kode_barang} to {$pengurang->kode_barang}"
+            ]);
+
             foreach ($panelPenambah as $p) {
                 $p->available = false;
                 $p->save();
+                
+                // Create order item with more detailed information
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'panel_id' => $p->id,
+                    'name' => $pengurang->name . " (from " . $penambah->name . ")",
+                    'length' => $pengurang->length,
+                    'transaction' => $pengurang->price * $pengurang->length * $qty,
+                    'original_panel_length' => $p->length,
+                    'remaining_length' => 0
+                ]);
             }
 
             $name = $pengurang->name;
@@ -385,10 +433,31 @@ class PanelController extends Controller
                     'message' => "Successfully processed order for {$qty} panels of {$request->pengurang}."
                 ]);
             } else {
-                return redirect()->route('panels.inventory')
+                return redirect()->route('panels.repack')
                     ->with('success', "Successfully processed order for {$qty} panels of {$request->pengurang}.");
             }
         }
+    }
+
+    /**
+     * View receipt for a specific order
+     */
+ 
+    public function printReceipt($orderId)
+    {
+        $order = Order::with(['orderItems.panel'])->findOrFail($orderId);
+        
+        return view('panels.receipt', compact('order'));
+    }
+    
+    /**
+     * View details for a specific order
+     */
+    public function viewOrder($orderId)
+    {
+        $order = Order::with('orderItems.panel')->findOrFail($orderId);
+        
+        return view('panels.order-details', compact('order'));
     }
 
     private function processOrder(string $requestedName, float $requestedLength, int $requestedQuantity): array
@@ -730,6 +799,4 @@ class PanelController extends Controller
             'panels' => $panel
         ];
     }
-
-
 }

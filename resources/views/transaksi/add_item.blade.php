@@ -166,19 +166,18 @@ $(document).ready(function() {
         }
         
         // Ambil SO dari form utama jika ada (default LAMPUNG)
-        let so = 'LAMPUNG';
-        if (window.parent && window.parent.$) {
-            so = window.parent.$('#sales').val() || 'LAMPUNG';
-        }
+        // let so = 'LAMPUNG';
+        // if (window.parent && window.parent.$) {
+        //     so = window.parent.$('#sales').val() || 'LAMPUNG';
+        // }
         
-        console.log(`Fetching stock for: ${kodeBarang}, SO: ${so}`);
+        console.log(`Fetching stock for: ${kodeBarang}`);
         
         $.ajax({
             url: "/stock/get",
             method: "GET",
             data: { 
                 kode_barang: kodeBarang, 
-                so: so 
             },
             success: function(response) {
                 console.log("Stock API Response:", response);

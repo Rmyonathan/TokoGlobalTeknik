@@ -119,6 +119,11 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/panels/edit/{id}', [PanelController::class, 'editInventory'])
     ->name('panels.edit-inventory');
 
+    // Repack
+    Route::get('/panels/repack', [PanelController::class, 'repack'])->name('panels.repack');
+    Route::get('/panels/print-receipt/{id}', [PanelController::class, 'printReceipt'])->name('panels.print-receipt');
+    Route::get('/panels/view-order/{id}', [PanelController::class, 'viewOrder'])->name('panels.view-order');
+
     // Store New Inventory
     Route::post('/panels/add', [PanelController::class, 'storeInventory'])
     ->name('panels.store-inventory');

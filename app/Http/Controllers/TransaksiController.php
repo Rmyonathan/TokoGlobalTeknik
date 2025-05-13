@@ -12,6 +12,9 @@ use App\Models\Panel;
 use App\Models\SuratJalanItem;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+
 
 
 class TransaksiController extends Controller
