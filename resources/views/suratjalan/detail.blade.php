@@ -234,7 +234,7 @@
                 <tr>
                     <td class="text-center">{{ $i + 1 }}</td>
                     <td>{{ $item->kode_barang }}</td>
-                    <td>{{ $item->keterangan }}</td>
+                    <td>{{ $item->nama_barang }}</td>
                     <td>{{ $item->panjang }}</td>
                     <td class="text-center">{{ $item->qty }}</td>
                     <td class="text-center">Pcs</td>

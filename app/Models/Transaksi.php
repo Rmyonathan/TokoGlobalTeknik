@@ -26,7 +26,6 @@ class Transaksi extends Model
         'tanggal',
         'kode_customer',
         'sales',
-        'lokasi',
         'pembayaran',
         'cara_bayar',
         'tanggal_jadi',

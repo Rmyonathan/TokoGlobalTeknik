@@ -17,7 +17,6 @@ return new class extends Migration
             $table->date('tanggal');
             $table->string('kode_customer');
             $table->string('sales')->nullable();
-            $table->string('lokasi')->nullable();
             $table->string('pembayaran')->default('Tunai');
             $table->string('cara_bayar')->default('Cash');
             $table->date('tanggal_jadi')->nullable();
