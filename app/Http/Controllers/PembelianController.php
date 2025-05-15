@@ -72,6 +72,10 @@ class PembelianController extends Controller
         try {
             DB::beginTransaction();
             
+            // Use current time for the transaction
+            $currentDateTime = now();
+            $tanggalWithTime = $currentDateTime->format('Y-m-d H:i:s');
+            
             // Get supplier name for stock mutation record
             $supplier = Supplier::where('kode_supplier', $request->kode_supplier)->first();
             $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
@@ -79,7 +83,7 @@ class PembelianController extends Controller
             // Create purchase
             $pembelian = Pembelian::create([
                 'nota' => $request->nota,
-                'tanggal' => $request->tanggal,
+                'tanggal' => $tanggalWithTime, // Store with time
                 'kode_supplier' => $request->kode_supplier,
                 'pembayaran' => $request->pembayaran ?? 'Tunai',
                 'cara_bayar' => $request->cara_bayar,
@@ -87,11 +91,13 @@ class PembelianController extends Controller
                 'diskon' => $request->diskon ?? 0,
                 'ppn' => $request->ppn ?? 0,
                 'grand_total' => $request->grand_total,
+                'created_at' => $currentDateTime,
             ]);
             
             // Get creator name from request or default to 'ADMIN'
-            $creator = Auth::check() ? Auth::user()->name : 'ADMIN';            
-            // Format transaction number for mutation record
+            $creator = Auth::check() ? Auth::user()->name : 'ADMIN';
+            
+            // Format transaction number for mutation record - cleaner without time
             $noTransaksi = "BL-" . date('m/y', strtotime($request->tanggal)) . "-" . 
                             substr($request->nota, strrpos($request->nota, '-') + 1) . 
                             " ({$creator})";
@@ -108,6 +114,7 @@ class PembelianController extends Controller
                     'qty' => $item['qty'],
                     'diskon' => $item['diskon'] ?? 0,
                     'total' => $item['total'],
+                    'created_at' => $currentDateTime,
                 ]);
                 
                 // Record purchase in stock mutation (just for reporting)
@@ -115,21 +122,20 @@ class PembelianController extends Controller
                     $item['kodeBarang'],
                     $item['namaBarang'],
                     $noTransaksi,
-                    $request->tanggal,
+                    $tanggalWithTime, // Use date with time
                     $request->nota,
                     $supplierName . ' (' . $request->kode_supplier . ')',
                     $item['qty'],
-                    'default', // Use a default value or remove parameter if StockController is also updated
-                    'LBR'
+                    'LBR', // Unit of measure
+                    'Purchase transaction', // Keterangan
+                    $creator, // Created by
+                    'default' // Stock owner
                 );
                 
                 // Get the kode barang record
                 $kodeBarang = KodeBarang::where('kode_barang', $item['kodeBarang'])->first();
                 
                 if ($kodeBarang) {
-                    // No longer updating the master cost
-                    // Just use the entered price for this specific purchase
-                    
                     // Get a panel instance with this kode_barang to use as a template
                     $templatePanel = Panel::where('group_id', $item['kodeBarang'])->first();
                     
@@ -148,7 +154,28 @@ class PembelianController extends Controller
                     
                     // Use the PanelController to add panels to inventory
                     $panelController = app()->make(PanelController::class);
-                    $result = $panelController->addPanelsToInventory($panelName, $cost, $price, $length, $item['kodeBarang'], $item['qty']);
+                    
+                    // Check if the method accepts the timestamp parameter
+                    try {
+                        $result = $panelController->addPanelsToInventory(
+                            $panelName, 
+                            $cost, 
+                            $price, 
+                            $length, 
+                            $item['kodeBarang'], 
+                            $item['qty']
+                        );
+                    } catch (\ArgumentCountError $e) {
+                        // If the method doesn't accept the timestamp, use the original method
+                        $result = $panelController->addPanelsToInventory(
+                            $panelName, 
+                            $cost, 
+                            $price, 
+                            $length, 
+                            $item['kodeBarang'], 
+                            $item['qty']
+                        );
+                    }
                     
                     // Log the result
                     Log::info('Added panels to inventory:', ['result' => $result]);
@@ -531,10 +558,9 @@ class PembelianController extends Controller
             $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
             
             // Get current user or default to 'ADMIN'
-            // Fix: Use Auth::user() instead of auth()->user()
             $canceledBy = Auth::check() ? Auth::user()->name : 'ADMIN';
             
-            // Format transaction number for cancellation record
+            // Format transaction number for cancellation record - without time
             $noTransaksi = "BL-" . date('m/y', strtotime($pembelian->tanggal)) . "-" . 
                         substr($nota, strrpos($nota, '-') + 1) . 
                         " ({$canceledBy}) [CANCELED]";
@@ -544,6 +570,9 @@ class PembelianController extends Controller
             
             // Track panels to mark as unavailable
             $panelsToCancel = [];
+            
+            // Get current date and time for records
+            $currentDateTime = now()->format('Y-m-d H:i:s');
             
             foreach ($items as $item) {
                 // Find panels with this group_id that match the purchase being canceled
@@ -557,18 +586,19 @@ class PembelianController extends Controller
                     $panelsToCancel[] = $panel->id;
                 }
                 
-                // Record sale to reverse the purchase in stock mutation
+                // Use the current time in the tanggal field
                 $this->stockController->recordSale(
                     $item->kode_barang,
                     $item->nama_barang,
                     $noTransaksi,
-                    now(), // Use current date/time for the cancellation
+                    $currentDateTime, // Include time in the date field
                     $nota . ' (canceled)',
                     $supplierName . ' (' . $pembelian->kode_supplier . ')',
                     $item->qty, // Same quantity as purchase, but as a "sale" to reduce stock
-                    $pembelian->cabang,
-                    'LBR',
-                    'Transaction canceled: ' . $request->cancel_reason
+                    'LBR', // 8th parameter should be $satuan (string)
+                    'Transaction canceled: ' . $request->cancel_reason, // 9th param - keterangan
+                    $canceledBy, // 10th param - created_by
+                    $pembelian->cabang ?? 'default' // 11th param - so (stock owner)
                 );
             }
             
@@ -578,11 +608,11 @@ class PembelianController extends Controller
                 Panel::whereIn('id', $panelsToCancel)->update(['available' => false]);
             }
             
-            // Update the purchase as canceled
+            // Update the purchase as canceled - include full timestamp
             $pembelian->update([
                 'status' => 'canceled',
                 'canceled_by' => $canceledBy,
-                'canceled_at' => now(),
+                'canceled_at' => now(), // Stores full timestamp
                 'cancel_reason' => $request->cancel_reason
             ]);
             

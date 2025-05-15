@@ -9,7 +9,7 @@ class PurchaseOrder extends Model
     protected $table = 'purchase_orders';
 
     protected $fillable = [
-        'no_po', 'tanggal', 'kode_customer', 'sales', 'lokasi',
+        'no_po', 'tanggal', 'kode_customer', 'sales',
         'pembayaran', 'cara_bayar', 'tanggal_jadi',
         'subtotal', 'discount', 'disc_rupiah', 'ppn',
         'dp', 'grand_total', 'status',

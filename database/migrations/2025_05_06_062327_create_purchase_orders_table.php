@@ -14,7 +14,6 @@ class CreatePurchaseOrdersTable extends Migration
             $table->date('tanggal');
             $table->string('kode_customer');
             $table->string('sales')->nullable();
-            $table->string('lokasi');
             $table->string('pembayaran')->nullable();
             $table->string('cara_bayar')->nullable();
             $table->date('tanggal_jadi')->nullable(); // NULL dulu bro

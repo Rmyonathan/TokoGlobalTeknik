@@ -219,43 +219,64 @@ class TransaksiController extends Controller
             $transaksi = Transaksi::with(['items', 'customer'])->findOrFail($id);
 
             // Cegah double cancel
-            if ($transaksi->status === 'cancelled') {
+            if (strpos($transaksi->status, 'cancelled') !== false) {
                 return back()->with('error', 'Transaksi sudah dibatalkan.');
             }
 
+            // Get current user name
+            $userName = Auth::check() ? Auth::user()->name : 'SYSTEM';
+            
             // Kembalikan stock & catat mutasi pembatalan
             foreach ($transaksi->items as $item) {
-                // Update stock
-                $stock = \App\Models\Stock::where('kode_barang', $item->kode_barang)
-                    ->where('so', $transaksi->sales)
-                    ->first();
+                // 1. Update Panel model availability - CRITICAL FIX
+                $panels = Panel::where('group_id', $item->kode_barang)
+                    ->where('available', false)
+                    ->limit($item->qty)
+                    ->get();
+                    
+                foreach ($panels as $panel) {
+                    $panel->available = true;
+                    $panel->save();
+                }
+
+                // 2. Update Stock model without SO filter - FIX
+                $stock = \App\Models\Stock::where('kode_barang', $item->kode_barang)->first();
 
                 if ($stock) {
                     $stock->good_stock += $item->qty;
                     $stock->save();
+                } else {
+                    // Create stock record if doesn't exist
+                    $stock = \App\Models\Stock::create([
+                        'kode_barang' => $item->kode_barang,
+                        'nama_barang' => $item->nama_barang,
+                        'good_stock' => $item->qty, 
+                        'bad_stock' => 0,
+                        'satuan' => 'LBR',
+                        'so' => $transaksi->sales
+                    ]);
                 }
 
-                // Catat mutasi pembatalan (plus = qty, minus = 0, keterangan = 'Pembatalan transaksi')
+                // 3. Add detailed cancellation mutation record - FIX
                 \App\Models\StockMutation::create([
                     'kode_barang' => $item->kode_barang,
                     'nama_barang' => $item->nama_barang,
-                    'no_transaksi' => $transaksi->no_transaksi,
+                    'no_transaksi' => $transaksi->no_transaksi . " (DIBATALKAN)",
                     'tanggal' => now(),
                     'no_nota' => $transaksi->no_transaksi,
                     'supplier_customer' => $transaksi->customer->nama ?? '-',
                     'plus' => $item->qty,
                     'minus' => 0,
-                    'total' => $stock ? $stock->good_stock : $item->qty,
+                    'total' => $stock->good_stock,
                     'so' => $transaksi->sales,
                     'satuan' => 'LBR',
-                    'keterangan' => 'Pembatalan transaksi',
+                    'keterangan' => "Pembatalan transaksi oleh {$userName}",
+                    'created_by' => $userName
                 ]);
             }
 
-            // Update status transaksi
-            // Simpan nama user di status
-            $userName = auth()->user()->name ?? 'USER';
-            $transaksi->status = 'cancelled by ' . $userName;
+            // Store cancellation info in status
+            $transaksi->status = "cancelled by {$userName}";
             $transaksi->save();
 
             DB::commit();

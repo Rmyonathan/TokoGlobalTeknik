@@ -32,8 +32,9 @@
             background-color: var(--bg-color);
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-top: 60px;
+            padding-top: 50px; /* Reduced from 60px */
             color: #333;
+            font-size: 0.9rem; /* Smaller base font size */
         }
 
         /* Top Navbar */
@@ -43,14 +44,14 @@
             z-index: 1030;
             top: 0;
             width: 100%;
-            height: 60px;
+            height: 50px; /* Reduced from 60px */
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
         }
 
         .navbar-brand {
             font-weight: 600;
             color: var(--light-color) !important;
-            font-size: 1.4rem;
+            font-size: 1.2rem; /* Reduced from 1.4rem */
             display: flex;
             align-items: center;
         }
@@ -58,7 +59,7 @@
         .brand-logo {
             color: var(--secondary-color);
             margin-right: 12px;
-            font-size: 1.6rem;
+            font-size: 1.4rem; /* Reduced from 1.6rem */
             filter: drop-shadow(0 0 2px rgba(255,255,255,0.3));
         }
 
@@ -67,10 +68,10 @@
             background: var(--primary-color);
             position: fixed;
             z-index: 1020;
-            width: 230px;
-            top: 60px;
-            height: calc(100% - 60px);
-            padding-top: 15px;
+            width: 200px; /* Reduced from 230px */
+            top: 50px; /* Reduced from 60px */
+            height: calc(100% - 50px); /* Adjusted for new navbar height */
+            padding-top: 10px; /* Reduced from 15px */
             transition: all 0.3s ease;
             box-shadow: 3px 0 15px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
@@ -85,7 +86,7 @@
 
         .side-navbar .nav-item {
             margin: 0px;
-            border-radius: 8px;
+            border-radius: 6px; /* Reduced from 8px */
             overflow: hidden;
         }
 
@@ -104,12 +105,13 @@
             align-items: center;
             width: 100%;
             white-space: normal;
-            padding: 12px 15px;
+            padding: 8px 12px; /* Reduced from 12px 15px */
             color: var(--light-color);
             text-decoration: none;
             transition: all 0.3s ease;
             border-left: 3px solid transparent;
             font-weight: 500;
+            font-size: 0.9rem; /* Added smaller font size */
         }
 
         .side-navbar .nav-link:hover {
@@ -120,9 +122,9 @@
 
         .side-navbar .nav-link i {
             margin-right: 10px;
-            min-width: 24px;
+            min-width: 20px; /* Reduced from 24px */
             text-align: center;
-            font-size: 1.1rem;
+            font-size: 1rem; /* Reduced from 1.1rem */
             color: var(--secondary-color);
         }
 
@@ -150,13 +152,14 @@
             align-items: center;
             width: 100%;
             white-space: normal;
-            padding: 12px 15px;
+            padding: 8px 12px; /* Reduced from 12px 15px */
             color: var(--light-color);
             text-decoration: none;
             transition: all 0.3s ease;
             border-left: 3px solid transparent;
             font-weight: 500;
             background: none;
+            font-size: 0.9rem; /* Added smaller font size */
         }
 
         .side-navbar .dropdown-menu .dropdown-item:hover {
@@ -173,17 +176,17 @@
 
         /* Main Container */
         .main-container {
-            margin-left: 220px;
-            padding: 25px;
+            margin-left: 200px; /* Reduced from 220px */
+            padding: 15px; /* Reduced from 25px */
             transition: margin 0.3s ease;
             background-color: var(--bg-color);
         }
 
         /* Card and other UI elements */
         .card {
-            margin-bottom: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 15px; /* Reduced from 25px */
+            border-radius: 6px; /* Reduced from 8px */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Reduced shadow */
             border: none;
             background-color: var(--light-color);
         }
@@ -192,18 +195,24 @@
             background-color: var(--primary-color);
             color: var(--light-color);
             font-weight: 600;
-            border-top-left-radius: 8px !important;
-            border-top-right-radius: 8px !important;
+            border-top-left-radius: 6px !important; /* Reduced from 8px */
+            border-top-right-radius: 6px !important; /* Reduced from 8px */
+            padding: 10px 15px; /* Added smaller padding */
+            font-size: 0.95rem;
+        }
+
+        .card-body {
+            padding: 12px; /* Added to reduce card body padding */
         }
 
         .title-box {
             background-color: var(--secondary-color);
             color: var(--light-color);
             text-align: center;
-            margin-bottom: 25px;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px; /* Reduced from 25px */
+            padding: 10px; /* Reduced from 15px */
+            border-radius: 6px; /* Reduced from 8px */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Reduced shadow */
         }
 
         /* Button styling */
@@ -222,11 +231,18 @@
             border-color: var(--accent-color);
         }
 
+        /* Form elements - smaller */
+        .form-control {
+            padding: 0.375rem 0.5rem; /* Smaller padding */
+            font-size: 0.9rem;
+            height: calc(1.5em + 0.5rem + 2px); /* Smaller height */
+        }
+
         /* Top navbar links */
         .navbar-top .nav-link {
             color: rgba(255, 255, 255, 0.9) !important;
-            padding: 10px 15px;
-            border-radius: 5px;
+            padding: 8px 12px; /* Reduced from 10px 15px */
+            border-radius: 4px; /* Reduced from 5px */
             margin: 0 5px;
             transition: all 0.3s ease;
         }
@@ -244,7 +260,7 @@
         /* Tables */
         .table {
             background-color: var(--light-color);
-            border-radius: 8px;
+            border-radius: 6px; /* Reduced from 8px */
             overflow: hidden;
             border: 5px solid black; /* Menambahkan border */
             border-collapse: collapse; /* Pastikan border antar sel ter-collapse dengan benar */
@@ -252,9 +268,9 @@
 
         .table th, .table td {
             border: 1px solid black; /* Border pada sel tabel */
-            padding: 8px;
+            padding: 0.5rem; /* Reduced from 0.75rem */
+            font-size: 0.85rem;
         }
-
 
         .table thead th {
             background-color: var(--primary-color);
@@ -267,30 +283,37 @@
             border-top: 3px solid var(--secondary-color);
         }
 
+        /* Buttons smaller */
+        .btn {
+            padding: 0.25rem 0.5rem; /* Smaller padding */
+            font-size: 0.85rem;
+        }
+
         .pagination {
             display: flex;
             justify-content: center;
-            margin-top: 20px;
+            margin-top: 15px; /* Reduced from 20px */
             list-style: none;
             padding: 0;
         }
 
         /* Pagination items */
         .pagination li {
-            margin: 0 5px;
+            margin: 0 4px; /* Reduced from 5px */
         }
 
         /* Pagination links */
         .pagination li a, 
         .pagination li span {
             display: block;
-            padding: 8px 12px;
+            padding: 6px 10px; /* Reduced from 8px 12px */
             text-decoration: none;
             color: #333;
             background-color: #fff;
             border: 1px solid #ddd;
             border-radius: 4px;
             transition: all 0.3s ease;
+            font-size: 0.85rem; /* Added smaller font */
         }
 
         /* Hover state */
@@ -309,7 +332,7 @@
         /* Previous/Next buttons */
         .pagination .page-item:first-child .page-link,
         .pagination .page-item:last-child .page-link {
-            padding: 8px 16px;
+            padding: 6px 12px; /* Reduced from 8px 16px */
         }
 
         /* Disabled state */
@@ -332,7 +355,7 @@
             }
 
             .navbar-brand {
-                padding: 15px 0;
+                padding: 12px 0; /* Reduced from 15px */
             }
 
             .side-navbar {
@@ -355,7 +378,7 @@
             }
 
             .side-navbar .nav-link {
-                padding: 15px;
+                padding: 12px; /* Reduced from 15px */
                 border-left: none;
                 border-left-width: 0;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -363,14 +386,14 @@
 
             .main-container {
                 margin-left: 0;
-                padding: 15px;
+                padding: 10px; /* Reduced from 15px */
             }
 
             /* Mobile-friendly table styles */
             .table-responsive {
                 overflow-x: auto;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                border-radius: 8px;
+                border-radius: 6px; /* Reduced from 8px */
             }
 
             .table {
@@ -379,19 +402,19 @@
             }
 
             .table th, .table td {
-                padding: 10px;
-                font-size: 0.9rem;
+                padding: 8px; /* Reduced from 10px */
+                font-size: 0.85rem; /* Reduced from 0.9rem */
             }
 
             .btn {
-                font-size: 0.9rem;
-                padding: 8px 12px;
-                border-radius: 6px;
+                font-size: 0.85rem; /* Reduced from 0.9rem */
+                padding: 5px 10px; /* Reduced from 8px 12px */
+                border-radius: 4px; /* Reduced from 6px */
             }
 
             .navbar-top .nav-link {
-                margin: 10px 0;
-                padding: 12px 15px;
+                margin: 8px 0; /* Reduced from 10px */
+                padding: 10px 12px; /* Reduced from 12px 15px */
                 display: block;
                 width: 100%;
                 text-align: left;
@@ -403,7 +426,7 @@
             }
 
             .navbar-top form {
-                margin: 10px 0;
+                margin: 8px 0; /* Reduced from 10px */
                 padding: 0;
                 width: 100%;
             }
@@ -419,8 +442,8 @@
             }
 
             .side-navbar .nav-link {
-                padding: 15px;
-                font-size: 1rem;
+                padding: 12px; /* Reduced from 15px */
+                font-size: 0.95rem; /* Reduced from 1rem */
                 border-radius: 0;
             }
         }
@@ -638,9 +661,9 @@
                 document.body.style.paddingTop = '0';
             } else {
                 // Desktop view layout adjustments
-                mainContainer.style.marginLeft = '220px';
+                mainContainer.style.marginLeft = '200px'; // Updated from 220px
                 sideNavbar.style.display = 'block';
-                document.body.style.paddingTop = '60px';
+                document.body.style.paddingTop = '50px'; // Updated from 60px
             }
         }
 
