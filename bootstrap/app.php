@@ -5,6 +5,9 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\RedirectIfNotAuthenticated;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Exceptions\UnauthorizedException;
+
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Define alias for role-based access
         $middleware->alias([
             'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
         ]);
 
         // Use custom authentication redirect middleware
@@ -29,5 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (UnauthorizedException $e, $request) {
+            abort(403, 'Access denied. Admins only.');
+        });
     })->create();
