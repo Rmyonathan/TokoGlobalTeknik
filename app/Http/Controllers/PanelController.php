@@ -311,7 +311,7 @@ class PanelController extends Controller
             (($penambah->length < ($pengurang->length * $qty)) &&
             (($pengurang->length * $qty) % $penambah->length != 0))
             ||
-            (($qty * $pengurang->length) > (Panel::where('group_id', $penambah)->where('available', True)->count() * $penambah->length))
+            (($qty * $pengurang->length) > (Panel::where('group_id', $penambah->kode_barang)->where('available', True)->count() * $penambah->length))
         ) {
             // Add debugging
             \Log::warning('Invalid conversion ratio detected', [
