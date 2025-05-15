@@ -240,7 +240,7 @@ class PurchaseOrderController extends Controller
                     $noTransaksi,
                     $customerName . ' (' . $po->kode_customer . ')',
                     $item->qty,
-                    'LBR'
+                    $po->sales
                 );
     
                 // Update panel availability
