@@ -4,9 +4,7 @@
 <section id="kode-barang">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>List Kode Barang</h2>
-        <a href="{{ route('code.create-code') }}" class="btn btn-primary btn-sm">
-            <i class="fas fa-plus mr-1"></i> Tambah Kode Barang
-        </a>
+        
     </div>
 
     @if(session('success'))

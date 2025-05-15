@@ -490,6 +490,9 @@
                                 <a class="nav-link" href="<?php echo e(route('master.cara_bayar')); ?>"><i class="fas fa-rupiah-sign"></i> Cara Bayar</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="<?php echo e(route('perusahaan.index')); ?>"><i class="fas fa-rupiah-sign"></i>Perusahaan</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('stock.mutasi')); ?>"><i class="fas fa-exchange-alt"></i> Mutasi Stok Barang</a>
                             </li>
                         </ul>

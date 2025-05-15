@@ -31,10 +31,13 @@ class PanelController extends Controller
         return view('panels.repack', compact('inventory'));
     }
 
-    public function viewBarang()
+    public function viewBarang(Request $request)
     {
-        $inventory = $this->getKodeSummary();
-        return view('master.barang', compact('inventory'));
+        $search = $request->input('search', '');
+        $perPage = 10; // Number of items per page
+        
+        $inventory = $this->getKodeSummary($search, $perPage);
+        return view('master.barang', compact('inventory', 'search'));
     }
 
     /**
@@ -681,15 +684,30 @@ class PanelController extends Controller
         ];
     }
 
-    private function getKodeSummary(): array
+    private function getKodeSummary($search = '', $perPage = 10): array
     {
-        // Using Eloquent to get all available panels
-        $panels = KodeBarang::all();
-
+        // Query builder for KodeBarang with search filter
+        $query = KodeBarang::query();
+        
+        // Apply search filter if search term exists
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('kode_barang', 'like', "%{$search}%")
+                ->orWhere('name', 'like', "%{$search}%")
+                ->orWhere('attribute', 'like', "%{$search}%");
+            });
+        }
+        
+        // Paginate the results
+        $panelsPaginator = $query->paginate($perPage);
+        
+        // Get the data from the paginator
+        $panels = $panelsPaginator->items();
+        
         // Manually group the panels
         $groupedPanels = [];
         foreach ($panels as $panel) {
-            $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->group_id;
+            $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->kode_barang;
 
             if (!isset($groupedPanels[$key])) {
                 $groupedPanels[$key] = [
@@ -717,8 +735,9 @@ class PanelController extends Controller
         });
 
         return [
-            'total_panels' => count($panels),
-            'inventory_by_length' => $inventory
+            'total_panels' => $panelsPaginator->total(),
+            'inventory_by_length' => $inventory,
+            'paginator' => $panelsPaginator // Pass the paginator object for use in the view
         ];
     }
 

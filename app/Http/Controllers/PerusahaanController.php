@@ -44,7 +44,7 @@ class PerusahaanController extends Controller
         Perusahaan::create($validated);
 
         return redirect()
-            ->route('master.perusahaan.index')
+            ->route('perusahaan.index')
             ->with('success', 'Data perusahaan berhasil ditambahkan');
     }
 
@@ -86,7 +86,7 @@ class PerusahaanController extends Controller
         $perusahaan->update($validated);
 
         return redirect()
-            ->route('master.perusahaan.index')
+            ->route('perusahaan.index')
             ->with('success', 'Data perusahaan berhasil diperbarui');
     }
 
@@ -102,7 +102,7 @@ class PerusahaanController extends Controller
         $perusahaan->delete();
 
         return redirect()
-            ->route('master.perusahaan.index')
+            ->route('perusahaan.index')
             ->with('success', 'Data perusahaan berhasil dihapus');
     }
 }

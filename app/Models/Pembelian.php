@@ -25,7 +25,6 @@ class Pembelian extends Model
     'nota',
     'tanggal',
     'kode_supplier',
-    'cabang',
     'pembayaran',
     'cara_bayar',
     'subtotal',
