@@ -44,7 +44,7 @@ class PanelController extends Controller
     {
         // Get date filter or default to today
         $dateFilter = $request->input('date_filter');
-        
+
         // Get all orders with their related order items and panels
         $cuttingHistory = Order::with(['orderItems.panel'])
             ->when($dateFilter, function($query) use ($dateFilter) {
@@ -52,10 +52,10 @@ class PanelController extends Controller
             })
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-        
+
         // Get current inventory summary
         $inventory = $this->getInventorySummary();
-        
+
         return view('panels.repack', [
             'cuttingHistory' => $cuttingHistory,
             'inventory' => $inventory
@@ -148,8 +148,8 @@ class PanelController extends Controller
 
         foreach ($validated['panels'] as $panel) {
             $result = $this->processOrder(
-                $panel['name'], 
-                $panel['length'], 
+                $panel['name'],
+                $panel['length'],
                 $panel['quantity']
             );
 
@@ -321,142 +321,265 @@ class PanelController extends Controller
      * @param int $requestedQuantity Quantity of panels requested
      * @return array Status of the operation
      */
-    public function repackOrder(Request $request) {
-        // Validate input fields
+    // public function repackOrder(Request $request) {
+    //     // Validate input fields
+    //     $validated = $request->validate([
+    //     'penambah' => 'required|string|max:255',
+    //     'pengurang' => 'required|string|max:255',
+    //     'quantity' => 'required|integer|min:1',
+    //     ], [
+    //         'penambah.required' => 'Item code is required',
+    //         'penambah.string' => 'Item code must be a valid string',
+    //         'penambah.max' => 'Item code may not be greater than 255 characters',
+
+    //         //Pengurang and quantity convert it to accepting arrays
+    //         'pengurang.required' => 'Item code is required',
+    //         'pengurang.string' => 'Item code must be a valid string',
+    //         'pengurang.max' => 'Item code may not be greater than 255 characters',
+
+    //         'quantity.required' => 'Quantity is required',
+    //         'quantity.integer' => 'Quantity must be a whole number',
+    //         'quantity.min' => 'Quantity must be at least 1',
+    //     ]);
+
+    //     // Get the codes
+    //     $penambah = KodeBarang::where('kode_barang', $validated['penambah'])->first();
+    //     $pengurang = KodeBarang::where('kode_barang', $validated['pengurang'])->first(); //Turn this into foreach. So for each pengurang, get their datas.
+    //     $qty = $validated['quantity'];
+
+    //     // Add debugging
+    //     // \Log::info('Processing order with data:', [
+    //     //     'penambah' => $penambah->kode_barang,
+    //     //     'penambah_length' => $penambah->length,
+    //     //     'pengurang' => $pengurang->kode_barang,
+    //     //     'pengurang_length' => $pengurang->length,
+    //     //     'qty' => $qty
+    //     // ]);
+
+    //     // Perform validation with improved parentheses for clarity
+    //     // In this validation, turn it into sum of (pengurang->length * quantity)
+    //     if (
+    //         // Case 1: Penambah is longer but doesn't divide evenly
+    //         (($penambah->length >= ($pengurang->length * $qty)) &&
+    //         ($penambah->length - ($pengurang->length * $qty) != 0))
+    //         ||
+    //         // Case 2: Penambah is shorter but doesn't fit evenly
+    //         (($penambah->length < ($pengurang->length * $qty)) &&
+    //         (($pengurang->length * $qty) % $penambah->length != 0))
+    //         ||
+    //         (($qty * $pengurang->length) > (Panel::where('group_id', $penambah->kode_barang)->where('available', True)->count() * $penambah->length))
+    //     ) {
+    //         // Add debugging
+    //         Log::warning('Invalid conversion ratio detected', [
+    //             'calculation1' => ($penambah->length >= ($pengurang->length * $qty)),
+    //             'calculation2' => ($penambah->length - ($pengurang->length * $qty) != 0),
+    //             'calculation3' => ($penambah->length < ($pengurang->length * $qty)),
+    //             'calculation4' => (($pengurang->length * $qty) % $penambah->length != 0),
+    //         ]);
+
+    //         if ($request->ajax() || $request->wantsJson()) {
+    //             return response()->json(['error' => 'Invalid conversion ratio.'], 400);
+    //         } else {
+    //             return redirect()->back()->with('error', 'Invalid conversion ratio.');
+    //         }
+    //     } else {
+    //         $reduction = 0;
+    //         if ($penambah->length - ($pengurang->length * $qty) == 0) {
+    //             $reduction = 1;
+    //         } else {
+    //             $reduction = ($qty * $pengurang->length) / $penambah->length;
+    //         }
+
+    //         $panelPenambah = Panel::where('group_id', $penambah->kode_barang)
+    //                         ->where('available', true)
+    //                         ->limit((int) $reduction)
+    //                         ->get();
+
+    //         // Create order record for tracking
+    //         $order = Order::create([
+    //             'total_quantity' => $qty,
+    //             'name' => $pengurang->name,
+    //             'transaction' => $pengurang->price * $pengurang->length * $qty,
+    //             'total_length' => $qty * $pengurang->length,
+    //             'status' => 'completed',
+    //             'notes' => "Repack from {$penambah->kode_barang} to {$pengurang->kode_barang}"
+    //         ]);
+
+    //         foreach ($panelPenambah as $p) {
+    //             $p->available = false;
+    //             $p->save();
+
+    //             // Create order item with more detailed information
+    //             OrderItem::create([
+    //                 'order_id' => $order->id,
+    //                 'panel_id' => $p->id,
+    //                 'name' => $pengurang->name . " (from " . $penambah->name . ")",
+    //                 'length' => $pengurang->length,
+    //                 'transaction' => $pengurang->price * $pengurang->length * $qty,
+    //                 'original_panel_length' => $p->length,
+    //                 'remaining_length' => 0
+    //             ]);
+    //         }
+
+    //         //This also turn it into for each until the addpanels to inventory
+    //         $name = $pengurang->name;
+    //         $price = $pengurang->price;
+    //         $cost = $pengurang->cost;
+    //         $length = $pengurang->length;
+    //         $group_id = $pengurang->kode_barang;
+
+    //         $this->addPanelsToInventory($name, $cost, $price, $length, $group_id, $qty);
+
+    //         if ($request->ajax() || $request->wantsJson()) {
+    //             return response()->json([
+    //                 'success' => true,
+    //                 'message' => "Successfully processed order for {$qty} panels of {$request->pengurang}."
+    //             ]);
+    //         } else {
+    //             return redirect()->route('panels.repack')
+    //                 ->with('success', "Successfully processed order for {$qty} panels of {$request->pengurang}.");
+    //         }
+    //     }
+    // }
+
+    public function repackOrder(Request $request)
+    {
+        // Validate input fields (now accepting arrays for pengurang and quantity)
         $validated = $request->validate([
-        'penambah' => 'required|string|max:255',
-        'pengurang' => 'required|string|max:255',
-        'quantity' => 'required|integer|min:1',
+            'penambah' => 'required|string|max:255',
+            'pengurang' => 'required|array|min:1',
+            'pengurang.*' => 'required|string|max:255',
+            'quantity' => 'required|array|min:1',
+            'quantity.*' => 'required|integer|min:1',
         ], [
             'penambah.required' => 'Item code is required',
-            'penambah.string' => 'Item code must be a valid string',
-            'penambah.max' => 'Item code may not be greater than 255 characters',
-
-            'pengurang.required' => 'Item code is required',
-            'pengurang.string' => 'Item code must be a valid string',
-            'pengurang.max' => 'Item code may not be greater than 255 characters',
-
-            'quantity.required' => 'Quantity is required',
-            'quantity.integer' => 'Quantity must be a whole number',
-            'quantity.min' => 'Quantity must be at least 1',
+            'pengurang.required' => 'At least one item to reduce is required',
+            'quantity.required' => 'Quantities are required',
+            'pengurang.*.required' => 'Each item code is required',
+            'pengurang.*.string' => 'Each item code must be a valid string',
+            'pengurang.*.max' => 'Each item code may not be greater than 255 characters',
+            'quantity.*.integer' => 'Each quantity must be a whole number',
+            'quantity.*.min' => 'Each quantity must be at least 1',
         ]);
 
-        // Get the codes
         $penambah = KodeBarang::where('kode_barang', $validated['penambah'])->first();
-        $pengurang = KodeBarang::where('kode_barang', $validated['pengurang'])->first();
-        $qty = $validated['quantity'];
+        $pengurangs = $validated['pengurang'];
+        $quantities = $validated['quantity'];
 
-        // Add debugging
-        // \Log::info('Processing order with data:', [
-        //     'penambah' => $penambah->kode_barang,
-        //     'penambah_length' => $penambah->length,
-        //     'pengurang' => $pengurang->kode_barang,
-        //     'pengurang_length' => $pengurang->length,
-        //     'qty' => $qty
-        // ]);
+        $totalPengurangLength = 0;
+        $totalTransaction = 0;
+        $totalQty = 0;
 
-        // Perform validation with improved parentheses for clarity
+        $pengurangData = [];
+
+        foreach ($pengurangs as $index => $kode) {
+            $pengurang = KodeBarang::where('kode_barang', $kode)->first();
+            $qty = $quantities[$index];
+
+            $totalPengurangLength += $pengurang->length * $qty;
+            $totalTransaction += $pengurang->price * $pengurang->length * $qty;
+            $totalQty += $qty;
+
+            $pengurangData[] = [
+                'item' => $pengurang,
+                'qty' => $qty,
+            ];
+        }
+
+        // Check invalid conversion or insufficient inventory
         if (
-            // Case 1: Penambah is longer but doesn't divide evenly
-            (($penambah->length >= ($pengurang->length * $qty)) &&
-            ($penambah->length - ($pengurang->length * $qty) != 0))
-            ||
-            // Case 2: Penambah is shorter but doesn't fit evenly
-            (($penambah->length < ($pengurang->length * $qty)) &&
-            (($pengurang->length * $qty) % $penambah->length != 0))
-            ||
-            (($qty * $pengurang->length) > (Panel::where('group_id', $penambah->kode_barang)->where('available', True)->count() * $penambah->length))
+            ($penambah->length >= $totalPengurangLength && ($penambah->length - $totalPengurangLength) != 0)
+            || ($penambah->length < $totalPengurangLength && ($totalPengurangLength % $penambah->length != 0))
+            || ($totalPengurangLength > (Panel::where('group_id', $penambah->kode_barang)->where('available', true)->count() * $penambah->length))
         ) {
-            // Add debugging
-            Log::warning('Invalid conversion ratio detected', [
-                'calculation1' => ($penambah->length >= ($pengurang->length * $qty)),
-                'calculation2' => ($penambah->length - ($pengurang->length * $qty) != 0),
-                'calculation3' => ($penambah->length < ($pengurang->length * $qty)),
-                'calculation4' => (($pengurang->length * $qty) % $penambah->length != 0),
-            ]);
-
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json(['error' => 'Invalid conversion ratio.'], 400);
             } else {
                 return redirect()->back()->with('error', 'Invalid conversion ratio.');
             }
-        } else {
-            $reduction = 0;
-            if ($penambah->length - ($pengurang->length * $qty) == 0) {
-                $reduction = 1;
-            } else {
-                $reduction = ($qty * $pengurang->length) / $penambah->length;
-            }
+        }
 
-            $panelPenambah = Panel::where('group_id', $penambah->kode_barang)
-                            ->where('available', true)
-                            ->limit((int) $reduction)
-                            ->get();
+        // Calculate how many panels of penambah are needed
+        $reduction = ($penambah->length - $totalPengurangLength == 0) ? 1 : ($totalPengurangLength / $penambah->length);
 
-            // Create order record for tracking
-            $order = Order::create([
-                'total_quantity' => $qty,
-                'name' => $pengurang->name,
-                'transaction' => $pengurang->price * $pengurang->length * $qty,
-                'total_length' => $qty * $pengurang->length,
-                'status' => 'completed',
-                'notes' => "Repack from {$penambah->kode_barang} to {$pengurang->kode_barang}"
-            ]);
+        $panelPenambah = Panel::where('group_id', $penambah->kode_barang)
+            ->where('available', true)
+            ->limit((int) $reduction)
+            ->get();
 
-            foreach ($panelPenambah as $p) {
-                $p->available = false;
-                $p->save();
-                
-                // Create order item with more detailed information
+        // Create main order
+        $order = Order::create([
+            'total_quantity' => $totalQty,
+            'name' => 'Multi-Item Repack',
+            'transaction' => $totalTransaction,
+            'total_length' => $totalPengurangLength,
+            'status' => 'completed',
+            'notes' => "Repack from {$penambah->kode_barang} to multiple items"
+        ]);
+
+        foreach ($panelPenambah as $p) {
+            $p->available = false;
+            $p->save();
+        }
+
+        // For each pengurang, create OrderItems and inventory
+        foreach ($pengurangData as $entry) {
+            $item = $entry['item'];
+            $qty = $entry['qty'];
+
+            for ($i = 0; $i < $qty; $i++) {
                 OrderItem::create([
                     'order_id' => $order->id,
-                    'panel_id' => $p->id,
-                    'name' => $pengurang->name . " (from " . $penambah->name . ")",
-                    'length' => $pengurang->length,
-                    'transaction' => $pengurang->price * $pengurang->length * $qty,
-                    'original_panel_length' => $p->length,
+                    'panel_id' => $panelPenambah[0]->id ?? null, // Optional: random assignment
+                    'name' => $item->name . " (from " . $penambah->name . ")",
+                    'length' => $item->length,
+                    'transaction' => $item->price * $item->length,
+                    'original_panel_length' => $penambah->length,
                     'remaining_length' => 0
                 ]);
             }
 
-            $name = $pengurang->name;
-            $price = $pengurang->price;
-            $cost = $pengurang->cost;
-            $length = $pengurang->length;
-            $group_id = $pengurang->kode_barang;
+            $this->addPanelsToInventory(
+                $item->name,
+                $item->cost,
+                $item->price,
+                $item->length,
+                $item->kode_barang,
+                $qty
+            );
+        }
 
-            $this->addPanelsToInventory($name, $cost, $price, $length, $group_id, $qty);
+        $successMessage = "Successfully processed multi-item repack.";
 
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => "Successfully processed order for {$qty} panels of {$request->pengurang}."
-                ]);
-            } else {
-                return redirect()->route('panels.repack')
-                    ->with('success', "Successfully processed order for {$qty} panels of {$request->pengurang}.");
-            }
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $successMessage
+            ]);
+        } else {
+            return redirect()->route('panels.repack')->with('success', $successMessage);
         }
     }
+
 
     /**
      * View receipt for a specific order
      */
- 
+
     public function printReceipt($orderId)
     {
         $order = Order::with(['orderItems.panel'])->findOrFail($orderId);
-        
+
         return view('panels.receipt', compact('order'));
     }
-    
+
     /**
      * View details for a specific order
      */
     public function viewOrder($orderId)
     {
         $order = Order::with('orderItems.panel')->findOrFail($orderId);
-        
+
         return view('panels.order-details', compact('order'));
     }
 
@@ -725,17 +848,17 @@ class PanelController extends Controller
     public function getPanelByKodeBarang(Request $request)
     {
         $kodeBarang = $request->input('kode_barang');
-        
+
         // Get the KodeBarang model to get its name
         $kodeBarangModel = KodeBarang::where('kode_barang', $kodeBarang)->first();
-        
+
         if ($kodeBarangModel) {
             return response()->json([
                 'success' => true,
                 'panel_name' => $kodeBarangModel->name // Use KodeBarang's name field
             ]);
         }
-        
+
         return response()->json([
             'success' => false,
             'panel_name' => null
