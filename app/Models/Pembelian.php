@@ -22,16 +22,20 @@ class Pembelian extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'nota',
-        'tanggal',
-        'kode_supplier',
-        'cabang',
-        'pembayaran',
-        'cara_bayar',
-        'subtotal',
-        'diskon',
-        'ppn',
-        'grand_total',
+    'nota',
+    'tanggal',
+    'kode_supplier',
+    'cabang',
+    'pembayaran',
+    'cara_bayar',
+    'subtotal',
+    'diskon',
+    'ppn',
+    'grand_total',
+    'status',
+    'canceled_by',
+    'canceled_at',
+    'cancel_reason'
     ];
 
     /**
@@ -53,6 +57,10 @@ class Pembelian extends Model
     public function supplierRelation()
     {
         return $this->belongsTo(Supplier::class, 'kode_supplier', 'kode_supplier');
+    }
+    public function stokOwner()
+    {
+        return $this->belongsTo(StokOwner::class, 'cabang', 'kode_stok_owner');
     }
 
     /**

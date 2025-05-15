@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <title>Atap Management System</title>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
@@ -134,39 +135,39 @@
         }
         
         .side-navbar .dropdown-menu {
-    background-color: var(--primary-color);
-    border: none;
-    box-shadow: none;
-    width: 100%;
-    margin-top: 5px;
-    padding: 0;
-}
+            background-color: var(--primary-color);
+            border: none;
+            box-shadow: none;
+            width: 100%;
+            margin-top: 5px;
+            padding: 0;
+        }
 
-.side-navbar .dropdown-menu .dropdown-item {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    white-space: normal;
-    padding: 12px 15px;
-    color: var(--light-color);
-    text-decoration: none;
-    transition: all 0.3s ease;
-    border-left: 3px solid transparent;
-    font-weight: 500;
-    background: none;
-}
+        .side-navbar .dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            white-space: normal;
+            padding: 12px 15px;
+            color: var(--light-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            font-weight: 500;
+            background: none;
+        }
 
-.side-navbar .dropdown-menu .dropdown-item:hover {
-    background-color: rgba(230, 57, 70, 0.15);
-    color: var(--light-color);
-    border-left: 3px solid var(--secondary-color);
-}
+        .side-navbar .dropdown-menu .dropdown-item:hover {
+            background-color: rgba(230, 57, 70, 0.15);
+            color: var(--light-color);
+            border-left: 3px solid var(--secondary-color);
+        }
 
-.side-navbar .dropdown-menu .dropdown-item.active {
-    background-color: var(--secondary-color);
-    color: white;
-    border-left: 3px solid var(--light-color);
-}
+        .side-navbar .dropdown-menu .dropdown-item.active {
+            background-color: var(--secondary-color);
+            color: white;
+            border-left: 3px solid var(--light-color);
+        }
 
         /* Main Container */
         .main-container {
@@ -262,6 +263,59 @@
         /* Red accent border */
         .card {
             border-top: 3px solid var(--secondary-color);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            list-style: none;
+            padding: 0;
+        }
+
+        /* Pagination items */
+        .pagination li {
+            margin: 0 5px;
+        }
+
+        /* Pagination links */
+        .pagination li a, 
+        .pagination li span {
+            display: block;
+            padding: 8px 12px;
+            text-decoration: none;
+            color: #333;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        /* Hover state */
+        .pagination li a:hover {
+            background-color: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        /* Active state */
+        .pagination li.active span {
+            background-color: #007bff;
+            color: #fff;
+            border-color: #007bff;
+        }
+
+        /* Previous/Next buttons */
+        .pagination .page-item:first-child .page-link,
+        .pagination .page-item:last-child .page-link {
+            padding: 8px 16px;
+        }
+
+        /* Disabled state */
+        .pagination .disabled span {
+            color: #888;
+            background-color: #f8f8f8;
+            border-color: #eee;
+            cursor: not-allowed;
         }
 
         /* Responsive styles */
@@ -411,14 +465,14 @@
                 <!-- Dropdown Menu Master -->
                 <li class='nav-item'>
                     <a class="nav-link" data-toggle="collapse" href="#masterMenu" role="button" aria-expanded="false" aria-controls="masterMenu">
-                        <i class="fas fa-cogs"></i> Master Data
+                        <i class="fas fa-list"></i> Master Data
                         <i class="fas fa-chevron-down ml-auto"></i>
                     </a>
                     <div class="collapse bg-dark border-0" id="masterMenu">
                         <!-- Master menu items -->
                         <ul class="nav flex-column ml-3">
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('panels.inventory') }}"><i class="fas fa-cut"></i> Inventory</a>
+                                <a class="nav-link" href="{{ route('panels.repack') }}"><i class="fas fa-boxes"></i> Repack</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('master.barang') }}"><i class="fas fa-layer-group"></i> Display Barang</a>
@@ -433,7 +487,7 @@
                                 <a class="nav-link" href="<?php echo e(route('suppliers.index')); ?>"><i class="fas fa-people-carry-box"></i> Suppliers</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="<?php echo e(route('cara_bayar.form')); ?>"><i class="fas fa-file-invoice-dollar"></i> Master Cara Bayar</a>
+                                <a class="nav-link" href="<?php echo e(route('master.cara_bayar')); ?>"><i class="fas fa-rupiah-sign"></i> Cara Bayar</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('stock.mutasi')); ?>"><i class="fas fa-exchange-alt"></i> Mutasi Stok Barang</a>
@@ -452,7 +506,7 @@
                             <!-- Di sini Dropdown Transaksi Penjualan -->
                             <li class='nav-item'>
                                 <a class="nav-link" data-toggle="collapse" href="#penjualan" role="button" aria-expanded="false" aria-controls="transaksipenjualan">
-                                    <i class="fas fa-cogs"></i> Penjualan
+                                    <i class="fas fa-cash-register"></i> Penjualan
                                     <i class="fas fa-chevron-down ml-auto"></i>
                                 </a>
                                 <div class="collapse bg-dark border-0" id="penjualan">
@@ -462,13 +516,13 @@
                                             <a class="nav-link" href="<?php echo e(route('transaksi.penjualan')); ?>"><i class="fas fa-circle-plus"></i> Tambah Penjualan</a>
                                         </li>
                                         <li class="nav-item">
-                                        <a class="nav-link" href="<?php echo e(route('transaksi.displaypenjualan')); ?>"><i class="fas fa-clock-rotate-left"></i> Display Penjualan</a>
+                                            <a class="nav-link" href="{{ route('transaksi.penjualancustomer') }}"><i class="fas fa-user-tag mr-2"></i>Data Penjualan Per Customer</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="{{ route('transaksi.penjualancustomer') }}"><i class="fas fa-file-invoice-dollar mr-2"></i>Data Penjualan Per Customer</a>
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.index')); ?>"><i class="fas fa-envelope-open-text"></i> List Nota Penjualan</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-file-invoice"></i> Lihat Nota Penjualan</a>
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.purchaseorder')); ?>"><i class="fas fa-money-bill-wave mr-2"></i>Purchase Order</a>
                                         </li>
                                     </ul>
                                 </div>
@@ -476,7 +530,7 @@
                             <!-- Di sini Dropdown Transaksi Pembelian -->
                             <li class='nav-item'>
                                 <a class="nav-link" data-toggle="collapse" href="#pembelian" role="button" aria-expanded="false" aria-controls="pembelian">
-                                    <i class="fas fa-bag-shopping"></i> Pembelian
+                                    <i class="fas fa-cart-flatbed"></i> Pembelian
                                     <i class="fas fa-chevron-down ml-auto"></i>
                                 </a>
                                 <div class="collapse bg-dark border-0" id="pembelian">
@@ -485,25 +539,18 @@
                                             <a class="nav-link" href="{{ route('pembelian.index') }}"><i class="fas fa-circle-plus"></i> Tambah Pembelian</a>
                                         </li>
                                         <li class="nav-item">
-                                        <a class="nav-link" href="<?php echo e(route('pembelian.historypembelian')); ?>"><i class="fas fa-clock-rotate-left"></i> History Pembelian</a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-file-invoice-dollar mr-2"></i> List Nota Pembelian</a>
-                                            </li>
-                                           
+                                            <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-envelope-open-text"></i> List Nota Pembelian</a>
+                                        </li>   
                                     </ul>
                                 </div>
                             </li>
-                            <!-- Lihat Nota Transaksi -->
-                            
-                           
                         </ul>
                     </div>
                 </li>
 
                 <li class='nav-item'>
                     <a class="nav-link" data-toggle="collapse" href="#suratjalan" role="button" aria-expanded="false" aria-controls="suratjalan">
-                        <i class="fas fa-cogs"></i> Surat Jalan
+                        <i class="fas fa-truck-fast"></i> Surat Jalan
                         <i class="fas fa-chevron-down ml-auto"></i>
                     </a>
                     <div class="collapse bg-dark border-0" id="suratjalan">
@@ -522,6 +569,7 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/viewKas"><i class="fas fa-money-bill-wave mr-2"></i>Kas</a>
                 </li>
+
             </ul>
         </div>
     </nav>
@@ -530,6 +578,17 @@
     <div class="main-container" id="mainContainer">
         <!-- Content will be loaded here -->
         <?php echo $__env->yieldContent('content'); ?>
+        @if(session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="alert alert-danger">
+                {{ session('error') }}
+            </div>
+        @endif
     </div>
 
     <script>

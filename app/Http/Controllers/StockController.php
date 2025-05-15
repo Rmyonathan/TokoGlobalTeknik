@@ -8,6 +8,8 @@ use App\Models\StockMutation;
 use Illuminate\Support\Facades\DB;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+
 
 class StockController extends Controller
 {
@@ -137,11 +139,18 @@ class StockController extends Controller
         string $no_nota,
         string $supplier_customer,
         float $quantity,
-        string $so = 'ALUMKA',
-        string $satuan = 'LBR'
+        string $so,
+        string $satuan = 'LBR',
+        string $keterangan = 'Purchase transaction',
+        ?string $created_by = null
     ): bool {
         try {
             DB::beginTransaction();
+
+            // Get current user if not provided
+            if ($created_by === null) {
+                $created_by = Auth::check() ? Auth::user()->name : 'SYSTEM';
+            }
 
             // Get current stock level or create new record if it doesn't exist
             $stock = Stock::firstOrCreate(
@@ -169,7 +178,8 @@ class StockController extends Controller
                 'total' => $newTotal,
                 'so' => $so,
                 'satuan' => $satuan,
-                'keterangan' => 'Purchase transaction',
+                'keterangan' => $keterangan,
+                'created_by' => $created_by
             ]);
 
             // Update stock
@@ -196,11 +206,18 @@ class StockController extends Controller
         string $no_nota,
         string $customer,
         float $quantity,
-        string $so = 'ALUMKA',
-        string $satuan = 'LBR'
+        string $so,
+        string $satuan = 'LBR',
+        string $keterangan = 'Sale transaction',
+        ?string $created_by = null
     ): bool {
         try {
             DB::beginTransaction();
+
+            // Get current user if not provided
+            if ($created_by === null) {
+                $created_by = Auth::check() ? Auth::user()->name : 'SYSTEM';
+            }
 
             // Get current stock level or create new record if it doesn't exist
             $stock = Stock::firstOrCreate(
@@ -228,7 +245,8 @@ class StockController extends Controller
                 'total' => $newTotal,
                 'so' => $so,
                 'satuan' => $satuan,
-                'keterangan' => 'Sale transaction',
+                'keterangan' => $keterangan,
+                'created_by' => $created_by
             ]);
 
             // Update stock
@@ -249,6 +267,7 @@ class StockController extends Controller
      */
     public function getOpeningBalance(string $kode_barang, string $so, string $date): float
     {
+        // Existing code...
         $latestMovement = StockMutation::where('kode_barang', $kode_barang)
             ->where('so', $so)
             ->whereDate('tanggal', '<', $date)
@@ -265,7 +284,14 @@ class StockController extends Controller
     public function getStock(Request $request)
     {
         $kode_barang = $request->input('kode_barang');
-        $so = $request->input('so', 'ALUMKA');
+        $so = $request->input('so');
+
+        if (empty($so)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'SO parameter is required'
+            ], 400);
+        }
 
         $stock = Stock::where('kode_barang', $kode_barang)
             ->where('so', $so)
@@ -290,7 +316,15 @@ class StockController extends Controller
     public function getStockMutations(Request $request)
     {
         $kode_barang = $request->input('kode_barang');
-        $so = $request->input('so', 'ALUMKA');
+        $so = $request->input('so');
+        
+        if (empty($so)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'SO parameter is required'
+            ], 400);
+        }
+
         $tanggal_awal = $request->input('tanggal_awal');
         $tanggal_akhir = $request->input('tanggal_akhir');
 
@@ -321,3 +355,4 @@ class StockController extends Controller
         ]);
     }
 }
+

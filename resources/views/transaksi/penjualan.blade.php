@@ -34,19 +34,30 @@
                             <label for="customer">Customer</label>
                             <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan kode atau nama customer">
                             <input type="hidden" id="kode_customer" name="kode_customer"> <!-- Hanya kode_customer yang dikirim -->
-                            <div id="customerDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
+                            <div id="customerDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
                         </div>
 
                         <div class="form-group">
-                            <label for="sales">Sales</label>
-                            <input type="text" id="sales" name="sales_display" class="form-control" placeholder="Masukkan kode atau nama sales">
-                            <input type="hidden" id="kode_sales" name="sales"> <!-- Hanya kode_sales yang dikirim -->
-                            <div id="salesDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
+                            <label for="customer">Alamat Customer</label>
+                            <input type="text" id="alamatCustomer" name="customer-alamat" class="form-control" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="customer">No HP / Telp Customer</label>
+                            <input type="text" id="hpCustomer" name="customer-hp" class="form-control" readonly>
                         </div>
 
                     </div>
 
                     <div class="col-md-6">
+
+                        <div class="form-group">
+                            <label for="sales">Sales</label>
+                            <input type="text" id="sales" name="sales_display" class="form-control" placeholder="Masukkan kode atau nama sales">
+                            <input type="hidden" id="kode_sales" name="sales"> <!-- Hanya kode_sales yang dikirim -->
+                            <div id="salesDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
+                        </div>
+
                         <div class="form-group">
                             <label for="lokasi">Lokasi</label>
                             <select class="form-control" id="lokasi" name="lokasi">
@@ -57,21 +68,18 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="pembayaran">Pembayaran</label>
-                            <select class="form-control" id="pembayaran" name="pembayaran">
+                            <label for="metode_pembayaran">Metode Pembayaran</label>
+                            <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
+                                <option selected disabled value=""> Pilih Metode Pembayaran</option>
                                 <option value="Tunai">Tunai</option>
-                                <option value="Transfer">Transfer</option>
-                                <option value="Kredit">Kredit</option>
+                                <option value="Non Tunai">Non Tunai</option>
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label for="cara_bayar">Cara Bayar</label>
                             <select class="form-control" id="cara_bayar" name="cara_bayar">
-                                <option value="Cash">Cash</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="Debit">Debit</option>
-                                <option value="Cicilan">Cicilan</option>
+                                <option value="">Pilih Metode Dulu</option>
                             </select>
                         </div>
 
@@ -188,11 +196,8 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label>Cara Bayar</label>
-                        <select class="form-control" id="cara_bayar_akhir">
-                            <option value="Cash">Cash</option>
-                            <option value="Credit Card">Credit Card</option>
-                            <option value="Debit">Debit</option>
-                            <option value="Cicilan">Cicilan</option>
+                        <select class="form-control" id="cara_bayar_akhir" disabled>
+                            <option value="">-- Belum Dipilih --</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -202,6 +207,9 @@
                     <div class="form-group text-right mt-4">
                         <button type="button" class="btn btn-success" id="saveTransaction">
                             <i class="fas fa-save"></i> Simpan Transaksi
+                        </button>
+                        <button type="button" class="btn btn-warning" id="buatPOBtn">
+                            <i class="fas fa-file-alt"></i> Buat PO
                         </button>
                         <button type="button" class="btn btn-secondary" id="cancelTransaction">
                             <i class="fas fa-times"></i> Batal
@@ -315,6 +323,35 @@ $(document).ready(function() {
     let items = [];
     let grandTotal = 0;
 
+    // Metode Pembayaran
+    $('#metode_pembayaran').on('change', function () {
+        const metode = $(this).val();
+        $('#cara_bayar').html('<option value="">Loading...</option>');
+        
+        $.ajax({
+            url: '{{ url("api/cara-bayar/by-metode") }}',
+            method: 'GET',
+            data: { metode: metode },
+            success: function (data) {
+                let options = '<option value="">-- Pilih Cara Bayar --</option>';
+                data.forEach(cb => {
+                    options += `<option value="${cb.nama}">${cb.nama}</option>`;
+                });
+                $('#cara_bayar').html(options);
+            },
+            error: function () {
+                $('#cara_bayar').html('<option value="">Gagal load data</option>');
+            }
+        });
+    });
+
+    $('#cara_bayar').on('change', function () {
+        const selected = $(this).val();
+        $('#cara_bayar_akhir')
+            .html(`<option value="${selected}">${selected}</option>`)
+            .val(selected);
+    });
+
     // Search customers
     $('#customer').on('input', function () {
         const keyword = $(this).val();
@@ -327,7 +364,13 @@ $(document).ready(function() {
                     let dropdown = '';
                     if (data.length > 0) {
                         data.forEach(customer => {
-                            dropdown += `<a class="dropdown-item customer-item" data-kode="${customer.kode_customer}" data-name="${customer.nama}">${customer.kode_customer} - ${customer.nama}</a>`;
+                            dropdown += `<a class="dropdown-item customer-item" 
+                                data-kode="${customer.kode_customer}" 
+                                data-name="${customer.nama}"
+                                data-alamat="${customer.alamat}"
+                                data-hp="${customer.hp}"
+                                data-telp="${customer.telepon}">
+                            ${customer.kode_customer} - ${customer.nama} - ${customer.alamat} - ${customer.hp}</a>`;
                         });
                     } else {
                         dropdown = '<a class="dropdown-item disabled">Tidak ada customer ditemukan</a>';
@@ -347,8 +390,13 @@ $(document).ready(function() {
     $(document).on('click', '.customer-item', function () {
         const kodeCustomer = $(this).data('kode');
         const namaCustomer = $(this).data('name');
+        const alamatCustomer = $(this).data('alamat');
+        const hpCustomer = $(this).data('hp');
+        const telpCustomer = $(this).data('telp');
         $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
         $('#customer').val(`${kodeCustomer} - ${namaCustomer}`); // Tampilkan kode dan nama customer di input utama
+        $('#alamatCustomer').val(alamatCustomer);
+        $('#hpCustomer').val(`${hpCustomer} / ${telpCustomer}`);
         $('#customerDropdown').hide();
     });
 
@@ -559,9 +607,9 @@ $(document).ready(function() {
         // Calculate PPN
         let ppnAmount = 0;
         if ($('#ppn_checkbox').is(':checked')) {
-            ppnAmount = ((subtotal - discountAmount - discRp) * 11) / 100; // Using 11% for PPN
+            ppnAmount = ((subtotal - discountAmount - discRp) * 0.11); // Using 11% for PPN
         }
-        $('#ppn_amount').val(ppnAmount.toFixed(2));
+        $('#ppn_amount').val(formatCurrency(ppnAmount));
 
         // Calculate DP
         let dpAmount = 0;
@@ -598,7 +646,7 @@ $(document).ready(function() {
                 kode_customer: $('#kode_customer').val(),
                 sales: $('#sales').val(),
                 lokasi: $('#lokasi').val(),
-                pembayaran: $('#pembayaran').val(),
+                pembayaran: $('#metode_pembayaran').val(),
                 cara_bayar: $('#cara_bayar').val(),
                 tanggal_jadi: $('#tanggal_jadi').val(),
                 items: items,
@@ -637,16 +685,84 @@ $(document).ready(function() {
             });
 
             // Tombol Kembali
-            $('#backToFormBtn').click(function() {
+            $('#backToFormBtn').off('click').on('click', function(){
                 $('#invoiceModal').modal('hide');
                 $('#transactionForm')[0].reset();
                 items = [];
                 renderItems();
                 calculateTotals();
+                window.location.href = "{{ route('transaksi.penjualan') }}";
             });
 
             // You would typically send this data to your backend using AJAX
             console.log('Transaction data:', transactionData);
+        }
+    });
+
+    // Button Buat PO
+    $('#buatPOBtn').click(function(){
+    if (confirm('Simpan sebagai PO (tidak mempengaruhi stok)?')) {
+        if (!$('#kode_customer').val()) {
+            alert('Pilih customer dari daftar yang tersedia!');
+            return;
+        }
+
+        if (items.length === 0) {
+            alert('Tidak ada barang yang ditambahkan!');
+            return;
+        }
+
+        // Format items for PO
+        const poItems = items.map(item => ({
+            kodeBarang: item.kodeBarang,
+            namaBarang: item.namaBarang,
+            keterangan: item.keterangan || '',
+            harga: item.harga,
+            panjang: item.panjang || 0,
+            qty: item.qty,
+            total: item.total,
+            diskon: item.diskon || 0
+        }));
+
+        // Create the PO data
+        const formData = new FormData();
+        
+        // Add form fields
+        formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+        formData.append('tanggal', $('#tanggal').val());
+        formData.append('kode_customer', $('#kode_customer').val());
+        formData.append('sales', $('#kode_sales').val());
+        formData.append('lokasi', $('#lokasi').val());
+        formData.append('pembayaran', $('#metode_pembayaran').val());
+        formData.append('cara_bayar', $('#cara_bayar').val());
+        formData.append('subtotal', parseFloat($('#total').val().replace(/\./g, '')) || 0);
+        formData.append('discount', $('#discount_checkbox').is(':checked') ? parseFloat($('#discount_percent').val()) || 0 : 0);
+        formData.append('disc_rupiah', $('#disc_rp_checkbox').is(':checked') ? parseFloat($('#disc_rp').val()) || 0 : 0);
+        formData.append('ppn', $('#ppn_checkbox').is(':checked') ? parseFloat($('#ppn_amount').val().replace(/\./g, '')) || 0 : 0);
+        formData.append('dp', $('#dp_checkbox').is(':checked') ? parseFloat($('#dp_amount').val()) || 0 : 0);
+        formData.append('grand_total', grandTotal);
+        
+        // Add items as JSON string
+        formData.append('items', JSON.stringify(poItems));
+
+            $.ajax({
+                url: "{{ route('purchase-order.store') }}", // Ubah ini ke route PO
+                method: "POST",
+                data: poData,
+                success: function(response) {
+                    alert('PO berhasil disimpan!');
+
+                    // Opsional: reset form
+                    $('#transactionForm')[0].reset();
+                    items = [];
+                    renderItems();
+                    calculateTotals();
+                    window.location.href = "{{ route('transaksi.penjualan') }}";
+                },
+                error: function(xhr) {
+                    alert('Gagal menyimpan PO: ' + xhr.responseJSON.message);
+                }
+            });
         }
     });
 

@@ -2,18 +2,31 @@
 
 @section('content')
 <div class="container py-4">
-    <h4>:: History Surat Jalan ::</h4>
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <input type="text" id="searchInput" class="form-control" placeholder="Cari No Surat Jalan atau Customer">
+    <h4>History Surat Jalan</h4>
+    <form method="GET" action="{{ route('suratjalan.history') }}" class="row mb-3">
+        <div class="col-md-3 mb-2">
+            <select name="search_by" id="search_by" class="form-control">
+                <option selected disabled value=""> Cari Berdasarkan </option>
+                <option value="no_suratjalan" {{ request('search_by') == 'no_suratjalan' ? 'selected' : '' }}>No Surat Jalan</option>
+                <option value="customer" {{ request('search_by') == 'customer' ? 'selected' : '' }}>Customer</option>
+                <option value="no_transaksi" {{ request('search_by') == 'no_transaksi' ? 'selected' : '' }}>No Faktur</option>
+                <option value="alamat_suratjalan" {{ request('search_by') == 'alamat_suratjalan' ? 'selected' : '' }}>Alamat</option>
+            </select>
         </div>
-        <div class="col-md-4">
-            <input type="date" id="filterDate" class="form-control" placeholder="Filter Tanggal">
+        <div class="col-md-3 mb-2">
+            <input type="text" name="search" id="search_input" class="form-control" placeholder="Cari..." value="{{ request('search') }}" disabled>
         </div>
-        <div class="col-md-4">
-            <button id="resetFilter" class="btn btn-secondary">Reset Filter</button>
+        <div class="col-md-2 mb-2">
+            <input type="date" name="start_date" class="form-control" value="{{ request('start_date') }}">
         </div>
-    </div>
+        <div class="col-md-2 mb-2">
+            <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
+        </div>
+        <div class="col-md-2 mb-2">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{{ route('suratjalan.history') }}" class="btn btn-secondary">Reset</a>
+        </div>
+    </form>
     <table class="table table-bordered table-striped">
         <thead class="thead-dark">
             <tr>
@@ -29,7 +42,7 @@
         <tbody>
             @foreach ($suratJalan as $index => $sj)
                 <tr>
-                    <td>{{ $index + 1 }}</td>
+                    <td>{{ $suratJalan->firstItem() + $index }}</td>
                     <td>{{ $sj->no_suratjalan }}</td>
                     <td>{{ $sj->tanggal }}</td>
                     <td>{{ $sj->customer->nama }}</td>
@@ -41,41 +54,41 @@
                         </a>
                         <a href="{{ route('suratjalan.detail', $sj->id) }}" class="btn btn-primary btn-sm" target="_blank">
                             <i class="fas fa-print"></i> Print
+                        </a>
                     </td>
                 </tr>
             @endforeach
         </tbody>
     </table>
     <div class="d-flex justify-content-center">
+        {{ $suratJalan->links() }}
     </div>
 </div>
+
 @endsection
+
 @section('scripts')
 <script>
-    $(document).ready(function() {
-        // Filter berdasarkan input pencarian
-        $('#searchInput').on('input', function() {
-            const searchValue = $(this).val().toLowerCase();
-            $('tbody tr').filter(function() {
-                $(this).toggle($(this).text().toLowerCase().indexOf(searchValue) > -1);
-            });
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    // Ambil elemen select dan input
+    const searchBySelect = document.getElementById('search_by');
+    const searchInput = document.getElementById('search_input');
 
-        // Filter berdasarkan tanggal
-        $('#filterDate').on('change', function() {
-            const filterDate = $(this).val();
-            $('tbody tr').filter(function() {
-                const rowDate = $(this).find('td:nth-child(3)').text(); // Kolom tanggal
-                $(this).toggle(rowDate === filterDate);
-            });
-        });
+    // Fungsi untuk mengecek status dropdown dan mengatur disabled state pada input
+    function updateSearchInputState() {
+        // Cek apakah ada opsi yang dipilih dan bukan opsi default (disabled)
+        if (searchBySelect.value !== "" && searchBySelect.selectedIndex !== 0) {
+            searchInput.disabled = false;
+        } else {
+            searchInput.disabled = true;
+            searchInput.value = ''; // Kosongkan input jika disabled
+        }
+    }
 
-        // Reset filter
-        $('#resetFilter').click(function() {
-            $('#searchInput').val('');
-            $('#filterDate').val('');
-            $('tbody tr').show();
-        });
-    });
+    // Panggil fungsi saat halaman dimuat untuk mengatur status awal
+    updateSearchInputState();
+
+    // Tambahkan event listener untuk dropdown
+    searchBySelect.addEventListener('change', updateSearchInputState);
+});
 </script>
-@endsection

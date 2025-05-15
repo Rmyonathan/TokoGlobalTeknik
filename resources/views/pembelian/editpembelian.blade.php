@@ -40,12 +40,15 @@
                     
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="cabang">Cabang</label>
-                            <select class="form-control" id="cabang" name="cabang">
-                                <option value="LAMPUNG" {{ $purchase->cabang == 'LAMPUNG' ? 'selected' : '' }}>LAMPUNG</option>
-                                <option value="PALEMBANG" {{ $purchase->cabang == 'PALEMBANG' ? 'selected' : '' }}>PALEMBANG</option>
-                                <option value="JAKARTA" {{ $purchase->cabang == 'JAKARTA' ? 'selected' : '' }}>JAKARTA</option>
-                            </select>
+                            <label for="cabang_display">Cabang (Stok Owner)</label>
+                            <div class="input-group">
+                                <input type="text" id="cabang_display" class="form-control" placeholder="Masukkan kode atau nama stok owner">
+                                <input type="hidden" id="cabang" name="cabang">
+                                <div class="input-group-append">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                </div>
+                            </div>
+                            <div id="cabangDropdown" class="dropdown-menu" style="display: none; width: 100%;"></div>
                         </div>
                         
                         <div class="form-group">

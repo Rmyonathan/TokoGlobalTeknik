@@ -39,32 +39,26 @@
                     </div>
                     
                     <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="cabang">Cabang</label>
-                            <select class="form-control" id="cabang" name="cabang">
-                                <option value="LAMPUNG" selected>LAMPUNG</option>
-                                <option value="PALEMBANG">PALEMBANG</option>
-                                <option value="JAKARTA">JAKARTA</option>
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label for="cabang_display">Cabang</label>
+                        <input type="text" id="cabang_display" class="form-control" placeholder="Cari cabang...">
+                        <input type="hidden" id="cabang" name="cabang">
+                        <div id="cabangDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
+                    </div>
                         
                         <div class="form-group">
-                            <label for="pembayaran">Pembayaran</label>
-                            <select class="form-control" id="pembayaran" name="pembayaran">
+                            <label for="metode_pembayaran">Metode Pembayaran</label>
+                            <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
+                                <option selected disabled value=""> Pilih Metode Pembayaran</option>
                                 <option value="Tunai">Tunai</option>
-                                <option value="Transfer">Transfer</option>
-                                <option value="Kredit">Kredit</option>
-                                <option value="Debit">Debit</option>
+                                <option value="Non Tunai">Non Tunai</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="cara_bayar">Cara Bayar</label>
                             <select class="form-control" id="cara_bayar" name="cara_bayar">
-                                <option value="Cash">Cash</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="Debit">Debit</option>
-                                <option value="Cicilan">Cicilan</option>
+                                <option value="">Pilih Metode Dulu</option>
                             </select>
                         </div>
                     </div>
@@ -412,12 +406,44 @@
     window.supplierSearchUrl = "{{ route('api.suppliers.search') }}";
     window.storeTransactionUrl = "{{ route('pembelian.store') }}";
     window.printInvoiceUrl = "{{ url('pembelian/lihatnota') }}/";
+    window.backToPembelian = "{{ route('pembelian.index') }}"
     window.kodeBarangSearchUrl = "{{ route('kodeBarang.search') }}";
+    window.stokOwnerSearchUrl = "{{ route('api.stok-owner.search') }}";
+    window.getPanelInfoUrl = "{{ route('panel.by.kodeBarang') }}";
+
     window.csrfToken = "{{ csrf_token() }}";
 </script>
 
 {{-- Include the external JS file using file_get_contents to load directly from views directory --}}
 <script>
+
+$('#metode_pembayaran').on('change', function () {
+        const metode = $(this).val();
+        $('#cara_bayar').html('<option value="">Loading...</option>');
+        
+        $.ajax({
+            url: '{{ url("api/cara-bayar/by-metode") }}',
+            method: 'GET',
+            data: { metode: metode },
+            success: function (data) {
+                let options = '<option value="">-- Pilih Cara Bayar --</option>';
+                data.forEach(cb => {
+                    options += `<option value="${cb.nama}">${cb.nama}</option>`;
+                });
+                $('#cara_bayar').html(options);
+            },
+            error: function () {
+                $('#cara_bayar').html('<option value="">Gagal load data</option>');
+            }
+        });
+    });
+
+    $('#cara_bayar').on('change', function () {
+        const selected = $(this).val();
+        $('#cara_bayar_akhir')
+            .html(`<option value="${selected}">${selected}</option>`)
+            .val(selected);
+    });    
 {!! file_get_contents(resource_path('views/scripts/pembelian.js')) !!}
 </script>
 @endsection

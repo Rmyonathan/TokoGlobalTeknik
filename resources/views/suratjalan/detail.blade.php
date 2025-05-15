@@ -123,15 +123,62 @@
             border-top: 1px solid #000;
             padding-top: 5px;
         }
+        
         @media print {
             .no-print {
-                display: none;
+                display: none !important;
             }
+            @page {
+                size: 8.5in 11in;
+                margin: 0.5in;
+            }
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            .container {
+                width: 100%;
+                max-width: none;
+                padding: 0;
+            }
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border: 1px solid #0056b3;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            border: 1px solid #545b62;
+            color: white;
+        }
+
+        .mr-2 {
+            margin-right: 8px;
         }
     </style>
 
 </head>
 <body>
+    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <a href="{{ route('suratjalan.history') }}" class="btn btn-secondary mr-2">
+            <i class="fas fa-arrow-left"></i> Kembali
+        </a>
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="fas fa-print"></i> Print
+        </button>
+    </div>
     <div class="container">
         <div class="header">
             <h1>CV. ALUMKA CIPTA PRIMA</h1>
@@ -171,28 +218,22 @@
             <thead>
                 <tr>
                     <th width="2.5%">No.</th>
-                    <th width="10%">Kode Barang</th>
                     <th width="17.5%">Nama Barang</th>
                     <th width="25%">Keterangan</th>
                     <th width="7.5%">Panjang (m)</th>
-                    <th width="10%">Harga Satuan</th>
                     <th width="5%">Jumlah</th>
                     <th width="5%">Satuan</th>
-                    <th width="12.5%">Sub Total</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($suratJalan->transaksi->items as $i => $item)
                 <tr>
                     <td class="text-center">{{ $i + 1 }}</td>
-                    <td>{{ $item->kode_barang }}</td>
                     <td>{{ $item->nama_barang }}</td>
                     <td>{{ $item->keterangan }}</td>
                     <td>{{ $item->panjang }}</td>
-                    <td class= "text-right">Rp {{ number_format($item->harga, 2, ' ,' , '.') }}</td>
                     <td class="text-center">{{ $item->qty }}</td>
                     <td class="text-center">Pcs</td>
-                    <td class="text-right">Rp {{ number_format($item->total, 2, ' ,' , '.') }}</td>
                 </tr>
                 @endforeach
             </tbody>

@@ -10,7 +10,13 @@
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
+    
+    {{-- Search Bar --}}
+    <div class="mb-3 d-flex">
+        <input type="text" id="searchInput" class="form-control w-30" placeholder="Cari Nama atau Kode Customer" />
         
+    </div>
+
     <table class="table table-bordered" style="border: 5px solid black; border-collapse: collapse;">
         <thead>
             <tr>
@@ -22,7 +28,8 @@
                 <th>Actions</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="customerTableBody">
+        <tbody id="customerTableBody">
             @foreach($customers as $customer)
                 <tr>
                     <td>{{ $customer->kode_customer }}</td>
@@ -85,15 +92,6 @@
             </form>
         </div>
     </div>
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul>
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
 </div>
 
 <!-- Edit Customer Modals -->
@@ -137,15 +135,50 @@
             </div>
         </form>
     </div>
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul>
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-</div>
+    </div>
 @endforeach
+@endsection
+
+@section('scripts')
+<script>
+    $(document).ready(function () {
+        // Apply search filter
+        $('#searchButton').on('click', function () {
+            const keyword = $('#searchInput').val().toLowerCase();
+            $('#customerTableBody tr').each(function () {
+                const kode = $(this).find('td:nth-child(1)').text().toLowerCase();
+                const nama = $(this).find('td:nth-child(2)').text().toLowerCase();
+                $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
+            });
+        });
+
+        // Reset search filter
+        $('#resetButton').on('click', function () {
+            $('#searchInput').val('');
+            $('#customerTableBody tr').show(); // Show all rows
+        });
+    });
+</script>
+@endsection
+
+@section('scripts')
+<script>
+    $(document).ready(function () {
+        // Live search on input without button
+        $('#searchInput').on('input', function () {
+            const keyword = $(this).val().toLowerCase();
+            $('#customerTableBody tr').each(function () {
+                const kode = $(this).find('td:nth-child(1)').text().toLowerCase();
+                const nama = $(this).find('td:nth-child(2)').text().toLowerCase();
+                $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
+            });
+        });
+
+        // Reset search filter
+        $('#resetButton').on('click', function () {
+            $('#searchInput').val('');
+            $('#customerTableBody tr').show(); // Show all rows
+        });
+    });
+</script>
 @endsection

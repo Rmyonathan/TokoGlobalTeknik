@@ -27,7 +27,6 @@
             </a>
         </div>
 
-        </div>
         <div class="card-body">
             {{-- <div class="table-responsive">
                 <table class="table table-striped table-bordered">
@@ -179,4 +178,26 @@
         border: 2px solid #000;
     }
 </style>
+@endsection
+
+@section('scripts')
+<script>
+    $(document).ready(function () {
+        // Live search on input without button
+        $('#searchInput').on('input', function () {
+            const keyword = $(this).val().toLowerCase();
+            $('#tbodyBarang tr').each(function () {
+                const kode = $(this).find('td:nth-child(2)').text().toLowerCase();
+                const nama = $(this).find('td:nth-child(3)').text().toLowerCase();
+                $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
+            });
+        });
+
+        // Reset search functionality
+        $('#resetButton').on('click', function () {
+            $('#searchInput').val(''); // Clear the search input
+            $('#tbodyBarang tr').show(); // Show all rows
+        });
+});
+</script>
 @endsection
