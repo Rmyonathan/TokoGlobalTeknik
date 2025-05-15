@@ -61,7 +61,6 @@ class PembelianController extends Controller
             'nota' => 'required|string|unique:pembelian,nota',
             'tanggal' => 'required|date',
             'kode_supplier' => 'required|exists:suppliers,kode_supplier',
-            'cabang' => 'required|exists:stok_owners,kode_stok_owner', // Changed this line
             'subtotal' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'items' => 'required|array',
@@ -82,7 +81,6 @@ class PembelianController extends Controller
                 'nota' => $request->nota,
                 'tanggal' => $request->tanggal,
                 'kode_supplier' => $request->kode_supplier,
-                'cabang' => $request->cabang,
                 'pembayaran' => $request->pembayaran ?? 'Tunai',
                 'cara_bayar' => $request->cara_bayar,
                 'subtotal' => $request->subtotal,
@@ -121,7 +119,7 @@ class PembelianController extends Controller
                     $request->nota,
                     $supplierName . ' (' . $request->kode_supplier . ')',
                     $item['qty'],
-                    $request->cabang,
+                    'default', // Use a default value or remove parameter if StockController is also updated
                     'LBR'
                 );
                 
@@ -235,7 +233,7 @@ class PembelianController extends Controller
      */
     public function edit($id)
     {
-        $purchase = Pembelian::with(['items', 'supplierRelation', 'stokOwner'])->findOrFail($id);
+        $purchase = Pembelian::with(['items', 'supplierRelation'])->findOrFail($id);
         
         // Get the supplier info
         $supplier = null;
@@ -243,13 +241,7 @@ class PembelianController extends Controller
             $supplier = $purchase->kode_supplier . ' - ' . $purchase->supplierRelation->nama;
         }
         
-        // Get the cabang info
-        $cabang = null;
-        if ($purchase->stokOwner) {
-            $cabang = $purchase->cabang . ' - ' . $purchase->stokOwner->keterangan;
-        }
-        
-        return view('pembelian.editpembelian', compact('purchase', 'supplier', 'cabang'));
+        return view('pembelian.editpembelian', compact('purchase', 'supplier'));
     }
     
     /**
@@ -262,7 +254,6 @@ class PembelianController extends Controller
             'nota' => 'required|string|unique:pembelian,nota',
             'tanggal' => 'required|date',
             'kode_supplier' => 'required|exists:suppliers,kode_supplier',
-            'cabang' => 'required|exists:stok_owners,kode_stok_owner', // Changed this line
             'subtotal' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'items' => 'required|array',
@@ -332,7 +323,6 @@ class PembelianController extends Controller
             $pembelian->update([
                 'tanggal' => $request->tanggal,
                 'kode_supplier' => $request->kode_supplier,
-                'cabang' => $request->cabang,
                 'pembayaran' => $request->pembayaran ?? 'Tunai',
                 'cara_bayar' => $request->cara_bayar,
                 'subtotal' => $request->subtotal,
@@ -484,7 +474,7 @@ class PembelianController extends Controller
                     $nota . ' (deleted)',
                     $supplierName . ' (' . $pembelian->kode_supplier . ')',
                     $item->qty, // Same quantity as purchase, but as a "sale" to reduce stock
-                    $pembelian->cabang,
+                    'default',                    
                     'LBR'
                 );
             }

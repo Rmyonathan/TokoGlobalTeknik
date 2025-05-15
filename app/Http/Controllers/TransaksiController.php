@@ -33,7 +33,7 @@ class TransaksiController extends Controller
     {
         $query = Transaksi::with('customer');
 
-        // Filter berdasarkan kolom yang dipilih
+        // Filter berdasarkan kolom yang dipilih dan Search Server Side
         if ($request->filled('search_by') && $request->filled('search')) {
             $searchBy = $request->search_by;
             $search = $request->search;
@@ -46,6 +46,8 @@ class TransaksiController extends Controller
                 $query->whereHas('customer', function($q) use ($search) {
                     $q->where('alamat', 'like', "%$search%");
                 });
+            } elseif ($searchBy == 'sales') {
+                $query->where('sales', 'like', "%$search%");
             } else {
                 $query->where($searchBy, 'like', "%$search%");
             }

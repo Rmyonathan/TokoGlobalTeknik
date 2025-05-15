@@ -16,7 +16,6 @@
             <tr>
                 <th>Kode Stok Owner</th>
                 <th>Keterangan</th>
-                <th>Default</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -25,7 +24,6 @@
                 <tr>
                     <td>{{ $stokOwner->kode_stok_owner }}</td>
                     <td>{{ $stokOwner->keterangan }}</td>
-                    <td>{{ $stokOwner->default ? 'Yes' : 'No' }}</td>
                     <td>
                         <form action="{{ route('stok_owner.destroy', $stokOwner) }}" method="POST" style="display:inline;">
                             @csrf
@@ -59,10 +57,6 @@
                     <div class="form-group">
                         <label for="keterangan">Keterangan</label>
                         <input type="text" name="keterangan" class="form-control" required>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" name="default" class="form-check-input" id="default">
-                        <label class="form-check-label" for="default">Default</label>
                     </div>
                 </div>
                 <div class="modal-footer">

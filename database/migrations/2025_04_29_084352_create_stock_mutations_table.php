@@ -19,14 +19,14 @@ return new class extends Migration
             $table->decimal('plus', 12, 2)->default(0);
             $table->decimal('minus', 12, 2)->default(0);
             $table->decimal('total', 12, 2);
-            $table->string('so')->default('ALUMKA');
+            $table->string('so')->default('default'); // Changed default to 'default'
             $table->string('satuan')->default('LBR');
             $table->string('keterangan')->nullable();
             $table->timestamps();
 
             $table->index('kode_barang');
             $table->index('tanggal');
-            $table->index(['kode_barang', 'so']);
+            // Removed the index on ['kode_barang', 'so']
         });
     }
 

@@ -21,6 +21,7 @@ use App\Http\Controllers\StockController;
 use App\Http\Controllers\CaraBayarController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PerusahaanController;
+use App\Http\Controllers\StockAdjustmentController;
 
 use App\Models\StokOwner;
 use App\Models\Supplier;
@@ -48,10 +49,10 @@ Route::middleware(['web'])->group(function () {
         return view('master.barang');
     })->name('master.barang');
 
+    Route::group(['middleware' => ['permission:edit users']], function () {
+    Route::get('/account-maintenance', [AccountsController::class, 'accountMaintenance']);
 });
 
-Route::group(['middleware' => ['permission:edit users']], function () {
-    Route::get('/account-maintenance', [AccountsController::class, 'accountMaintenance']);
 });
 
 Route::middleware(['web', 'role'])->group(function () {
@@ -66,7 +67,8 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/update_kas',
     [KasController::class, 'update_kas']);
 
-
+    Route::get('/createRole', [AccountsController::class, 'createRole'])->name('createRole');
+    Route::post('/storeRole', [AccountsController::class, 'storeRole'])->name('storeRole');
 
     Route::get('/addtransaction', function () {
         return view('addtransaction');
@@ -92,7 +94,9 @@ Route::middleware(['web', 'role'])->group(function () {
 
 
     Route::post('/editAccount', [AccountsController::class, 'editAccount']);
-    Route::post('/updateProfile', [AccountsController::class, 'updateProfile']);
+    Route::get('/createAccount', [AccountsController::class, 'createAccount'])->name('createAccount');
+    Route::post('/storeAccount', [AccountsController::class, 'storeAccount'])->name('storeAccount');
+    Route::post('/updateProfile', [AccountsController::class, 'updateProfile'])->name('updateProfile');
     Route::post('/switchDatabase', [AccountsController::class, 'switchDatabase']);
 
     // Panel Inventory
@@ -177,7 +181,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/transaksi/store', [TransaksiController::class, 'store'])->name('transaksi.store');
     Route::get('/transaksi/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
     Route::get('/transaksi/shownota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.shownota');
-    Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
+    Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.nota');
     Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
     Route::post('/transaksi/{id}/cancel', [TransaksiController::class, 'cancelTransaction'])->name('transaksi.cancel');
 
@@ -225,6 +229,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/perusahaan/{id}/edit', [PerusahaanController::class, 'edit'])->name('perusahaan.edit');
     Route::put('/perusahaan/{id}', [PerusahaanController::class, 'update'])->name('perusahaan.update');
     Route::delete('/perusahaan/{id}', [PerusahaanController::class, 'destroy'])->name('perusahaan.destroy');
+    Route::post('/perusahaan/{id}/set-default', [PerusahaanController::class, 'setDefault'])->name('perusahaan.set-default');
 
     Route::get('/api/cara-bayar/by-metode', function (Illuminate\Http\Request $request) {
         $metode = $request->query('metode');
@@ -293,6 +298,16 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/transaksi/purchaseorder/{id}/complete', [PurchaseOrderController::class, 'completeTransaction'])->name('purchase-order.complete');
     // Route buat cancel PO
     Route::patch('/transaksi/purchaseorder/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-order.cancel');
+
+    // Stock Adjustment Routes
+    Route::group(['middleware' => ['auth'], 'prefix' => 'stock-adjustment', 'as' => 'stock.adjustment.'], function () {
+        Route::get('/', [StockAdjustmentController::class, 'index'])->name('index');
+        Route::get('/history', [StockAdjustmentController::class, 'history'])->name('history');
+        Route::get('/create', [StockAdjustmentController::class, 'create'])->name('create');
+        Route::post('/store', [StockAdjustmentController::class, 'store'])->name('store');
+        Route::get('/adjust/{kodeBarang}', [StockAdjustmentController::class, 'adjust'])->name('adjust');
+        Route::get('/{id}', [StockAdjustmentController::class, 'show'])->name('show');
+    });
 
 
 });

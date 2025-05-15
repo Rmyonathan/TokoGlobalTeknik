@@ -13,7 +13,6 @@ class CreatePembelianTable extends Migration
             $table->string('nota')->unique(); // Added unique constraint
             $table->date('tanggal');
             $table->string('kode_supplier'); // Changed from 'supplier'
-            $table->string('cabang'); // Added cabang field
             $table->string('pembayaran'); // Added pembayaran field
             $table->string('cara_bayar');
             $table->decimal('subtotal', 15, 2);

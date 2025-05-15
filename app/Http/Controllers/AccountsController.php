@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Artisan;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 
 class AccountsController extends Controller
@@ -30,6 +32,19 @@ class AccountsController extends Controller
         }
 
         return abort(403, 'Unauthorized action.');
+    }
+
+    public function createRole()
+    {
+        $permissions = Permission::all();
+        return view('addRole', compact('permissions'));
+    }
+
+    public function storeRole(Request $request)
+    {
+        $role = Role::create(['name' => $request->name]);
+        $role->syncPermissions($request->permissions); // array of permission IDs
+        return redirect()->route('createRole');
     }
 
     public function switchDatabase(Request $request)
@@ -107,6 +122,36 @@ class AccountsController extends Controller
         return view('edit-user', [
             "user" => $user,
         ]);
+    }
+
+    public function createAccount(Request $request)
+    {
+        $roles = Role::all();
+
+        return view('create-user', compact('roles'));
+    }
+
+    public function storeAccount(Request $request)
+    {
+        // Validate input
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:6|confirmed',
+            'role_new' => 'required|string',
+
+        ]);
+
+        // Hash the password before creating
+        $validated['password'] = Hash::make($validated['password']);
+
+        // Create the user using mass assignment
+        $validated['role'] = $request->role;
+        $user = User::create($validated);
+        $user->assignRole($validated['role_new']);
+        $user->save();
+
+        return redirect()->intended('/account-maintenance')->with('success', 'Account created successfully!');
     }
 
     public function updateProfile(Request $request)

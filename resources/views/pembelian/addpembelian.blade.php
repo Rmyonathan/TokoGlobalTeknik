@@ -39,12 +39,7 @@
                     </div>
                     
                     <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="cabang_display">Cabang</label>
-                        <input type="text" id="cabang_display" class="form-control" placeholder="Cari cabang...">
-                        <input type="hidden" id="cabang" name="cabang">
-                        <div id="cabangDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
-                    </div>
+                    
                         
                         <div class="form-group">
                             <label for="metode_pembayaran">Metode Pembayaran</label>
@@ -408,7 +403,6 @@
     window.printInvoiceUrl = "{{ url('pembelian/lihatnota') }}/";
     window.backToPembelian = "{{ route('pembelian.index') }}"
     window.kodeBarangSearchUrl = "{{ route('kodeBarang.search') }}";
-    window.stokOwnerSearchUrl = "{{ route('api.stok-owner.search') }}";
     window.getPanelInfoUrl = "{{ route('panel.by.kodeBarang') }}";
 
     window.csrfToken = "{{ csrf_token() }}";

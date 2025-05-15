@@ -8,13 +8,39 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
-    public function index()
+
+    public function index(Request $request)
     {
+        $searchBy = $request->input('search_by');
+        $keyword = $request->input('search');
+        $query = Customer::query();
+
+        if ($searchBy && $keyword) {
+            if ($searchBy === 'nama') {
+                $query->where('nama', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'kode_customer') {
+                $query->where('kode_customer', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'alamat') {
+                $query->where('alamat', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'hp') {
+                $query->where('hp', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'telepon') {
+                $query->where('telepon', 'like', "%{$keyword}%");
+            }
+        } elseif ($keyword) {
+            // Default: cari di nama dan kode_customer
+            $query->where(function($q) use ($keyword) {
+                $q->where('nama', 'like', "%{$keyword}%")
+                ->orWhere('kode_customer', 'like', "%{$keyword}%");
+            });
+        }
+
+        $customers = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
+
         $lastCustomer = Customer::orderBy('id', 'desc')->first();
         $newKodeCustomer = $lastCustomer ? str_pad($lastCustomer->id + 1, 4, '0', STR_PAD_LEFT) : '0001';
 
-        $customers = Customer::all();
-        return view('master.customers', compact('customers', 'newKodeCustomer'));
+        return view('master.customers', compact('customers', 'newKodeCustomer', 'keyword', 'searchBy'));
     }
 
     public function store(Request $request)

@@ -11,11 +11,19 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
     
-    {{-- Search Bar --}}
-    <div class="mb-3 d-flex">
-        <input type="text" id="searchInput" class="form-control w-30" placeholder="Cari Nama atau Kode Customer" />
-        
-    </div>
+    <form method="GET" action="{{ route('customers.index') }}" class="mb-3 d-flex">
+        <select name="search_by" id="search_by" class="form-control w-25 mr-2">
+            <option selected disabled value="">Cari Berdasarkan</option>
+            <option value="nama" {{ request('search_by') == 'nama' ? 'selected' : '' }}>Nama</option>
+            <option value="kode_customer" {{ request('search_by') == 'kode_customer' ? 'selected' : '' }}>Kode Customer</option>
+            <option value="alamat" {{ request('search_by') == 'alamat' ? 'selected' : '' }}>Alamat</option>
+            <option value="hp" {{ request('search_by') == 'hp' ? 'selected' : '' }}>Nomor HP</option>
+            <option value="telepon" {{ request('search_by') == 'telepon' ? 'selected' : '' }}>Telepon</option>
+        </select>
+        <input type="text" id="search_input" name="search" class="form-control w-50 mr-2" placeholder="Cari..." value="{{ request('search') }}" disabled>
+        <button type="submit" class="btn btn-primary mr-2">Cari</button>
+        <a href="{{ route('customers.index') }}" class="btn btn-secondary">Reset</a>
+    </form>
 
     <table class="table table-bordered" style="border: 5px solid black; border-collapse: collapse;">
         <thead>
@@ -49,6 +57,9 @@
             @endforeach
         </tbody>
     </table>
+    <div class="d-flex justify-content-center">
+        {{ $customers->links() }}
+    </div>
 </section>
 
 <!-- Add Customer Modal -->
@@ -141,44 +152,23 @@
 
 @section('scripts')
 <script>
-    $(document).ready(function () {
-        // Apply search filter
-        $('#searchButton').on('click', function () {
-            const keyword = $('#searchInput').val().toLowerCase();
-            $('#customerTableBody tr').each(function () {
-                const kode = $(this).find('td:nth-child(1)').text().toLowerCase();
-                const nama = $(this).find('td:nth-child(2)').text().toLowerCase();
-                $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
-            });
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    // Ambil elemen select dan input
+    const searchBySelect = document.getElementById('search_by');
+    const searchInput = document.getElementById('search_input');
 
-        // Reset search filter
-        $('#resetButton').on('click', function () {
-            $('#searchInput').val('');
-            $('#customerTableBody tr').show(); // Show all rows
-        });
-    });
-</script>
-@endsection
+    // Fungsi untuk mengecek status dropdown dan mengatur disabled state pada input
+    function updateSearchInputState() {
+        if (searchBySelect.value !== "" && searchBySelect.selectedIndex !== 0) {
+            searchInput.disabled = false;
+        } else {
+            searchInput.disabled = true;
+            searchInput.value = '';
+        }
+    }
 
-@section('scripts')
-<script>
-    $(document).ready(function () {
-        // Live search on input without button
-        $('#searchInput').on('input', function () {
-            const keyword = $(this).val().toLowerCase();
-            $('#customerTableBody tr').each(function () {
-                const kode = $(this).find('td:nth-child(1)').text().toLowerCase();
-                const nama = $(this).find('td:nth-child(2)').text().toLowerCase();
-                $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
-            });
-        });
-
-        // Reset search filter
-        $('#resetButton').on('click', function () {
-            $('#searchInput').val('');
-            $('#customerTableBody tr').show(); // Show all rows
-        });
-    });
+    updateSearchInputState();
+    searchBySelect.addEventListener('change', updateSearchInputState);
+});
 </script>
 @endsection

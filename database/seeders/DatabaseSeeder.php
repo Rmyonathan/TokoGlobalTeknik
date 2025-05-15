@@ -25,15 +25,15 @@ class DatabaseSeeder extends Seeder
         // Permission::create(['name' => 'edit users']);
         // Permission::create(['name' => 'access sales report']);
 
-        Permission::factory()->create([
+        Permission::create([
             'name' => 'view dashboard',
         ]);
 
-        Permission::factory()->create([
+        Permission::create([
             'name' => 'edit users',
         ]);
 
-        Permission::factory()->create([
+        Permission::create([
             'name' => 'access sales report',
         ]);
 

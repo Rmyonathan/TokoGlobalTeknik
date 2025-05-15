@@ -11,8 +11,8 @@ use App\Models\Transaksi;
 use App\Models\TransaksiItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
-
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class PurchaseOrderController extends Controller
 {
@@ -43,11 +43,33 @@ class PurchaseOrderController extends Controller
         return $prefix . '-' . $newNumber;
     }
 
-
-    public function index()
+    public function index(Request $request)
     {
-        $purchaseOrders = PurchaseOrder::latest()->get();
-        return view('transaksi.purchaseorder', compact('purchaseOrders'));
+        $searchBy = $request->input('search_by');
+        $keyword = $request->input('search');
+        $query = PurchaseOrder::with('items');
+
+        if ($searchBy && $keyword) {
+            if ($searchBy === 'no_po') {
+                $query->where('no_po', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'kode_customer') {
+                $query->where('kode_customer', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'sales') {
+                $query->where('sales', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'status') {
+                $query->where('status', 'like', "%{$keyword}%");
+            }
+        } elseif ($keyword) {
+            // Default: cari di no_po dan kode_customer
+            $query->where(function($q) use ($keyword) {
+                $q->where('no_po', 'like', "%{$keyword}%")
+                ->orWhere('kode_customer', 'like', "%{$keyword}%");
+            });
+        }
+
+        $purchaseOrders = $query->orderBy('tanggal', 'desc')->paginate(10)->withQueryString();
+
+        return view('transaksi.purchaseorder', compact('purchaseOrders', 'searchBy', 'keyword'));
     }
 
     public function show($id)
@@ -143,7 +165,8 @@ class PurchaseOrderController extends Controller
     {
         $po = PurchaseOrder::findOrFail($id);
         if ($po->status === 'pending') {
-            $po->update(['status' => 'cancelled']);
+            $userName = Auth::user() ? Auth::user()->name : 'USER DEFAULT';
+            $po->update(['status' => 'cancelled by ' . $userName]);
         }
 
         return redirect()->route('transaksi.purchaseorder')->with('success', 'PO dibatalkan.');

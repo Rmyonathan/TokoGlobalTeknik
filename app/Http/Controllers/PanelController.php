@@ -31,10 +31,13 @@ class PanelController extends Controller
         return view('panels.repack', compact('inventory'));
     }
 
-    public function viewBarang()
+    public function viewBarang(Request $request)
     {
-        $inventory = $this->getKodeSummary();
-        return view('master.barang', compact('inventory'));
+        $search = $request->input('search', '');
+        $perPage = 10; // Number of items per page
+        
+        $inventory = $this->getKodeSummary($search, $perPage);
+        return view('master.barang', compact('inventory', 'search'));
     }
 
     /**
@@ -517,6 +520,21 @@ class PanelController extends Controller
             'notes' => "Repack from {$penambah->kode_barang} to multiple items"
         ]);
 
+        // Record stock reduction for penambah (the source material)
+        $this->stockController->recordSale(
+            $penambah->kode_barang,
+            $penambah->name,
+            'REPACK-FROM-' . date('YmdHis'),
+            now(),
+            'REPACK-' . $order->id,
+            'REPACK PROCESS',
+            $reduction, // We're using this many panels
+            'LBR', // Satuan
+            "Source material for repack to multiple items",
+            null, // created_by (optional)
+            'default' // SO
+        );
+
         foreach ($panelPenambah as $p) {
             $p->available = false;
             $p->save();
@@ -539,6 +557,7 @@ class PanelController extends Controller
                 ]);
             }
 
+            // Add panels to inventory
             $this->addPanelsToInventory(
                 $item->name,
                 $item->cost,
@@ -546,6 +565,21 @@ class PanelController extends Controller
                 $item->length,
                 $item->kode_barang,
                 $qty
+            );
+
+            // Record stock increase for pengurang (the resulting material)
+            $this->stockController->recordPurchase(
+                $item->kode_barang,
+                $item->name,
+                'REPACK-TO-' . date('YmdHis'),
+                now(),
+                'REPACK-' . $order->id,
+                'REPACK PROCESS',
+                $qty, // Quantity of new items created
+                'LBR', // Satuan
+                "Result from repack of {$penambah->kode_barang}",
+                null, // created_by (optional)
+                'default' // SO
             );
         }
 
@@ -630,9 +664,10 @@ class PanelController extends Controller
                             'PANEL-CUT-' . $panel->id,
                             'PANEL CUTTING',
                             1, // Quantity is 1 panel
-                            'ALUMKA',
-                            'LBR',
-                            "Used {$originalLength}m panel for cutting"
+                            'LBR', // Satuan
+                            "Used {$originalLength}m panel for cutting", // Keterangan
+                            null, // created_by (optional)
+                            'default' // SO now at the end
                         );
 
                         // Cut as many times as possible from this panel
@@ -674,17 +709,19 @@ class PanelController extends Controller
 
                             // Record stock mutation for the remaining length panel (increase)
                             $remainingPanelObj = $remainingPanel['panels'];
+                            // Change to:
                             $this->stockController->recordPurchase(
-                                $remainingPanelObj->group_id,
-                                $remainingPanelObj->name,
-                                'CUT-REM-' . date('YmdHis') . '-' . $remainingPanelObj->id,
+                                $newPanelObj->group_id,
+                                $newPanelObj->name,
+                                'CUT-NEW-' . date('YmdHis') . '-' . $newPanelObj->id,
                                 now(),
-                                'PANEL-CUT-REM-' . $remainingPanelObj->id,
-                                'PANEL CUTTING - REMAINDER',
+                                'PANEL-CUT-NEW-' . $newPanelObj->id,
+                                'PANEL CUTTING - NEW',
                                 1, // Quantity is 1 panel
-                                'ALUMKA',
-                                'LBR',
-                                "Created {$remainingLength}m remainder panel from cutting"
+                                'LBR', // Satuan
+                                "Created {$requestedLength}m panel from cutting", // Keterangan
+                                null, // created_by (optional)
+                                'default' // SO now at the end
                             );
                         }
                     }
@@ -804,15 +841,30 @@ class PanelController extends Controller
         ];
     }
 
-    private function getKodeSummary(): array
+    public function getKodeSummary($search = '', $perPage = 10): array
     {
-        // Using Eloquent to get all available panels
-        $panels = KodeBarang::all();
-
+        // Query builder for KodeBarang with search filter
+        $query = KodeBarang::query();
+        
+        // Apply search filter if search term exists
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('kode_barang', 'like', "%{$search}%")
+                ->orWhere('name', 'like', "%{$search}%")
+                ->orWhere('attribute', 'like', "%{$search}%");
+            });
+        }
+        
+        // Paginate the results
+        $panelsPaginator = $query->paginate($perPage);
+        
+        // Get the data from the paginator
+        $panels = $panelsPaginator->items();
+        
         // Manually group the panels
         $groupedPanels = [];
         foreach ($panels as $panel) {
-            $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->group_id;
+            $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->kode_barang;
 
             if (!isset($groupedPanels[$key])) {
                 $groupedPanels[$key] = [
@@ -840,8 +892,9 @@ class PanelController extends Controller
         });
 
         return [
-            'total_panels' => count($panels),
-            'inventory_by_length' => $inventory
+            'total_panels' => $panelsPaginator->total(),
+            'inventory_by_length' => $inventory,
+            'paginator' => $panelsPaginator // Pass the paginator object for use in the view
         ];
     }
 

@@ -10,6 +10,25 @@
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
+
+    <div>
+        <form method="GET" action="{{ route('suppliers.index') }}" class="mb-3 d-flex">
+            <select name="search_by" id="search_by" class="form-control w-25 mr-2">
+            <option selected disabled value="">Cari Berdasarkan</option>
+                <option value="kode_supplier" {{ request('search_by') == 'kode_supplier' ? 'selected' : '' }}>Kode Supplier</option>
+                <option value="nama" {{ request('search_by') == 'nama' ? 'selected' : '' }}>Nama</option>
+                <option value="alamat" {{ request('search_by') == 'alamat' ? 'selected' : '' }}>Alamat</option>
+                <option value="pemilik" {{ request('search_by') == 'pemilik' ? 'selected' : '' }}>Pemilik</option>
+                <option value="telepon_fax" {{ request('search_by') == 'telepon_fax' ? 'selected' : '' }}>Telepon/Fax</option>
+                <option value="contact_person" {{ request('search_by') == 'contact_person' ? 'selected' : '' }}>Contact Person</option>
+                <option value="hp_contact_person" {{ request('search_by') == 'hp_contact_person' ? 'selected' : '' }}>HP Contact Person</option>
+                <option value="kode_kategori" {{ request('search_by') == 'kode_kategori' ? 'selected' : '' }}>Kode Kategori</option>
+            </select>
+            <input type="text" id="search_input" name="search" class="form-control w-50 mr-2" placeholder="Cari..." value="{{ request('search') }}">
+            <button type="submit" class="btn btn-primary mr-2">Cari</button>
+            <a href="{{ route('suppliers.index') }}" class="btn btn-secondary">Reset</a>
+        </form>
+    </div>
         
     <table class="table table-bordered">
         <thead>
@@ -48,6 +67,9 @@
             @endforeach
         </tbody>
     </table>
+    <div class="d-flex justify-content-center">
+        {{ $suppliers->links() }}
+    </div>
 </section>
 
 <!-- Add Customer Modal -->
@@ -181,4 +203,27 @@
     @endif
 </div>
 @endforeach
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Ambil elemen select dan input
+    const searchBySelect = document.getElementById('search_by');
+    const searchInput = document.getElementById('search_input');
+
+    // Fungsi untuk mengecek status dropdown dan mengatur disabled state pada input
+    function updateSearchInputState() {
+        if (searchBySelect.value !== "" && searchBySelect.selectedIndex !== 0) {
+            searchInput.disabled = false;
+        } else {
+            searchInput.disabled = true;
+            searchInput.value = '';
+        }
+    }
+
+    updateSearchInputState();
+    searchBySelect.addEventListener('change', updateSearchInputState);
+});
+</script>
 @endsection

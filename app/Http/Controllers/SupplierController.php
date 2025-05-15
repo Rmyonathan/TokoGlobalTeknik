@@ -8,15 +8,46 @@ use Illuminate\Support\Facades\DB;
 
 class SupplierController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $searchBy = $request->input('search_by');
+        $keyword = $request->input('search');
+        $query = Supplier::query();
+
+        if ($searchBy && $keyword) {
+            if ($searchBy === 'kode_supplier') {
+                $query->where('kode_supplier', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'nama') {
+                $query->where('nama', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'alamat') {
+                $query->where('alamat', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'pemilik') {
+                $query->where('pemilik', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'telepon_fax') {
+                $query->where('telepon_fax', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'contact_person') {
+                $query->where('contact_person', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'hp_contact_person') {
+                $query->where('hp_contact_person', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'kode_kategori') {
+                $query->where('kode_kategori', 'like', "%{$keyword}%");
+            }
+        } elseif ($keyword) {
+            // Default: cari di nama dan kode_supplier
+            $query->where(function($q) use ($keyword) {
+                $q->where('nama', 'like', "%{$keyword}%")
+                ->orWhere('kode_supplier', 'like', "%{$keyword}%");
+            });
+        }
+
+        $suppliers = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
+
         $lastSupplier = Supplier::orderBy('id', 'desc')->first();
         $newKodeSupplier = $lastSupplier
-            ? sprintf('%03s', base_convert($lastSupplier->id + 1, 10, 36)) 
-            : '001';
+            ? str_pad($lastSupplier->id + 1, 4, '0', STR_PAD_LEFT)
+            : '0001';
 
-        $suppliers = Supplier::all();
-        return view('master.suppliers', compact('suppliers', 'newKodeSupplier'));
+        return view('master.suppliers', compact('suppliers', 'newKodeSupplier', 'searchBy', 'keyword'));
     }
 
     public function store(Request $request)

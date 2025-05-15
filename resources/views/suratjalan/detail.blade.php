@@ -171,6 +171,10 @@
 
 </head>
 <body>
+    @php
+        $defaultCompany = \App\Models\Perusahaan::where('is_default', true)->first() ?? new \App\Models\Perusahaan();
+    @endphp
+    
     <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
         <a href="{{ route('suratjalan.history') }}" class="btn btn-secondary mr-2">
             <i class="fas fa-arrow-left"></i> Kembali
@@ -181,10 +185,10 @@
     </div>
     <div class="container">
         <div class="header">
-            <h1>CV. ALUMKA CIPTA PRIMA</h1>
-            <p>JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008</p>
-            <p>8 ILIR, ILIR TIMUR II</p>
-            <p>TELP. (0711) 311158 &nbsp;&nbsp; FAX (0711) 311158</p>
+            <h1>{{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}</h1>
+            <p>{{ $defaultCompany->alamat ?? 'JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008' }}</p>
+            <p>{{ $defaultCompany->kota ?? '8 ILIR' }}, {{ $defaultCompany->kode_pos ?? 'ILIR TIMUR II' }}</p>
+            <p>TELP. {{ $defaultCompany->telepon ?? '(0711) 311158' }} &nbsp;&nbsp; FAX {{ $defaultCompany->fax ?? '(0711) 311158' }}</p>
         </div>
 
         <div class="document-title">
@@ -196,10 +200,10 @@
         <div class="info-section">
             <div class="info-box">
                 <h3>Pengirim:</h3>
-                <p><strong>CV. ALUMKA CIPTA PRIMA</strong></p>
-                <p>JL. SINAR RAGA ABI HASAN NO.1553</p>
-                <p>8 ILIR, ILIR TIMUR II</p>
-                <p>TELP. (0711) 311158</p>
+                <p><strong>{{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}</strong></p>
+                <p>{{ $defaultCompany->alamat ?? 'JL. SINAR RAGA ABI HASAN NO.1553' }}</p>
+                <p>{{ $defaultCompany->kota ?? '8 ILIR' }}, {{ $defaultCompany->kode_pos ?? 'ILIR TIMUR II' }}</p>
+                <p>TELP. {{ $defaultCompany->telepon ?? '(0711) 311158' }}</p>
             </div>
             <div class="info-box">
                 <h3>Penerima:</h3>
@@ -218,8 +222,8 @@
             <thead>
                 <tr>
                     <th width="2.5%">No.</th>
-                    <th width="17.5%">Nama Barang</th>
-                    <th width="25%">Keterangan</th>
+                    <th width="17.5%">Kode Barang</th>
+                    <th width="25%">Nama Barang</th>
                     <th width="7.5%">Panjang (m)</th>
                     <th width="5%">Jumlah</th>
                     <th width="5%">Satuan</th>
@@ -229,7 +233,7 @@
                 @foreach ($suratJalan->transaksi->items as $i => $item)
                 <tr>
                     <td class="text-center">{{ $i + 1 }}</td>
-                    <td>{{ $item->nama_barang }}</td>
+                    <td>{{ $item->kode_barang }}</td>
                     <td>{{ $item->keterangan }}</td>
                     <td>{{ $item->panjang }}</td>
                     <td class="text-center">{{ $item->qty }}</td>
@@ -242,8 +246,8 @@
         <div class="note-box">
             <h4>CATATAN PENGIRIMAN</h4>
             <p>Mohon periksa barang sebelum menandatangani. Kerusakan setelah tanda tangan bukan tanggung jawab pengirim.</p>
-            <p>Barang masih titipan dari CV. Alumka Cipta Prima, bila belum dilunasi.</p>
-            <p>Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.</p>
+            <p>Barang masih titipan dari {{ $defaultCompany->nama ?? 'CV. Alumka Cipta Prima' }}, bila belum dilunasi.</p>
+            <p>{{ $defaultCompany->catatan_nota ?? 'Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.' }}</p>
         </div>
 
         <div class="delivery-info">

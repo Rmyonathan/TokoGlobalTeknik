@@ -350,7 +350,6 @@ $(document).ready(function () {
                 nota: $("#no_nota").val(),
                 tanggal: $("#tanggal").val(),
                 kode_supplier: $("#kode_supplier").val(), // This field name must match your database column
-                cabang: $("#cabang").val(),
                 pembayaran: $("#pembayaran").val(),
                 cara_bayar: $("#cara_bayar").val(),
                 items: items,
@@ -475,51 +474,10 @@ $(document).ready(function () {
         }
     });
 
-    // Search Stok Owner (Cabang)
-$("#cabang_display").on("input", function () {
-    console.log("Cabang input changed:", $(this).val());
-    const keyword = $(this).val();
-    if (keyword.length > 0) {
-        console.log("About to send AJAX request for StokOwner:", window.stokOwnerSearchUrl);
-        $.ajax({
-            url: window.stokOwnerSearchUrl,
-            method: "GET",
-            data: { keyword },
-            success: function (data) {
-                console.log("StokOwner search results:", data);
-                let dropdown = "";
-                if (data && data.length > 0) {
-                    data.forEach((stokOwner) => {
-                        dropdown += `<a class="dropdown-item cabang-item" data-kode="${stokOwner.kode_stok_owner}" data-name="${stokOwner.keterangan}">${stokOwner.kode_stok_owner} - ${stokOwner.keterangan}</a>`;
-                    });
-                } else {
-                    dropdown = '<a class="dropdown-item disabled">Tidak ada stok owner ditemukan</a>';
-                }
-                $("#cabangDropdown").html(dropdown).show();
-            },
-            error: function (xhr, status, error) {
-                console.error("Error searching StokOwner:", xhr.responseText);
-                console.error("Status:", status);
-                console.error("Error:", error);
-                alert("Terjadi kesalahan saat mencari stok owner.");
-            },
-        });
-    } else {
-        $("#cabangDropdown").hide();
-    }
-});
+   
 
-// Select Cabang (StokOwner)
-$(document).on("click", ".cabang-item", function () {
-    console.log("StokOwner item clicked:", $(this).data());
-    const kodeCabang = $(this).data("kode");
-    const namaCabang = $(this).data("name");
-    $("#cabang").val(kodeCabang); // Set the hidden field with the kode_stok_owner
-    $("#cabang_display").val(`${kodeCabang} - ${namaCabang}`); // Display the readable version
-    $("#cabangDropdown").hide();
-});
 
-// Update the document click handler to include cabang dropdown
+
 $(document).click(function (e) {
     if (
         !$(e.target).closest(
@@ -528,7 +486,6 @@ $(document).click(function (e) {
     ) {
         $("#supplierDropdown").hide();
         $("#kodeBarangDropdown").hide();
-        $("#cabangDropdown").hide();
     }
 });
     // Select Kode Barang from search modal

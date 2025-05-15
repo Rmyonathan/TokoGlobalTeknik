@@ -9,73 +9,35 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-                {{-- <a href="{{ route('panels.create-inventory') }}" class="btn btn-primary btn-sm me-2">
-                    <i class="fas fa-plus mr-1"></i> Tambah Barang
-                </a>
-
-                <a href="{{ route('code.create-code') }}" class="btn btn-sm me-2" style="background-color: #28a745; color: white;">
-                    <i class="fas fa-upload"></i> Tambah Kode Barang
-                </a> --}}
-
                 <a href="{{ route('code.create-code') }}" class="btn btn-primary btn-sm me-2">
                     <i class="fas fa-plus mr-1"></i> Tambah Barang
                 </a>
             </div>
 
-            <a href="{{ route('code.view-code') }}" class="btn btn-sm" style="background-color: #3f8efc; color: white;">
-                <i class="fas fa-file-alt"></i> List Kode Barang
-            </a>
+            <div class="d-flex">
+                <!-- Server-side search form -->
+                <form action="{{ route('master.barang') }}" method="GET" class="me-2">
+                    <div class="input-group">
+                        <input type="text" name="search" id="searchInput" class="form-control form-control-sm" 
+                               placeholder="Cari nama/kode barang..." value="{{ $search ?? '' }}">
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        @if(!empty($search))
+                            <a href="{{ route('master.barang') }}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        @endif
+                    </div>
+                </form>
+                
+                <a href="{{ route('code.view-code') }}" class="btn btn-sm" style="background-color: #3f8efc; color: white;">
+                    <i class="fas fa-file-alt"></i> List Kode Barang
+                </a>
+            </div>
         </div>
 
         <div class="card-body">
-            {{-- <div class="table-responsive">
-                <table class="table table-striped table-bordered">
-                    <thead class="thead-dark">
-                        <tr>
-                            <th style="border: 1px solid #000;">No</th>
-                            <th style="border: 1px solid #000;">Nama Barang</th>
-                            <th style="border: 1px solid #000;">Kategori</th>
-                            <th style="border: 1px solid #000;">Stok</th>
-                            <th style="border: 1px solid #000;">Harga</th>
-                            <th style="border: 1px solid #000;">Deskripsi</th>
-                            <th style="border: 1px solid #000;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php
-                            $dummyBarangs = [
-                                ['nama' => 'Aluminium Batangan 3m', 'kategori' => 'Material', 'stok' => 20, 'harga' => 125000, 'deskripsi' => 'Batangan aluminium panjang 3 meter cocok untuk kusen.'],
-                                ['nama' => 'Pintu Geser Aluminium', 'kategori' => 'Pintu', 'stok' => 5, 'harga' => 450000, 'deskripsi' => 'Pintu geser berbahan aluminium dengan rel atas dan bawah.'],
-                                ['nama' => 'Jendela Lipat', 'kategori' => 'Jendela', 'stok' => 12, 'harga' => 325000, 'deskripsi' => 'Jendela lipat minimalis cocok untuk ruang tamu atau dapur.'],
-                            ];
-                        @endphp
-
-                        @foreach ($dummyBarangs as $index => $barang)
-                            <tr>
-                                <td style="border: 1px solid #000;">{{ $index + 1 }}</td>
-                                <td style="border: 1px solid #000;">{{ $barang['nama'] }}</td>
-                                <td style="border: 1px solid #000;">{{ $barang['kategori'] }}</td>
-                                <td style="border: 1px solid #000;">{{ $barang['stok'] }}</td>
-                                <td style="border: 1px solid #000;">Rp {{ number_format($barang['harga'], 0, ',', '.') }}</td>
-                                <td style="border: 1px solid #000;">{{ Str::limit($barang['deskripsi'], 60) }}</td>
-                                <td style="border: 1px solid #000;">
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-success" disabled>
-                                            <i class="fas fa-edit"></i> Edit
-                                        </button>
-                                        <button class="btn btn-sm btn-danger" disabled>
-                                            <i class="fas fa-trash"></i> Hapus
-                                        </button>
-                                        <button class="btn btn-sm btn-secondary" disabled>
-                                            <i class="fas fa-tools"></i> Servis
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div> --}}
             <div class="card-body">
                 @if(isset($inventory) && count($inventory['inventory_by_length']) > 0)
                     <div class="table-responsive">
@@ -108,7 +70,7 @@
                                         <td>{{ $item['quantity'] }}</td>
                                         <td>{{ number_format($item['length'] * $item['quantity'], 2) }}</td>
                                         <td>{{ $item['status'] }}</td>
-                                        <td style="border: 1px solid #000;">
+                                        <td>
                                             <div class="btn-group" role="group">
                                                 <form action="{{ route('panels.edit-inventory', ['id' => $item['group_id']]) }}" method="GET" enctype="multipart/form-data">
                                                     @csrf
@@ -122,9 +84,6 @@
                                                         <i class="fas fa-trash"></i> Hapus
                                                     </button>
                                                 </form>
-                                                {{-- <button class="btn btn-sm btn-secondary" disabled>
-                                                    <i class="fas fa-tools"></i> Servis
-                                                </button> --}}
                                             </div>
                                         </td>
                                     </tr>
@@ -132,7 +91,6 @@
                             </tbody>
                             <tfoot>
                                 <tr class="table-primary">
-                                    <th></th>
                                     <th></th>
                                     <th></th>
                                     <th></th>
@@ -151,17 +109,21 @@
                                             echo number_format($totalLength, 2);
                                         @endphp
                                     </th>
+                                    <th></th>
                                 </tr>
                             </tfoot>
                         </table>
+                    </div>
+                    
+                    <!-- Pagination Links -->
+                    <div class="d-flex justify-content-center mt-4">
+                        {{ $inventory['paginator']->appends(['search' => $search ?? ''])->links() }}
                     </div>
                 @else
                     <div class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle mr-1"></i> No panels currently in inventory.
                     </div>
-                    <a href="{{ route('panels.create-inventory') }}" class="btn btn-primary">
-                        <i class="fas fa-plus mr-1"></i> Add Panels to Inventory
-                    </a>
+                   
                 @endif
             </div>
         </div>
@@ -181,23 +143,5 @@
 @endsection
 
 @section('scripts')
-<script>
-    $(document).ready(function () {
-        // Live search on input without button
-        $('#searchInput').on('input', function () {
-            const keyword = $(this).val().toLowerCase();
-            $('#tbodyBarang tr').each(function () {
-                const kode = $(this).find('td:nth-child(2)').text().toLowerCase();
-                const nama = $(this).find('td:nth-child(3)').text().toLowerCase();
-                $(this).toggle(kode.includes(keyword) || nama.includes(keyword));
-            });
-        });
-
-        // Reset search functionality
-        $('#resetButton').on('click', function () {
-            $('#searchInput').val(''); // Clear the search input
-            $('#tbodyBarang tr').show(); // Show all rows
-        });
-});
-</script>
+<!-- We're removing the client-side search JavaScript since we're using server-side search now -->
 @endsection
