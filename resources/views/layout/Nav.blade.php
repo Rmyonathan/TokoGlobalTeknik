@@ -15,6 +15,8 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
@@ -488,7 +490,7 @@
                                 <a class="nav-link" href="<?php echo e(route('master.cara_bayar')); ?>"><i class="fas fa-rupiah-sign"></i> Cara Bayar</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="<?php echo e(route('perusahaan.index')); ?>"><i class="fas fa-rupiah-sign"></i>Perusahaan</a>
+                                <a class="nav-link" href="<?php echo e(route('perusahaan.index')); ?>"><i class="bi bi-building"></i>Perusahaan</a>
                             </li>
                             
                             
@@ -522,7 +524,7 @@
                                             <a class="nav-link" href="<?php echo e(route('transaksi.index')); ?>"><i class="fas fa-envelope-open-text"></i> List Nota Penjualan</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="<?php echo e(route('transaksi.purchaseorder')); ?>"><i class="fas fa-money-bill-wave mr-2"></i>Purchase Order</a>
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.purchaseorder')); ?>"><i class="bi bi-cash-stack me-2"></i>Purchase Order</a>
                                         </li>
                                     </ul>
                                 </div>
@@ -567,7 +569,7 @@
                 </li>
                 <li class='nav-item'>
                     <a class="nav-link" data-toggle="collapse" href="#barang" role="button" aria-expanded="false" aria-controls="suratjalan">
-                        <i class="fas fa-truck-fast"></i> Barang
+                        <i class="bi bi-boxes"></i> Barang
                         <i class="fas fa-chevron-down ml-auto"></i>
                     </a>
                             <div class="collapse bg-dark border-0" id="barang">
@@ -579,7 +581,7 @@
                                             <a class="nav-link" href="<?php echo e(route('stock.mutasi')); ?>"><i class="fas fa-exchange-alt"></i> Mutasi Stok Barang</a>
                                         </li> 
                                         <li class="nav-item">
-                                            <a class="nav-link" href="<?php echo e(route('stock.adjustment.index')); ?>"><i class="fas fa-exchange-alt"></i> Stok adjustment</a>
+                                            <a class="nav-link" href="<?php echo e(route('stock.adjustment.index')); ?>"><i class="bi bi-arrow-repeat"></i> Stok adjustment</a>
                                         </li>
                                     </ul>
                                 </div>

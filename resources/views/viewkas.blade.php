@@ -3,7 +3,7 @@
 @section('content')
 <div class="container">
 
-    <h2 class="title-box">Mutasi Stock Barang</h2>
+    <h2 class="title-box">Kas Perusahaan</h2>
      <!-- Filter -->
      <div class="card mb-4">
         <div class="card-header">

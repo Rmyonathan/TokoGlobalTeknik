@@ -3,8 +3,8 @@
 @section('content')
 <section id="stok-owner">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Stok Owner</h2>
-        <button class="btn btn-success" data-toggle="modal" data-target="#addStokOwnerModal">Tambah Stok Owner</button>
+        <h2>Sales</h2>
+        <button class="btn btn-success" data-toggle="modal" data-target="#addStokOwnerModal">Tambah Sales</button>
     </div>
 
     @if(session('success'))
@@ -14,7 +14,7 @@
     <table class="table table-bordered">
         <thead>
             <tr>
-                <th>Kode Stok Owner</th>
+                <th>Kode Sales</th>
                 <th>Keterangan</th>
                 <th>Actions</th>
             </tr>

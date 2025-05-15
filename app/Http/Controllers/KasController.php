@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\BookingsController;
 
 use App\Models\Kas;
+use App\Models\CaraBayar;
 use App\Models\Saldo;
 use App\Models\Bookings;
 use App\Models\XItems;
@@ -67,8 +68,10 @@ use Illuminate\Http\Request;
         $tanggal_awal = $request->input('tanggal_awal');
         $tanggal_akhir = $request->input('tanggal_akhir');
 
-        $pembelianQuery = Pembelian::all();
-        $penjualanQuery = Transaksi::all();
+        $tunaiCaraBayars = CaraBayar::where('metode', 'Tunai')->pluck('nama')->toArray();
+
+        // $pembelianQuery = Pembelian::all();
+        $penjualanQuery = Transaksi::whereIn('cara_bayar', $tunaiCaraBayars)->get();
 
         $array_pembelian = [];
         $array_penjualan = [];
@@ -76,23 +79,23 @@ use Illuminate\Http\Request;
         $kasQuery = Kas::all();
         $array_kas = [];
 
-        // Handle Pembelian
-        foreach ($pembelianQuery as $pembelian) {
-            $items = PembelianItem::where('nota', $pembelian->nota)->get();
-            $items_list = [];
+        // // Handle Pembelian
+        // foreach ($pembelianQuery as $pembelian) {
+        //     $items = PembelianItem::where('nota', $pembelian->nota)->get();
+        //     $items_list = [];
 
-            foreach ($items as $item) {
-                $items_list[] = $item->kode_barang . ' x ' . $item->qty;
-            }
+        //     foreach ($items as $item) {
+        //         $items_list[] = $item->kode_barang . ' x ' . $item->qty;
+        //     }
 
-            $array_pembelian[] = [
-                'Name' => $pembelian->nota,
-                'Deskripsi' => implode(', ', $items_list),
-                'Grand total' => $pembelian->grand_total,
-                'Date' => $pembelian->created_at,
-                'Type' => 'Debit'
-            ];
-        }
+        //     $array_pembelian[] = [
+        //         'Name' => $pembelian->nota,
+        //         'Deskripsi' => implode(', ', $items_list),
+        //         'Grand total' => $pembelian->grand_total,
+        //         'Date' => $pembelian->created_at,
+        //         'Type' => 'Debit'
+        //     ];
+        // }
 
         // Handle Penjualan
         foreach ($penjualanQuery as $penjualan) {
@@ -111,7 +114,6 @@ use Illuminate\Http\Request;
                 'Type' => 'Kredit'
             ];
         }
-
         foreach ($kasQuery as $kas) {
             $array_kas[] = [
                 'Name' => $kas->name,
