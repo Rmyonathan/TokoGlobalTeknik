@@ -173,6 +173,7 @@ class TransaksiController extends Controller
                     $request->no_transaksi,
                     $customerName . ' (' . $request->kode_customer . ')',
                     $item['qty'],
+                    $request->sales,
                     'LBR'
                 );
             }
