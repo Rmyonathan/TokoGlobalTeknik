@@ -250,12 +250,20 @@
     </div>
 </div>
 
-<!-- Hidden form to submit orders -->
+{{-- <!-- Hidden form to submit orders -->
 <form id="orderSubmitForm" action="{{ route('panels.store-order') }}" method="POST" style="display: none;">
     @csrf
     <input type="hidden" name="penambah" id="formPenambah">
     <input type="hidden" name="pengurang" id="formPengurang">
     <input type="hidden" name="quantity" id="formQuantity">
+</form> --}}
+<form id="orderSubmitForm" action="{{ route('panels.store-order') }}" method="POST" style="display: none;">
+    @csrf
+    <input type="hidden" name="penambah" id="formPenambah">
+    <!-- Container for pengurang array inputs -->
+    <div id="pengurangContainer"></div>
+    <!-- Container for quantity array inputs -->
+    <div id="quantityContainer"></div>
 </form>
 
 <script>
@@ -546,8 +554,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (confirm('Are you sure you want to process these orders?')) {
-            // Process each order one by one
-            processNextOrder(0);
+            // Clear existing form
+            const pengurangContainer = document.getElementById('pengurangContainer');
+            const quantityContainer = document.getElementById('quantityContainer');
+            pengurangContainer.innerHTML = '';
+            quantityContainer.innerHTML = '';
+
+            // Set penambah value
+            document.getElementById('formPenambah').value = selectedPenambah.kode;
+
+            // Add all items to the form with proper array notation
+            orderItems.forEach((item, index) => {
+                // Create hidden inputs for pengurang array
+                const pengurangInput = document.createElement('input');
+                pengurangInput.type = 'hidden';
+                pengurangInput.name = 'pengurang[]';  // Array notation
+                pengurangInput.value = item.pengurang;
+                pengurangContainer.appendChild(pengurangInput);
+
+                // Create hidden inputs for quantity array
+                const quantityInput = document.createElement('input');
+                quantityInput.type = 'hidden';
+                quantityInput.name = 'quantity[]';  // Array notation
+                quantityInput.value = item.quantity;
+                quantityContainer.appendChild(quantityInput);
+            });
+
+            // Submit the form
+            document.getElementById('orderSubmitForm').submit();
         }
     });
 
