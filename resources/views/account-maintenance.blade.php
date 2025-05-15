@@ -43,7 +43,12 @@
 <!-- Profile Section -->
 <section id="profile">
     <h2 class="mb-4">User Profiles</h2>
-
+    <a href="{{ route('create-account', $code->id) }}" class="btn btn-sm btn-success">
+        <i class="fas fa-edit"></i> Create Account
+    </a>
+    <a href="{{ route('create-account', $code->id) }}" class="btn btn-sm btn-success">
+        <i class="fas fa-edit"></i> Create Role
+    </a>
     @foreach($users as $user)
     <div class="card mb-3 shadow-sm">
         <div class="card-body">

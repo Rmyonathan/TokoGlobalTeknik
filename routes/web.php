@@ -50,9 +50,11 @@ Route::middleware(['web'])->group(function () {
 
 });
 
-Route::middleware(['web', 'role'])->group(function () {
+Route::group(['middleware' => ['permission:edit users']], function () {
     Route::get('/account-maintenance', [AccountsController::class, 'accountMaintenance']);
+});
 
+Route::middleware(['web', 'role'])->group(function () {
     Route::get('/viewKas', [KasController::class, 'viewKas']);
     Route::get('/viewSlide', [KasController::class, 'viewSlide']);
     Route::post('/delete_kas',
@@ -209,7 +211,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/pembelian/historypembelian', function () {
         return view('pembelian.historypembelian'); // karena file-nya langsung di views/
     })->name('pembelian.historypembelian');
-    
+
     // Cara Bayar
     Route::prefix('master')->group(function () {
         Route::get('/cara_bayar', [CaraBayarController::class, 'index'])->name('master.cara_bayar');
@@ -227,7 +229,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/api/cara-bayar/by-metode', function (Illuminate\Http\Request $request) {
         $metode = $request->query('metode');
         return \App\Models\CaraBayar::where('metode', $metode)->get();
-    });     
+    });
 
     // API for ajax calls
     Route::prefix('api')->group(function () {
@@ -291,6 +293,6 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/transaksi/purchaseorder/{id}/complete', [PurchaseOrderController::class, 'completeTransaction'])->name('purchase-order.complete');
     // Route buat cancel PO
     Route::patch('/transaksi/purchaseorder/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-order.cancel');
-    
+
 
 });

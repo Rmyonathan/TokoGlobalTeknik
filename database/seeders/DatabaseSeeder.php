@@ -10,6 +10,8 @@ use App\Models\Saldo;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class DatabaseSeeder extends Seeder
 {
@@ -19,13 +21,30 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // User::factory(10)->create();
+        // Permission::create(['name' => 'view dashboard']);
+        // Permission::create(['name' => 'edit users']);
+        // Permission::create(['name' => 'access sales report']);
+
+        Permission::factory()->create([
+            'name' => 'view dashboard',
+        ]);
+
+        Permission::factory()->create([
+            'name' => 'edit users',
+        ]);
+
+        Permission::factory()->create([
+            'name' => 'access sales report',
+        ]);
+
+        $adminRole = Role::create(['name' => 'admin']);
+        $adminRole->givePermissionTo(['view dashboard', 'edit users', 'access sales report']);
 
         User::factory()->create([
             'name' => 'Admin Bos',
             'email' => 'admin@gmail.com',
-            'role' => 'admin',
             'password' => Hash::make('1234567890'),
-        ]);
+        ])->assignRole('admin');
 
         User::factory()->create([
             'name' => 'Pegawai X',
