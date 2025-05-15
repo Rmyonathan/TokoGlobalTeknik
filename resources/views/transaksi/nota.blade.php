@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Nota Transaksi</title>
     <style>
-        @page {
+            @page {
             size: 21.59cm 14cm;
         }
 
@@ -91,16 +91,17 @@
 @php
     $totalPages = $groupedItems->count();
     $pageNum = 1;
+    $defaultCompany = \App\Models\Perusahaan::where('is_default', true)->first() ?? new \App\Models\Perusahaan();
 @endphp
 
 @foreach ($groupedItems as $chunk)
     <div class="page">
         {{-- HEADER --}}
         <div class="header">
-            <strong>CV. ALUMKA CIPTA PRIMA</strong><br>
-            JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008<br>
-            8 ILIR, ILIR TIMUR II<br>
-            TELP. (0711) 311158 &nbsp;&nbsp; FAX (0711) 311158<br>
+            <strong>{{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}</strong><br>
+            {{ $defaultCompany->alamat ?? 'JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008' }}<br>
+            {{ $defaultCompany->kota ?? '8 ILIR' }}, {{ $defaultCompany->kode_pos ?? 'ILIR TIMUR II' }}<br>
+            TELP. {{ $defaultCompany->telepon ?? '(0711) 311158' }} &nbsp;&nbsp; FAX {{ $defaultCompany->fax ?? '(0711) 311158' }}<br>
             NO FAKTUR: {{ $transaction->no_transaksi }}
         </div>
 
@@ -152,8 +153,8 @@
         @if ($loop->last)
         <div class="note">
             <strong>PERHATIAN !!!</strong><br>
-            Barang masih titipan dari CV. Alumka Cipta Prima, bila belum dilunasi.<br>
-            Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.
+            Barang masih titipan dari {{ $defaultCompany->nama ?? 'CV. Alumka Cipta Prima' }}, bila belum dilunasi.<br>
+            {{ $defaultCompany->catatan_nota ?? 'Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.' }}
         </div>
 
         <br>

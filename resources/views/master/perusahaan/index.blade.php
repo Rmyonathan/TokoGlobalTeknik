@@ -63,6 +63,20 @@
                                     <a href="{{ route('perusahaan.edit', $item->id) }}" class="btn btn-sm btn-success">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
+                                    
+                                    @if(!$item->is_default)
+                                    <form action="{{ route('perusahaan.set-default', $item->id) }}" method="POST" style="display: inline;">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-check"></i> Set Default
+                                        </button>
+                                    </form>
+                                    @else
+                                    <button type="button" class="btn btn-sm btn-secondary" disabled>
+                                        <i class="fas fa-star"></i> Default
+                                    </button>
+                                    @endif
+                                    
                                     <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ $item->id }}">
                                         <i class="fas fa-trash"></i> Hapus
                                     </button>

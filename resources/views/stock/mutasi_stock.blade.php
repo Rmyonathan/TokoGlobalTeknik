@@ -14,8 +14,7 @@
                 <table class="table table-bordered table-striped">
                     <thead class="thead-dark">
                         <tr>
-                            <th>SO</th>
-                            <th>Kode Barang</th>
+\                            <th>Kode Barang</th>
                             <th>Nama</th>
                             <th>Good Stock</th>
                             <th>Satuan</th>
@@ -26,7 +25,6 @@
                     <tbody>
                         @forelse($stocks as $stock)
                             <tr>
-                                <td>{{ $stock->so }}</td>
                                 <td>{{ $stock->kode_barang }}</td>
                                 <td>{{ $stock->nama_barang }}</td>
                                 <td>{{ number_format($stock->good_stock, 2) }}</td>

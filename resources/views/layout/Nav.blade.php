@@ -471,9 +471,7 @@
                     <div class="collapse bg-dark border-0" id="masterMenu">
                         <!-- Master menu items -->
                         <ul class="nav flex-column ml-3">
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('panels.repack') }}"><i class="fas fa-boxes"></i> Repack</a>
-                            </li>
+                            
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('master.barang') }}"><i class="fas fa-layer-group"></i> Display Barang</a>
                             </li>
@@ -492,9 +490,8 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('perusahaan.index')); ?>"><i class="fas fa-rupiah-sign"></i>Perusahaan</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="<?php echo e(route('stock.mutasi')); ?>"><i class="fas fa-exchange-alt"></i> Mutasi Stok Barang</a>
-                            </li>
+                            
+                            
                         </ul>
                     </div>
                 </li>
@@ -546,7 +543,7 @@
                                         </li>   
                                     </ul>
                                 </div>
-                            </li>
+                            </li> 
                         </ul>
                     </div>
                 </li>
@@ -568,6 +565,25 @@
                         </ul>
                     </div> 
                 </li>
+                <li class='nav-item'>
+                    <a class="nav-link" data-toggle="collapse" href="#barang" role="button" aria-expanded="false" aria-controls="suratjalan">
+                        <i class="fas fa-truck-fast"></i> Barang
+                        <i class="fas fa-chevron-down ml-auto"></i>
+                    </a>
+                            <div class="collapse bg-dark border-0" id="barang">
+                                    <ul class="nav flex-column ml-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('panels.repack') }}"><i class="fas fa-boxes"></i> Repack</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="<?php echo e(route('stock.mutasi')); ?>"><i class="fas fa-exchange-alt"></i> Mutasi Stok Barang</a>
+                                        </li> 
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="<?php echo e(route('stock.adjustment.index')); ?>"><i class="fas fa-exchange-alt"></i> Stok adjustment</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                </li>            
 
                 <li class="nav-item">
                     <a class="nav-link" href="/viewKas"><i class="fas fa-money-bill-wave mr-2"></i>Kas</a>

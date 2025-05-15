@@ -123,14 +123,18 @@
         <a href="{{ route('pembelian.nota.list') }}" class="btn btn-back">Kembali ke Daftar</a>
     </div>
 
+    @php
+    $defaultCompany = \App\Models\Perusahaan::where('is_default', true)->first() ?? new \App\Models\Perusahaan();
+    @endphp
+
     <div class="container">
         <div class="header">
             <div class="company-info">
-                <div class="company-name">CV. ALUMKA CIPTA PRIMA</div>
-                <div>JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008</div>
-                <div>8 ILIR, ILIR TIMUR II</div>
-                <div>TELP: (0711) 811158</div>
-                <div>FAX: (0711) 811158</div>
+                <div class="company-name">{{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}</div>
+                <div>{{ $defaultCompany->alamat ?? 'JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008' }}</div>
+                <div>{{ $defaultCompany->kota ?? '8 ILIR' }}, {{ $defaultCompany->kode_pos ?? 'ILIR TIMUR II' }}</div>
+                <div>TELP: {{ $defaultCompany->telepon ?? '(0711) 811158' }}</div>
+                <div>FAX: {{ $defaultCompany->fax ?? '(0711) 811158' }}</div>
                 <div class="faktur-no">NO FAKTUR: {{ $purchase->nota }}</div>
             </div>
             @if($purchase->status == 'canceled')
@@ -193,8 +197,8 @@
         </table>
 
         <div class="notice">
-            <p><strong>PERHATIAN !!!</strong> Barang masih diljepas dari CV. Alumka Cipta Prima tidak bisa dikembalikan.</p>
-            <p>- Pembayaran dgan Cek, Giro, BG, dan sejenisnya di anggap sah setelah dananya cair.</p>
+            <p><strong>PERHATIAN !!!</strong> Barang yang sudah dibeli dari {{ $defaultCompany->nama ?? 'CV. Alumka Cipta Prima' }} tidak bisa dikembalikan.</p>
+            <p>- {{ $defaultCompany->catatan_nota ?? 'Pembayaran dengan Cek, Giro, BG, dan sejenisnya dianggap sah setelah dananya cair.' }}</p>
             <p>Hormat Kami,</p>
         </div>
 

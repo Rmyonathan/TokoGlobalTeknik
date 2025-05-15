@@ -165,7 +165,7 @@ class PurchaseOrderController extends Controller
     {
         $po = PurchaseOrder::findOrFail($id);
         if ($po->status === 'pending') {
-            $userName = auth()->user()->name ?? 'USER DEFAULT';
+            $userName = Auth::user() ? Auth::user()->name : 'USER DEFAULT';
             $po->update(['status' => 'cancelled by ' . $userName]);
         }
 

@@ -35,6 +35,9 @@ class PerusahaanController extends Controller
             'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'is_active' => 'boolean'
         ]);
+        if (Perusahaan::count() == 0) {
+            $validated['is_default'] = true;
+        }
 
         if ($request->hasFile('logo')) {
             $path = $request->file('logo')->store('public/logos');
@@ -74,6 +77,12 @@ class PerusahaanController extends Controller
             'is_active' => 'boolean'
         ]);
 
+        if ($perusahaan->is_default && isset($validated['is_active']) && !$validated['is_active']) {
+            return redirect()
+                ->back()
+                ->with('error', 'Default perusahaan tidak dapat dinonaktifkan. Silakan atur perusahaan lain sebagai default terlebih dahulu.');
+        }
+
         if ($request->hasFile('logo')) {
             // Delete old logo if exists
             if ($perusahaan->logo) {
@@ -104,5 +113,20 @@ class PerusahaanController extends Controller
         return redirect()
             ->route('perusahaan.index')
             ->with('success', 'Data perusahaan berhasil dihapus');
+    }
+
+    public function setDefault($id)
+    {
+        // First, unset default for all companies
+        Perusahaan::where('is_default', true)->update(['is_default' => false]);
+        
+        // Set the selected company as default
+        $perusahaan = Perusahaan::findOrFail($id);
+        $perusahaan->is_default = true;
+        $perusahaan->save();
+        
+        return redirect()
+            ->route('perusahaan.index')
+            ->with('success', 'Perusahaan "' . $perusahaan->nama . '" telah diatur sebagai default');
     }
 }

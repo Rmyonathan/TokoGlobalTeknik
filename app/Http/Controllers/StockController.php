@@ -24,15 +24,15 @@ class StockController extends Controller
         $tanggal_awal = $request->input('tanggal_awal');
         $tanggal_akhir = $request->input('tanggal_akhir');
 
-        // Get all available stocks
+        // Get all available stocks, but GROUP BY kode_barang to avoid duplicates
         $stocksQuery = Stock::select(
             'stocks.kode_barang',
             'stocks.nama_barang',
-            'stocks.good_stock',
-            'stocks.bad_stock',
-            'stocks.so',
+            DB::raw('SUM(stocks.good_stock) as good_stock'), // Sum up the stocks
+            DB::raw('SUM(stocks.bad_stock) as bad_stock'),   // Sum up bad stocks
             'stocks.satuan'
-        );
+        )
+        ->groupBy('stocks.kode_barang', 'stocks.nama_barang', 'stocks.satuan'); // Group by everything except SO
 
         // Apply filters if provided
         if ($value) {
@@ -62,18 +62,16 @@ class StockController extends Controller
         }
 
         if ($selectedStock) {
-            // Build query for mutations
+            // Build query for mutations - Remove SO condition
             $mutationsQuery = StockMutation::where('kode_barang', $selectedStock->kode_barang)
-                ->where('so', $selectedStock->so)
                 ->orderBy('tanggal')
                 ->orderBy('id');
 
             // Apply date filters if provided
             if ($tanggal_awal) {
-                // Get opening balance for the specified date
+                // Get opening balance for the specified date - No SO parameter
                 $openingBalance = $this->getOpeningBalance(
                     $selectedStock->kode_barang,
-                    $selectedStock->so,
                     $tanggal_awal
                 );
 
@@ -107,13 +105,14 @@ class StockController extends Controller
         $kolom = $request->input('kolom', 'kode_barang');
         $value = $request->input('value');
 
+        // Group stocks by kode_barang
         $query = Stock::select(
             'stocks.kode_barang',
             'stocks.nama_barang',
-            'stocks.good_stock',
-            'stocks.satuan',
-            'stocks.so'
-        );
+            DB::raw('SUM(stocks.good_stock) as good_stock'),
+            'stocks.satuan'
+        )
+        ->groupBy('stocks.kode_barang', 'stocks.nama_barang', 'stocks.satuan');
 
         if ($value) {
             if ($kolom === 'kode_barang') {
@@ -139,10 +138,10 @@ class StockController extends Controller
         string $no_nota,
         string $supplier_customer,
         float $quantity,
-        string $so,
         string $satuan = 'LBR',
         string $keterangan = 'Purchase transaction',
-        ?string $created_by = null
+        ?string $created_by = null,
+        string $so = 'default' // Made SO optional with default value
     ): bool {
         try {
             DB::beginTransaction();
@@ -152,18 +151,31 @@ class StockController extends Controller
                 $created_by = Auth::check() ? Auth::user()->name : 'SYSTEM';
             }
 
-            // Get current stock level or create new record if it doesn't exist
-            $stock = Stock::firstOrCreate(
-                ['kode_barang' => $kode_barang, 'so' => $so],
-                [
+            // Get all stock records for this product (regardless of SO)
+            $existingStock = Stock::where('kode_barang', $kode_barang)->first();
+            
+            if ($existingStock) {
+                // Update the stock record
+                $newTotal = $existingStock->good_stock + $quantity;
+                $existingStock->good_stock = $newTotal;
+                $existingStock->save();
+                
+                // Use this stock's attributes
+                $nama_barang = $existingStock->nama_barang;
+                $satuan = $existingStock->satuan;
+            } else {
+                // Create a new stock record
+                $existingStock = Stock::create([
+                    'kode_barang' => $kode_barang,
                     'nama_barang' => $nama_barang,
-                    'good_stock' => 0,
-                    'satuan' => $satuan
-                ]
-            );
-
-            // Calculate new total
-            $newTotal = $stock->good_stock + $quantity;
+                    'good_stock' => $quantity,
+                    'bad_stock' => 0,
+                    'satuan' => $satuan,
+                    'so' => $so  // Keep SO for backward compatibility
+                ]);
+                
+                $newTotal = $quantity;
+            }
 
             // Record the stock movement
             StockMutation::create([
@@ -173,18 +185,14 @@ class StockController extends Controller
                 'tanggal' => $tanggal,
                 'no_nota' => $no_nota,
                 'supplier_customer' => $supplier_customer,
-                'plus' => $quantity, // Always positive for purchases
+                'plus' => $quantity,
                 'minus' => 0,
                 'total' => $newTotal,
-                'so' => $so,
+                'so' => $so, // Keep for historical records
                 'satuan' => $satuan,
                 'keterangan' => $keterangan,
                 'created_by' => $created_by
             ]);
-
-            // Update stock
-            $stock->good_stock = $newTotal;
-            $stock->save();
 
             DB::commit();
             return true;
@@ -206,10 +214,10 @@ class StockController extends Controller
         string $no_nota,
         string $customer,
         float $quantity,
-        string $so,
         string $satuan = 'LBR',
         string $keterangan = 'Sale transaction',
-        ?string $created_by = null
+        ?string $created_by = null,
+        string $so = 'default' // Made SO optional with default value
     ): bool {
         try {
             DB::beginTransaction();
@@ -219,18 +227,31 @@ class StockController extends Controller
                 $created_by = Auth::check() ? Auth::user()->name : 'SYSTEM';
             }
 
-            // Get current stock level or create new record if it doesn't exist
-            $stock = Stock::firstOrCreate(
-                ['kode_barang' => $kode_barang, 'so' => $so],
-                [
+            // Get all stock records for this product (regardless of SO)
+            $existingStock = Stock::where('kode_barang', $kode_barang)->first();
+            
+            if (!$existingStock) {
+                // Create a new stock record with negative quantity if stock doesn't exist
+                $existingStock = Stock::create([
+                    'kode_barang' => $kode_barang,
                     'nama_barang' => $nama_barang,
-                    'good_stock' => 0,
-                    'satuan' => $satuan
-                ]
-            );
-
-            // Calculate new total
-            $newTotal = $stock->good_stock - $quantity;
+                    'good_stock' => -$quantity, // Negative because it's a sale
+                    'bad_stock' => 0,
+                    'satuan' => $satuan,
+                    'so' => $so  // Keep SO for backward compatibility
+                ]);
+                
+                $newTotal = -$quantity;
+            } else {
+                // Update the stock record
+                $newTotal = $existingStock->good_stock - $quantity;
+                $existingStock->good_stock = $newTotal;
+                $existingStock->save();
+                
+                // Use this stock's attributes
+                $nama_barang = $existingStock->nama_barang;
+                $satuan = $existingStock->satuan;
+            }
 
             // Record the stock movement
             StockMutation::create([
@@ -241,17 +262,13 @@ class StockController extends Controller
                 'no_nota' => $no_nota,
                 'supplier_customer' => $customer,
                 'plus' => 0,
-                'minus' => $quantity, // Always positive value for sales
+                'minus' => $quantity,
                 'total' => $newTotal,
-                'so' => $so,
+                'so' => $so, // Keep for historical records
                 'satuan' => $satuan,
                 'keterangan' => $keterangan,
                 'created_by' => $created_by
             ]);
-
-            // Update stock
-            $stock->good_stock = $newTotal;
-            $stock->save();
 
             DB::commit();
             return true;
@@ -264,12 +281,11 @@ class StockController extends Controller
 
     /**
      * Get the opening balance for a product on a specific date
+     * Modified to not require SO parameter
      */
-    public function getOpeningBalance(string $kode_barang, string $so, string $date): float
+    public function getOpeningBalance(string $kode_barang, string $date): float
     {
-        // Existing code...
         $latestMovement = StockMutation::where('kode_barang', $kode_barang)
-            ->where('so', $so)
             ->whereDate('tanggal', '<', $date)
             ->orderBy('tanggal', 'desc')
             ->orderBy('id', 'desc')
@@ -280,22 +296,32 @@ class StockController extends Controller
 
     /**
      * API endpoint to get stock data for a specific product
+     * Modified to work without SO parameter
      */
     public function getStock(Request $request)
     {
         $kode_barang = $request->input('kode_barang');
         $so = $request->input('so');
 
-        if (empty($so)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'SO parameter is required'
-            ], 400);
+        $query = Stock::where('kode_barang', $kode_barang);
+        
+        // Only filter by SO if provided
+        if (!empty($so)) {
+            $query->where('so', $so);
+        } else {
+            // If SO not provided, just get the first record or all records summed
+            $query = Stock::select(
+                'kode_barang',
+                'nama_barang',
+                DB::raw('SUM(good_stock) as good_stock'),
+                DB::raw('SUM(bad_stock) as bad_stock'),
+                'satuan'
+            )
+            ->where('kode_barang', $kode_barang)
+            ->groupBy('kode_barang', 'nama_barang', 'satuan');
         }
 
-        $stock = Stock::where('kode_barang', $kode_barang)
-            ->where('so', $so)
-            ->first();
+        $stock = $query->first();
 
         if (!$stock) {
             return response()->json([
@@ -312,26 +338,23 @@ class StockController extends Controller
 
     /**
      * API endpoint to get mutations for a specific product
+     * Modified to work without SO parameter
      */
     public function getStockMutations(Request $request)
     {
         $kode_barang = $request->input('kode_barang');
         $so = $request->input('so');
-        
-        if (empty($so)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'SO parameter is required'
-            ], 400);
-        }
-
         $tanggal_awal = $request->input('tanggal_awal');
         $tanggal_akhir = $request->input('tanggal_akhir');
 
         $query = StockMutation::where('kode_barang', $kode_barang)
-            ->where('so', $so)
             ->orderBy('tanggal')
             ->orderBy('id');
+            
+        // Only filter by SO if provided
+        if (!empty($so)) {
+            $query->where('so', $so);
+        }
 
         if ($tanggal_awal) {
             $query->whereDate('tanggal', '>=', $tanggal_awal);
@@ -345,7 +368,7 @@ class StockController extends Controller
         $openingBalance = 0;
 
         if ($tanggal_awal) {
-            $openingBalance = $this->getOpeningBalance($kode_barang, $so, $tanggal_awal);
+            $openingBalance = $this->getOpeningBalance($kode_barang, $tanggal_awal);
         }
 
         return response()->json([
@@ -354,5 +377,65 @@ class StockController extends Controller
             'data' => $mutations
         ]);
     }
+    
+    /**
+     * Consolidate stock data - helpful for one-time cleanup
+     * Run this once to merge duplicate stock records by kode_barang
+     */
+    public function consolidateStocks()
+    {
+        try {
+            DB::beginTransaction();
+            
+            // Get list of all unique kode_barang values
+            $kodeBarangList = Stock::select('kode_barang')
+                ->distinct()
+                ->get()
+                ->pluck('kode_barang');
+                
+            $consolidated = 0;
+            
+            foreach ($kodeBarangList as $kodeBarang) {
+                $stocks = Stock::where('kode_barang', $kodeBarang)->get();
+                
+                // Skip if there's only one record
+                if ($stocks->count() <= 1) {
+                    continue;
+                }
+                
+                // Sum up quantities
+                $totalGoodStock = $stocks->sum('good_stock');
+                $totalBadStock = $stocks->sum('bad_stock');
+                
+                // Keep the first record, update its quantities
+                $primaryStock = $stocks->first();
+                $primaryStock->good_stock = $totalGoodStock;
+                $primaryStock->bad_stock = $totalBadStock;
+                $primaryStock->save();
+                
+                // Delete the other records
+                Stock::where('kode_barang', $kodeBarang)
+                    ->where('id', '!=', $primaryStock->id)
+                    ->delete();
+                    
+                $consolidated++;
+            }
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Consolidated $consolidated products"
+            ]);
+            
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error consolidating stocks:', ['message' => $e->getMessage()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
-

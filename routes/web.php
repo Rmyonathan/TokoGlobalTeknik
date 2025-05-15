@@ -21,6 +21,7 @@ use App\Http\Controllers\StockController;
 use App\Http\Controllers\CaraBayarController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PerusahaanController;
+use App\Http\Controllers\StockAdjustmentController;
 
 use App\Models\StokOwner;
 use App\Models\Supplier;
@@ -223,6 +224,7 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/perusahaan/{id}/edit', [PerusahaanController::class, 'edit'])->name('perusahaan.edit');
     Route::put('/perusahaan/{id}', [PerusahaanController::class, 'update'])->name('perusahaan.update');
     Route::delete('/perusahaan/{id}', [PerusahaanController::class, 'destroy'])->name('perusahaan.destroy');
+    Route::post('/perusahaan/{id}/set-default', [PerusahaanController::class, 'setDefault'])->name('perusahaan.set-default');
 
     Route::get('/api/cara-bayar/by-metode', function (Illuminate\Http\Request $request) {
         $metode = $request->query('metode');
@@ -292,5 +294,14 @@ Route::middleware(['web', 'role'])->group(function () {
     // Route buat cancel PO
     Route::patch('/transaksi/purchaseorder/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-order.cancel');
     
+    // Stock Adjustment Routes
+    Route::group(['middleware' => ['auth'], 'prefix' => 'stock-adjustment', 'as' => 'stock.adjustment.'], function () {
+        Route::get('/', [StockAdjustmentController::class, 'index'])->name('index');
+        Route::get('/history', [StockAdjustmentController::class, 'history'])->name('history');
+        Route::get('/create', [StockAdjustmentController::class, 'create'])->name('create');
+        Route::post('/store', [StockAdjustmentController::class, 'store'])->name('store');
+        Route::get('/adjust/{kodeBarang}', [StockAdjustmentController::class, 'adjust'])->name('adjust');
+        Route::get('/{id}', [StockAdjustmentController::class, 'show'])->name('show');
+    });
 
 });
