@@ -681,7 +681,7 @@ class PanelController extends Controller
         ];
     }
 
-    private function getKodeSummary(): array
+    public function getKodeSummary(): array
     {
         // Using Eloquent to get all available panels
         $panels = KodeBarang::all();

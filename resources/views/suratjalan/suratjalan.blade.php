@@ -328,13 +328,14 @@ $(document).ready(function() {
                             `<tr>
                                 <td>${index+1}</td>
                                 <td>${item.kode_barang}</td>
-                                <td>${item.keterangan}</td>
+                                <td class="editable-nama-barang" data-index="${index}">${item.keterangan}</td>
                                 <td>${item.qty}</td>
                             </tr>`
                         ;
                         items.push({
                             kode_barang: item.kode_barang,
                             nama_barang: item.keterangan,
+                            panjang: item.panjang,
                             qty: item.qty,
                         })
                     });
@@ -343,6 +344,53 @@ $(document).ready(function() {
             });
         });
         $('#customerDropdown').hide();
+    });
+
+    $(document).on('dblclick', '.editable-nama-barang', function() {
+        const $td = $(this);
+        const index = $td.data('index');
+        const currentValue = $td.text();
+        if ($td.find('input').length > 0) return;
+
+        const $input = $('<input type="text" class="form-control form-control-sm" />')
+            .val(currentValue)
+            .css('min-width', '120px');
+
+        $td.html($input);
+        $input.focus();
+
+        // Handler untuk simpan perubahan
+        function saveEdit() {
+            const newValue = $input.val();
+            $td.text(newValue);
+
+            // Update array items juga!
+            if (typeof items[index] !== 'undefined') {
+                items[index].nama_barang = newValue;
+            }
+
+            // Hapus event global agar tidak menumpuk
+            $(document).off('mousedown.namaBarangEdit');
+        }
+
+        // Simpan saat blur atau tekan Enter
+        $input.on('blur', saveEdit);
+        $input.on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                $input.blur();
+            }
+        });
+
+        // Simpan juga jika klik di luar input
+        $(document).on('mousedown.namaBarangEdit', function(event) {
+            if (!$input.is(event.target) && $input.has(event.target).length === 0) {
+                $input.blur();
+            }
+        });
+    });
+    // Hapus event handler global setelah selesai edit
+    $(document).on('blur', '.editable-nama-barang input', function() {
+        $(document).off('mousedown.namaBarangEdit');
     });
 
     // Save Surat Jalan

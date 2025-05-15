@@ -24,9 +24,11 @@ class TransaksiController extends Controller
      */
 
     protected $stockController;
+    protected $panelController;
 
-    public function __construct(StockController $stockController){
+    public function __construct(StockController $stockController, PanelController $panelController){
         $this->stockController = $stockController;
+        $this->panelController = $panelController;
     }
 
     public function index(Request $request)
@@ -82,8 +84,9 @@ class TransaksiController extends Controller
 
         // Format nomor transaksi baru
         $noTransaksi = 'KP/WS/' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        $inventory = app(\App\Http\Controllers\PanelController::class)->getKodeSummary();
 
-        return view('transaksi.penjualan', compact('noTransaksi'));
+        return view('transaksi.penjualan', compact('noTransaksi', 'inventory'));
     }
 
     public function getByGroupId($group_id)
@@ -125,7 +128,6 @@ class TransaksiController extends Controller
                 'tanggal' => $request->tanggal,
                 'kode_customer' => $request->kode_customer,
                 'sales' => $request->sales,
-                'lokasi' => $request->lokasi,
                 'pembayaran' => $request->pembayaran,
                 'cara_bayar' => $request->cara_bayar,
                 'tanggal_jadi' => $request->tanggal_jadi,
@@ -171,7 +173,6 @@ class TransaksiController extends Controller
                     $request->no_transaksi,
                     $customerName . ' (' . $request->kode_customer . ')',
                     $item['qty'],
-                    $request->lokasi ?? 'ALUMKA',
                     'LBR'
                 );
             }

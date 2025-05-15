@@ -101,10 +101,6 @@
                         </div>
                         <div class="card-body">
                             <div class="row mb-2">
-                                <div class="col-5 text-muted">Lokasi</div>
-                                <div class="col-7 font-weight-bold">{{ $po->lokasi ?? 'N/A' }}</div>
-                            </div>
-                            <div class="row mb-2">
                                 <div class="col-5 text-muted">Pembayaran</div>
                                 <div class="col-7 font-weight-bold">{{ $po->pembayaran ?? 'N/A' }}</div>
                             </div>

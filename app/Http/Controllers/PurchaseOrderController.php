@@ -113,7 +113,6 @@ class PurchaseOrderController extends Controller
                 'tanggal' => $request->tanggal,
                 'kode_customer' => $request->kode_customer,
                 'sales' => $request->sales,
-                'lokasi' => $request->lokasi,
                 'pembayaran' => $request->pembayaran,
                 'cara_bayar' => $request->cara_bayar,
                 'tanggal_jadi' => null,
@@ -204,7 +203,6 @@ class PurchaseOrderController extends Controller
                 'tanggal' => now(),
                 'kode_customer' => $po->kode_customer,
                 'sales' => $po->sales,
-                'lokasi' => $po->lokasi,
                 'pembayaran' => $po->pembayaran,
                 'cara_bayar' => $po->cara_bayar,
                 'tanggal_jadi' => now(),
@@ -242,7 +240,6 @@ class PurchaseOrderController extends Controller
                     $noTransaksi,
                     $customerName . ' (' . $po->kode_customer . ')',
                     $item->qty,
-                    $po->lokasi ?? 'ALUMKA',
                     'LBR'
                 );
     

@@ -49,10 +49,10 @@
                         <tr>
                             <th>No</th>
                             <th>Kode Customer</th>
-                            <th>nama</th>
+                            <th>Nama</th>
                             <th>Alamat</th>
                             <th>HP</th>
-                            <th>telepon</th>
+                            <th>Telepon</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyCustomer">
