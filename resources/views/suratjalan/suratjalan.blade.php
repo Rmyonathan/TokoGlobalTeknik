@@ -226,7 +226,7 @@ $(document).ready(function() {
                                 data-alamat="${customer.alamat}"
                                 data-hp="${customer.hp}"
                                 data-telp="${customer.telepon}">
-                                ${customer.kode_customer} - ${customer.nama}
+                                ${customer.kode_customer} - ${customer.nama} - ${customer.alamat} - ${customer.hp}
                             </a>`;
                         });
                     } else {
@@ -271,13 +271,17 @@ $(document).ready(function() {
                         let dropdown = '';
                         if (data.length > 0) {
                             data.forEach(transaksi => {
+                                // Format tanggal ke "Tanggal Bulan Tahun"
+                                const tgl = new Date(transaksi.tanggal);
+                                const bulan = tgl.toLocaleString('id-ID', { month: 'long' });
+                                const tglFormatted = `${tgl.getDate()} ${bulan} ${tgl.getFullYear()}`;
                                 dropdown += `<a href="#" class="dropdown-item transaksi-item" 
                                     data-transaksi_id="${transaksi.id}"
                                     data-no_transaksi="${transaksi.no_transaksi}" 
                                     data-kode_customer="${transaksi.kode_customer}"
                                     data-tanggal_transaksi="${transaksi.tanggal}"
                                     data-grand_total="${transaksi.grand_total}">
-                                ${transaksi.no_transaksi} Tanggal ${transaksi.tanggal}</a>`;
+                                ${transaksi.no_transaksi} Tanggal ${tglFormatted}</a>`;
                             });
                         } else {
                             dropdown = '<a class="dropdown-item disabled">Tidak ada transaksi ditemukan</a>';
@@ -293,6 +297,7 @@ $(document).ready(function() {
                 $('#notransaksiList').hide();
             }
         });
+        $('#customerDropdown').hide();
 
         // Select transaction from dropdown
         $(document).on('click', '.transaksi-item', function(e) {
@@ -337,6 +342,7 @@ $(document).ready(function() {
                 },
             });
         });
+        $('#customerDropdown').hide();
     });
 
     // Save Surat Jalan
@@ -358,7 +364,7 @@ $(document).ready(function() {
                     no_transaksi: $('#no_transaksi').val(),
                     transaksi_id: selectedtransaksiId,
                     kode_barang: item.kode_barang,
-                    nama_barang: item.keterangan,
+                    nama_barang: item.nama_barang,
                     qty: item.qty
                 };
             });

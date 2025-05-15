@@ -12,6 +12,7 @@
                 <option value="no_transaksi" {{ request('search_by') == 'no_transaksi' ? 'selected' : '' }}>No Transaksi</option>
                 <option value="customer" {{ request('search_by') == 'customer' ? 'selected' : '' }}>Customer</option>
                 <option value="alamat" {{ request('search_by') == 'alamat' ? 'selected' : '' }}>Alamat</option>
+                <option value="sales" {{ request('search_by') == 'sales' ? 'selected' : '' }}>Sales</option>
             </select>
         </div>
         <div class="col-md-3 mb-2">
@@ -37,6 +38,7 @@
                 <th>Customer</th>
                 <th>Alamat</th>
                 <th>No HP</th>
+                <th>Sales</th>
                 <th>Total</th>
                 <th>Aksi</th>
             </tr>
@@ -49,6 +51,7 @@
                     <td>{{ $transaction->customer->nama ?? 'N/A' }}</td>
                     <td>{{ $transaction->customer->alamat ?? 'N/A' }}</td>
                     <td>{{ $transaction->customer->hp }}</td>
+                    <td>{{ $transaction->sales }}</td>
                     <td class="text-right">Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</td>
                     <td>
                         <a href="{{ route('transaksi.shownota', $transaction->id) }}" class="btn btn-primary btn-sm">Lihat Nota</a>

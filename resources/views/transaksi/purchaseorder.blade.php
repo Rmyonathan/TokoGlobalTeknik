@@ -7,15 +7,29 @@
     </div>
 
     <div class="card">
-        <div class="card-header mb-4 bg-dark text-white">
+        <div class="card-header mb-0 bg-dark text-white">
             <h5 class="mb-0">Daftar Purchase Order</h5>
         </div>
-        <div class="card-body p-0 d-flex justify-content-center">
+        <div class="card-body">
             @if($purchaseOrders->isEmpty())
                 <div class="alert alert-warning">
                     💤 Belum ada Purchase Order yang tercatat.
                 </div>
             @else
+                <div class="col mb-4">
+                    <form method="GET" action="{{ route('transaksi.purchaseorder') }}" class="mb-3 d-flex">
+                        <select name="search_by" class="form-control w-25 mr-2">
+                            <option value="" {{ request('search_by') == '' ? 'selected' : '' }}>Cari Berdasarkan</option>
+                            <option value="no_po" {{ request('search_by') == 'no_po' ? 'selected' : '' }}>No. PO</option>
+                            <option value="kode_customer" {{ request('search_by') == 'kode_customer' ? 'selected' : '' }}>Customer</option>
+                            <option value="sales" {{ request('search_by') == 'sales' ? 'selected' : '' }}>Sales</option>
+                            <option value="status" {{ request('search_by') == 'status' ? 'selected' : '' }}>Status</option>
+                        </select>
+                        <input type="text" name="search" class="form-control w-50 mr-2" placeholder="Cari..." value="{{ request('search') }}">
+                        <button type="submit" class="btn btn-primary mr-2">Cari</button>
+                        <a href="{{ route('transaksi.purchaseorder') }}" class="btn btn-secondary">Reset</a>
+                    </form>
+                </div>
                 <table class="table table-striped mb-0" style="width: 95%;">
                     <thead class="thead-dark">
                         <tr>

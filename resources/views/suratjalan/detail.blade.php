@@ -218,8 +218,8 @@
             <thead>
                 <tr>
                     <th width="2.5%">No.</th>
-                    <th width="17.5%">Nama Barang</th>
-                    <th width="25%">Keterangan</th>
+                    <th width="17.5%">Kode Barang</th>
+                    <th width="25%">Nama Barang</th>
                     <th width="7.5%">Panjang (m)</th>
                     <th width="5%">Jumlah</th>
                     <th width="5%">Satuan</th>
@@ -229,7 +229,7 @@
                 @foreach ($suratJalan->transaksi->items as $i => $item)
                 <tr>
                     <td class="text-center">{{ $i + 1 }}</td>
-                    <td>{{ $item->nama_barang }}</td>
+                    <td>{{ $item->kode_barang }}</td>
                     <td>{{ $item->keterangan }}</td>
                     <td>{{ $item->panjang }}</td>
                     <td class="text-center">{{ $item->qty }}</td>

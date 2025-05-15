@@ -6,13 +6,12 @@
     <style>
         @page {
             size: 21.59cm 14cm;
-            margin: 1cm;
         }
 
         body {
             font-family: 'Courier New', monospace;
             font-size: 12px;
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
         .header, .footer {
@@ -33,7 +32,7 @@
 
         th, td {
             border: 1px solid black;
-            padding: 4px;
+            padding: 3.3px;
         }
 
         .right { text-align: right; }
@@ -53,9 +52,41 @@
         .page-break {
             page-break-after: always;
         }
+
+        /* Tombol di kanan atas, hanya tampil di layar */
+        .top-right-buttons {
+            position: fixed;
+            top: 18px;
+            right: 30px;
+            z-index: 999;
+        }
+        .top-right-buttons button, .top-right-buttons a {
+            margin-left: 8px;
+            padding: 6px 16px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: #fff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .top-right-buttons button:hover, .top-right-buttons a:hover {
+            background: #0056b3;
+        }
+        @media print {
+            .top-right-buttons {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
+
+<div class="top-right-buttons">
+    <a href="{{ url()->previous() }}" class="btn btn-secondary">Kembali</a>
+    <button onclick="window.print()">Print</button>
+</div>
 
 @php
     $totalPages = $groupedItems->count();
@@ -106,7 +137,7 @@
                 <tr>
                     <td class="center">{{ (($pageNum - 1) * 10) + $i + 1 }}</td>
                     <td>{{ $item->kode_barang }}</td>
-                    <td>{{ $item->nama_barang }}</td>
+                    <td>{{ $item->keterangan }}</td>
                     <td class="center">{{ $item->qty }}</td>
                     <td class="right">Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
                     <td class="center">{{ $item->diskon_persen ?? 0 }}</td>
