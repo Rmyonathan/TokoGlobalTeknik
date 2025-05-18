@@ -46,6 +46,21 @@
                     </div>
                 </div>
 
+                <div class="mb-3">
+                    <label for="kategori_id" class="form-label">Category</label>
+                    <select class="form-select @error('kategori_id') is-invalid @enderror" id="kategori_id" name="kategori_id" required>
+                        <option value="">Select Category</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ old('kategori_id', $code->kategori_id) == $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('kategori_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 <div class="form-group row">
                     <div class="col-sm-9 offset-sm-3">
                         <button type="submit" class="btn btn-primary">
