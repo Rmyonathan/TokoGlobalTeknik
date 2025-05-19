@@ -255,6 +255,8 @@ $(document).ready(function() {
         $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
         $('#alamatCustomer').val(alamatCustomer);
         $('#hpCustomer').val(`${hpCustomer} / ${telpCustomer}`);
+        $('#alamat_suratjalan').val(alamatCustomer);
+
         $('#customerDropdown').hide();
 
         // Customer has been selected, now get a list of transactions by this customer so we can show it in the dropdown

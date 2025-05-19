@@ -59,6 +59,7 @@ class PembelianController extends Controller
         // In the store method, update the validation
         $request->validate([
             'nota' => 'required|string|unique:pembelian,nota',
+            'no_surat_jalan' => 'nullable|string',
             'tanggal' => 'required|date',
             'kode_supplier' => 'required|exists:suppliers,kode_supplier',
             'subtotal' => 'required|numeric',
@@ -83,6 +84,7 @@ class PembelianController extends Controller
             // Create purchase
             $pembelian = Pembelian::create([
                 'nota' => $request->nota,
+                'no_surat_jalan' => $request->no_surat_jalan,
                 'tanggal' => $tanggalWithTime, // Store with time
                 'kode_supplier' => $request->kode_supplier,
                 'pembayaran' => $request->pembayaran ?? 'Tunai',
@@ -278,7 +280,8 @@ class PembelianController extends Controller
     {
         // In the store method, update the validation
         $request->validate([
-            'nota' => 'required|string|unique:pembelian,nota',
+            'nota' => 'required|string|unique:pembelian,nota,'.$id,
+            'no_surat_jalan' => 'nullable|string',
             'tanggal' => 'required|date',
             'kode_supplier' => 'required|exists:suppliers,kode_supplier',
             'subtotal' => 'required|numeric',
@@ -287,6 +290,7 @@ class PembelianController extends Controller
             'items.*.kodeBarang' => 'required|string',
             'items.*.harga' => 'required|numeric',
             'items.*.qty' => 'required|numeric',
+            'edit_reason' => 'required|string|max:255',
         ]);
         
         try {
@@ -296,17 +300,22 @@ class PembelianController extends Controller
             $pembelian = Pembelian::findOrFail($id);
             $nota = $pembelian->nota; // Keep the original nota
             
+            // Use current time for the transaction
+            $currentDateTime = now();
+            $tanggalWithTime = $currentDateTime->format('Y-m-d H:i:s');
+            
             // Get supplier name for stock mutation record
             $supplier = Supplier::where('kode_supplier', $request->kode_supplier)->first();
             $supplierName = $supplier ? $supplier->nama : 'Unknown Supplier';
             
-            // Get creator name from request or default to 'ADMIN'
-            $creator = $request->updated_by ?? 'ADMIN';
+            // Get creator name from authenticated user or default to 'ADMIN'
+            $editor = Auth::check() ? Auth::user()->name : 'ADMIN';
+
             
             // Format transaction number for mutation record
             $noTransaksi = "BL-" . date('m/y', strtotime($request->tanggal)) . "-" . 
-                            substr($nota, strrpos($nota, '-') + 1) . 
-                            " ({$creator}) [UPDATED]";
+                        substr($nota, strrpos($nota, '-') + 1) . 
+                        " ({$editor}) [UPDATED]";
             
             // Get the original items to remove from inventory
             $originalItems = PembelianItem::where('nota', $nota)->get();
@@ -336,8 +345,10 @@ class PembelianController extends Controller
                     $nota . ' (reversal)',
                     $supplierName . ' (' . $request->kode_supplier . ')',
                     $item->qty, // Same quantity as purchase, but as a "sale" to reduce stock
-                    $pembelian->cabang,
-                    'LBR'
+                    'LBR', // Unit of measure
+                    'Purchase reversal for update', // Keterangan
+                    $editor, // Created by
+                    'default' // Stock owner
                 );
             }
             
@@ -348,14 +359,20 @@ class PembelianController extends Controller
             
             // Update purchase
             $pembelian->update([
-                'tanggal' => $request->tanggal,
+                'tanggal' => $tanggalWithTime, // Use date with time
                 'kode_supplier' => $request->kode_supplier,
-                'pembayaran' => $request->pembayaran ?? 'Tunai',
+                'no_surat_jalan' => $request->no_surat_jalan,
+                'pembayaran' => $request->metode_pembayaran ?? 'Tunai', // Updated field name
                 'cara_bayar' => $request->cara_bayar,
                 'subtotal' => $request->subtotal,
                 'diskon' => $request->diskon ?? 0,
                 'ppn' => $request->ppn ?? 0,
                 'grand_total' => $request->grand_total,
+                'updated_at' => $currentDateTime,
+                'is_edited' => true,
+                'edited_by' => $editor,
+                'edited_at' => $currentDateTime,
+                'edit_reason' => $request->edit_reason,
             ]);
             
             // Delete all existing items
@@ -372,6 +389,7 @@ class PembelianController extends Controller
                     'qty' => $item['qty'],
                     'diskon' => $item['diskon'] ?? 0,
                     'total' => $item['total'],
+                    'created_at' => $currentDateTime,
                 ]);
                 
                 // Record new purchase in stock mutation
@@ -379,31 +397,20 @@ class PembelianController extends Controller
                     $item['kodeBarang'],
                     $item['namaBarang'],
                     $noTransaksi,
-                    $request->tanggal,
+                    $tanggalWithTime, // Use date with time
                     $nota . ' (updated)',
                     $supplierName . ' (' . $request->kode_supplier . ')',
                     $item['qty'],
-                    $request->cabang,
-                    'LBR'
+                    'LBR', // Unit of measure
+                    'Purchase transaction update', // Keterangan
+                    $editor, // Created by
+                    'default' // Stock owner
                 );
                 
                 // Get the kode barang record
                 $kodeBarang = KodeBarang::where('kode_barang', $item['kodeBarang'])->first();
                 
                 if ($kodeBarang) {
-                    // Update the cost/harga beli in KodeBarang if it's different
-                    if ($kodeBarang->cost != $item['harga']) {
-                        $kodeBarang->cost = $item['harga'];
-                        $kodeBarang->save();
-                        
-                        // Log that the cost was updated
-                        Log::info('Updated KodeBarang cost during update:', [
-                            'kode_barang' => $item['kodeBarang'],
-                            'old_cost' => $kodeBarang->getOriginal('cost'),
-                            'new_cost' => $item['harga']
-                        ]);
-                    }
-                    
                     // Get a panel instance with this kode_barang to use as a template
                     $templatePanel = Panel::where('group_id', $item['kodeBarang'])->first();
                     
@@ -422,7 +429,28 @@ class PembelianController extends Controller
                     
                     // Use the PanelController to add panels to inventory
                     $panelController = app()->make(PanelController::class);
-                    $result = $panelController->addPanelsToInventory($panelName, $cost, $price, $length, $item['kodeBarang'], $item['qty']);
+                    
+                    // Check if the method accepts the timestamp parameter
+                    try {
+                        $result = $panelController->addPanelsToInventory(
+                            $panelName, 
+                            $cost, 
+                            $price, 
+                            $length, 
+                            $item['kodeBarang'], 
+                            $item['qty']
+                        );
+                    } catch (\ArgumentCountError $e) {
+                        // If the method doesn't accept the timestamp, use the original method
+                        $result = $panelController->addPanelsToInventory(
+                            $panelName, 
+                            $cost, 
+                            $price, 
+                            $length, 
+                            $item['kodeBarang'], 
+                            $item['qty']
+                        );
+                    }
                     
                     // Log the result
                     Log::info('Added panels to inventory during update:', ['result' => $result]);

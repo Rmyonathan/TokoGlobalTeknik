@@ -1,292 +1,173 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
     <title>Surat Jalan</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
     <style>
         @page {
-            size: 8.5in 11in;
-            margin: 0.5in;
+            size: 21.59cm 14cm;
+            margin: 1cm;
         }
         body {
-            font-family: 'Arial', sans-serif;
-            font-size: 11px;
-            line-height: 1.2;
-            color: #333;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.3;
+            color: #000;
             margin: 0;
             padding: 0;
-            width: 100%;
         }
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-            padding: 10px;
-        }
-        .header, .document-title, .info-section, table, .note-box, .delivery-info, .signature-section {
-            page-break-inside: avoid;
-        }
-        .header {
+        .header, .footer {
             text-align: center;
-            border-bottom: 2px solid #2c3e50;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
         }
-        .header h1 {
-            font-size: 18px;
-            margin-bottom: 3px;
-        }
-        .header p {
-            font-size: 12px;
-            margin: 2px 0;
-        }
-        .document-title {
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .document-number p, .document-title p {
-            font-size: 12px;
-            margin: 2px 0;
-        }
-        .info-section {
+        .row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        .info-box {
-            width: 32%;
-            border: 1px solid #ccc;
-            padding: 5px;
-            border-radius: 3px;
-            background-color: #f8f9fa;
-            font-size: 11px;
-        }
-        .info-box h3 {
-            font-size: 11px;
             margin-bottom: 5px;
-            border-bottom: 1px solid #ccc;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 8px;
         }
         th, td {
-            border: 1px solid #ccc;
-            padding: 5px;
-            font-size: 10px;
+            border: 1px solid #000;
+            padding: 3px 4px;
+            font-size: 12px;
         }
         th {
-            background-color: #2c3e50;
-            color: #fff;
-            text-align: center;
+            background: none;
+            color: #000;
+            font-weight: bold;
         }
-        .note-box {
-            font-size: 10px;
-            margin-top: 10px;
-            padding: 8px;
-            background-color: #f8f9fa;
-            border: 1px solid #ccc;
-            border-radius: 3px;
+        .right { text-align: right; }
+        .center { text-align: center; }
+        .no-print {
+            position: fixed;
+            top: 18px;
+            right: 30px;
+            z-index: 999;
         }
-        .delivery-info {
-            margin-top: 10px;
-            padding: 8px;
-            background-color: #f8f9fa;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 10px;
-        }
-        .delivery-grid {
-            display: flex;
-            justify-content: space-between;
-        }
-        .delivery-grid div {
-            width: 48%;
-        }
-        .signature-section {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 30px;
-        }
-        .signature-box {
-            text-align: center;
-            font-size: 11px;
-        }
-        .signature-line {
-            margin-top: 50px;
-            border-top: 1px solid #000;
-            padding-top: 5px;
-        }
-        
         @media print {
-            .no-print {
-                display: none !important;
-            }
-            @page {
-                size: 8.5in 11in;
-                margin: 0.5in;
-            }
-            body {
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-            }
-            .container {
-                width: 100%;
-                max-width: none;
-                padding: 0;
-            }
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border-radius: 4px;
-            font-size: 14px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background-color: #007bff;
-            border: 1px solid #0056b3;
-            color: white;
-        }
-
-        .btn-secondary {
-            background-color: #6c757d;
-            border: 1px solid #545b62;
-            color: white;
-        }
-
-        .mr-2 {
-            margin-right: 8px;
+            .no-print { display: none !important; }
         }
     </style>
-
 </head>
 <body>
     @php
         $defaultCompany = \App\Models\Perusahaan::where('is_default', true)->first() ?? new \App\Models\Perusahaan();
     @endphp
     
-    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
-        <a href="{{ route('suratjalan.history') }}" class="btn btn-secondary mr-2">
-            <i class="fas fa-arrow-left"></i> Kembali
+    <div class="no-print" style="display:flex;gap:10px;">
+        <a href="{{ route('suratjalan.history') }}" 
+        style="
+                display:inline-block;
+                padding:6px 18px;
+                background:#6c757d;
+                color:#fff;
+                border-radius:5px;
+                text-decoration:none;
+                font-size:14px;
+                border:none;
+                transition:background 0.2s;
+            "
+        onmouseover="this.style.background='#495057'"
+        onmouseout="this.style.background='#6c757d'">
+            &#8592; Kembali
         </a>
-        <button onclick="window.print()" class="btn btn-primary">
-            <i class="fas fa-print"></i> Print
+        <button onclick="window.print()" 
+            style="
+                padding:6px 18px;
+                background:#007bff;
+                color:#fff;
+                border-radius:5px;
+                border:none;
+                font-size:14px;
+                cursor:pointer;
+                transition:background 0.2s;
+            "
+            onmouseover="this.style.background='#0056b3'"
+            onmouseout="this.style.background='#007bff'">
+            &#128424; Print
         </button>
     </div>
-    <div class="container">
-        <div class="header">
-            <h1>{{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}</h1>
-            <p>{{ $defaultCompany->alamat ?? 'JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008' }}</p>
-            <p>{{ $defaultCompany->kota ?? '8 ILIR' }}, {{ $defaultCompany->kode_pos ?? 'ILIR TIMUR II' }}</p>
-            <p>TELP. {{ $defaultCompany->telepon ?? '(0711) 311158' }} &nbsp;&nbsp; FAX {{ $defaultCompany->fax ?? '(0711) 311158' }}</p>
+
+    <div class="header">
+        <strong>{{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}</strong><br>
+        {{ $defaultCompany->alamat ?? 'JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008' }}<br>
+        {{ $defaultCompany->kota ?? '8 ILIR' }}, {{ $defaultCompany->kode_pos ?? 'ILIR TIMUR II' }}<br>
+        TELP. {{ $defaultCompany->telepon ?? '(0711) 311158' }} &nbsp;&nbsp; FAX {{ $defaultCompany->fax ?? '(0711) 311158' }}<br>
+    </div>
+
+    <div class="row" style="margin-bottom:0;">
+        <div>
+            <strong>No. Surat Jalan:</strong> {{ $suratJalan->no_suratjalan ?? '-' }}<br>
+            <strong>No. Pesanan:</strong> {{ $suratJalan->no_transaksi ?? '-' }}
         </div>
-
-        <div class="document-title">
-            <div class="judul">SURAT JALAN</div>
-            <p>No. Surat Jalan: {{ $suratJalan->no_suratjalan }}</p>
-            <p>No. Pesanan: {{ $suratJalan->no_transaksi }}</p>
-        </div>
-
-        <div class="info-section">
-            <div class="info-box">
-                <h3>Pengirim:</h3>
-                <p><strong>{{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}</strong></p>
-                <p>{{ $defaultCompany->alamat ?? 'JL. SINAR RAGA ABI HASAN NO.1553' }}</p>
-                <p>{{ $defaultCompany->kota ?? '8 ILIR' }}, {{ $defaultCompany->kode_pos ?? 'ILIR TIMUR II' }}</p>
-                <p>TELP. {{ $defaultCompany->telepon ?? '(0711) 311158' }}</p>
-            </div>
-            <div class="info-box">
-                <h3>Penerima:</h3>
-                <p><strong>Nama: </strong><strong>{{ $suratJalan->customer->nama ?? '-' }}</strong></p>
-                <p><strong>Alamat: </strong>{{ $suratJalan->alamat_suratjalan ?? '-' }}</p>
-                <p><strong>Telp: </strong>{{ $suratJalan->customer->telepon ?? '-' }}</p>
-            </div>
-            <div class="info-box">
-                <h3>Informasi Pengiriman:</h3>
-                <p><strong>Tanggal: </strong> {{ \Carbon\Carbon::parse($suratJalan->tanggal)->format('d M Y') }}</p>
-                <p><strong>Waktu: </strong> {{ \Carbon\Carbon::parse($suratJalan->transaksi->created_at)->format('H:i:s') }}</p>
-            </div>
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th width="2.5%">No.</th>
-                    <th width="17.5%">Kode Barang</th>
-                    <th width="25%">Nama Barang</th>
-                    <th width="7.5%">Panjang (m)</th>
-                    <th width="5%">Jumlah</th>
-                    <th width="5%">Satuan</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($suratJalan->transaksi->items as $i => $item)
-                <tr>
-                    <td class="text-center">{{ $i + 1 }}</td>
-                    <td>{{ $item->kode_barang }}</td>
-                    <td>{{ $item->nama_barang }}</td>
-                    <td>{{ $item->panjang }}</td>
-                    <td class="text-center">{{ $item->qty }}</td>
-                    <td class="text-center">Pcs</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <div class="note-box">
-            <h4>CATATAN PENGIRIMAN</h4>
-            <p>Mohon periksa barang sebelum menandatangani. Kerusakan setelah tanda tangan bukan tanggung jawab pengirim.</p>
-            <p>Barang masih titipan dari {{ $defaultCompany->nama ?? 'CV. Alumka Cipta Prima' }}, bila belum dilunasi.</p>
-            <p>{{ $defaultCompany->catatan_nota ?? 'Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.' }}</p>
-        </div>
-
-        <div class="delivery-info">
-            <h3>KONFIRMASI PENGIRIMAN</h3>
-            <div class="delivery-grid">
-                <div>
-                    <p><strong>Kurir:</strong> ___________________</p>
-                    <p><strong>Plat Kendaraan:</strong> ___________________</p>
-                </div>
-                <div>
-                    <p><strong>Kondisi Barang:</strong> [   ] Baik  [   ] Rusak</p>
-                    <p><strong>Kelengkapan:</strong> [   ] Lengkap  [   ] Tidak Lengkap</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="signature-section">
-            <div class="signature-box">
-                <p>Dibuat Oleh</p>
-                <div class="signature-line">
-                    (_______________)
-                </div>
-                <p>Admin</p>
-            </div>
-            <div class="signature-box">
-                <p>Diantar Oleh</p>
-                <div class="signature-line">
-                    (_______________)
-                </div>
-                <p>Kurir</p>
-            </div>
-            <div class="signature-box">
-                <p>Diterima Oleh</p>
-                <div class="signature-line">
-                    (_______________)
-                </div>
-                <p>Penerima</p>
-            </div>
+        <div class="right">
+            <strong>Tanggal:</strong> {{ \Carbon\Carbon::parse($suratJalan->tanggal)->format('d M Y') }}<br>
+            <strong>Waktu:</strong> {{ \Carbon\Carbon::parse($suratJalan->transaksi->created_at)->format('H:i:s') }}
         </div>
     </div>
+    <div class="row" style="margin-bottom:0;">
+        <div>
+            <strong>Kepada Yth:</strong> {{ $suratJalan->customer->nama ?? '-' }}<br>
+            <strong>Alamat:</strong> {{ $suratJalan->alamat_suratjalan ?? '-' }}<br>
+            <strong>Telp:</strong> {{ $suratJalan->customer->telepon ?? '-' }}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="5%">No.</th>
+                <th width="20%">Kode Barang</th>
+                <th width="35%">Nama Barang</th>
+                <th width="10%">Panjang</th>
+                <th width="10%">Jumlah</th>
+                <th width="10%">Satuan</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach ($suratJalan->transaksi->items as $i => $item)
+            <tr>
+                <td class="center">{{ $i + 1 }}</td>
+                <td>{{ $item->kode_barang }}</td>
+                <td>{{ $item->nama_barang }}</td>
+                <td class="center">{{ $item->panjang }}</td>
+                <td class="center">{{ $item->qty }}</td>
+                <td class="center">Pcs</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <br>
+    <div>
+        <strong>Catatan:</strong>
+        <br>
+        Mohon periksa barang sebelum menandatangani. Kerusakan setelah tanda tangan bukan tanggung jawab pengirim.<br>
+        Barang masih titipan dari {{ $defaultCompany->nama ?? 'CV. Alumka Cipta Prima' }}, bila belum dilunasi.<br>
+        Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.<br>
+        <br><strong>Catatan Toko:</strong>
+        <br>{{ $defaultCompany->catatan_nota ?? 'Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.' }}
+    </div>
+
+    <br>
+    <table style="width:100%; border:none;">
+        <tr>
+            <td class="center" style="border:none;">
+                Dibuat Oleh<br><br><br><br>
+                (_____________)
+            </td>
+            <td class="center" style="border:none;">
+                Diantar Oleh<br><br><br><br>
+                (_____________)
+            </td>
+            <td class="center" style="border:none;">
+                Diterima Oleh<br><br><br><br>
+                (_____________)
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

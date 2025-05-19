@@ -8,19 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Transaksi extends Model
 {
     use HasFactory;
-    
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
+
     protected $table = 'transaksi';
     
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'no_transaksi',
         'tanggal',
@@ -36,28 +26,27 @@ class Transaksi extends Model
         'dp',
         'grand_total',
         'status',
+        'created_from_po',
+        'is_edited',
+        'edited_by',
+        'edited_at',
+        'edit_reason',
     ];
-    
-    /**
-     * Get the items for the transaction.
-     */
+
+    protected $casts = [
+        'tanggal' => 'datetime',
+        'tanggal_jadi' => 'datetime',
+        'edited_at' => 'datetime',
+        'is_edited' => 'boolean',
+    ];
+
     public function items()
     {
-        return $this->hasMany(TransaksiItem::class, 'no_transaksi', 'no_transaksi');
-    }
-
-    public function itemsTransaksiId(){
-        return $this->hasMany(TransaksiItem::class, 'transaksi_id', 'id');
+        return $this->hasMany(TransaksiItem::class, 'transaksi_id');
     }
 
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'kode_customer', 'kode_customer');
     }
-
-    public function stokOwner()
-    {
-        return $this->belongsTo(StokOwner::class, 'sales', 'kode_stok_owner');
-    }
-    
 }

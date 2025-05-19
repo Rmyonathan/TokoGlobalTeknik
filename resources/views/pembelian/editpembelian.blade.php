@@ -19,6 +19,11 @@
                             <label for="no_nota">No. Nota</label>
                             <input type="text" class="form-control" id="no_nota" name="nota" value="{{ $purchase->nota }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
                         </div>
+                        <div class="form-group">
+                            <label for="no_surat_jalan">No. Surat Jalan</label>
+                            <input type="text" class="form-control" id="no_surat_jalan" name="no_surat_jalan" placeholder="Masukkan nomor surat jalan supplier">
+                            <small class="form-text text-muted">Masukkan nomor surat jalan yang tertera pada dokumen pengiriman dari supplier</small>
+                        </div>
                         
                         <div class="form-group">
                             <label for="tanggal">Tanggal</label>
@@ -40,35 +45,25 @@
                     
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="cabang_display">Cabang (Stok Owner)</label>
-                            <div class="input-group">
-                                <input type="text" id="cabang_display" class="form-control" placeholder="Masukkan kode atau nama stok owner">
-                                <input type="hidden" id="cabang" name="cabang">
-                                <div class="input-group-append">
-                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                </div>
-                            </div>
-                            <div id="cabangDropdown" class="dropdown-menu" style="display: none; width: 100%;"></div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="pembayaran">Pembayaran</label>
-                            <select class="form-control" id="pembayaran" name="pembayaran">
+                            <label for="metode_pembayaran">Metode Pembayaran</label>
+                            <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
+                                <option selected disabled value=""> Pilih Metode Pembayaran</option>
                                 <option value="Tunai" {{ $purchase->pembayaran == 'Tunai' ? 'selected' : '' }}>Tunai</option>
-                                <option value="Transfer" {{ $purchase->pembayaran == 'Transfer' ? 'selected' : '' }}>Transfer</option>
-                                <option value="Kredit" {{ $purchase->pembayaran == 'Kredit' ? 'selected' : '' }}>Kredit</option>
-                                <option value="Debit" {{ $purchase->pembayaran == 'Debit' ? 'selected' : '' }}>Debit</option>
+                                <option value="Non Tunai" {{ $purchase->pembayaran == 'Transfer' || $purchase->pembayaran == 'Kredit' || $purchase->pembayaran == 'Debit' ? 'selected' : '' }}>Non Tunai</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="cara_bayar">Cara Bayar</label>
                             <select class="form-control" id="cara_bayar" name="cara_bayar">
-                                <option value="Cash" {{ $purchase->cara_bayar == 'Cash' ? 'selected' : '' }}>Cash</option>
-                                <option value="Credit Card" {{ $purchase->cara_bayar == 'Credit Card' ? 'selected' : '' }}>Credit Card</option>
-                                <option value="Debit" {{ $purchase->cara_bayar == 'Debit' ? 'selected' : '' }}>Debit</option>
-                                <option value="Cicilan" {{ $purchase->cara_bayar == 'Cicilan' ? 'selected' : '' }}>Cicilan</option>
+                                <option value="{{ $purchase->cara_bayar }}">{{ $purchase->cara_bayar }}</option>
                             </select>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label for="edit_reason">Alasan Edit <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_reason" name="edit_reason" placeholder="Masukkan alasan perubahan nota pembelian" required>
                         </div>
                     </div>
                 </div>
@@ -187,16 +182,19 @@
                 <form id="addItemForm">
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="form-group">
+                            <!-- Updated kode_barang input group with dropdown -->
+                            <div class="form-group position-relative">
                                 <label for="kode_barang">Kode Barang</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="kode_barang" name="kode_barang" required>
+                                    <input type="text" class="form-control" id="kode_barang" name="kode_barang" placeholder="Masukkan kode barang" autocomplete="off" required>
                                     <div class="input-group-append">
-                                        <button class="btn btn-outline-secondary" type="button" id="findItem">
+                                        <button class="btn btn-outline-secondary" type="button" id="findItem" data-toggle="modal" data-target="#kodeBarangSearchModal">
                                             <i class="fas fa-search"></i>
                                         </button>
                                     </div>
                                 </div>
+                                <!-- Autocomplete dropdown -->
+                                <div class="dropdown-menu" id="kodeBarangDropdown" style="display: none; max-height: 280px; overflow-y: auto; width: 100%;"></div>
                             </div>
                             
                             <div class="form-group">
@@ -278,6 +276,48 @@
     </div>
 </div>
 
+<!-- Modal for searching Kode Barang -->
+<div class="modal fade" id="kodeBarangSearchModal" tabindex="-1" role="dialog" aria-labelledby="kodeBarangSearchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="kodeBarangSearchModalLabel">Cari Kode Barang</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="searchKodeBarangInput" placeholder="Masukkan kode atau nama barang">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button" id="searchKodeBarangBtn">
+                            <i class="fas fa-search"></i> Cari
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Kode Barang</th>
+                                <th>Nama Barang</th>
+                                <th>Panjang</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kodeBarangSearchResults">
+                            <!-- Search results will be added here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -290,6 +330,10 @@
     window.csrfToken = "{{ csrf_token() }}";
     window.purchaseId = "{{ $purchase->id }}";
     window.grandTotal = "{{ $purchase->grand_total }}";
+    
+    // Add kode barang search routes
+    window.kodeBarangSearchUrl = "{{ route('kodeBarang.search') }}";
+    window.getPanelInfoUrl = "{{ route('panel.by.kodeBarang') }}";
     
     // Initial items data
     const initialItems = {!! json_encode($purchase->items->map(function($item) {
@@ -304,6 +348,34 @@
             'total' => (int)$item->total
         ];
     })) !!};
+
+    $('#metode_pembayaran').on('change', function () {
+        const metode = $(this).val();
+        $('#cara_bayar').html('<option value="">Loading...</option>');
+        
+        $.ajax({
+            url: '{{ url("api/cara-bayar/by-metode") }}',
+            method: 'GET',
+            data: { metode: metode },
+            success: function (data) {
+                let options = '<option value="">-- Pilih Cara Bayar --</option>';
+                data.forEach(cb => {
+                    options += `<option value="${cb.nama}">${cb.nama}</option>`;
+                });
+                $('#cara_bayar').html(options);
+            },
+            error: function () {
+                $('#cara_bayar').html('<option value="">Gagal load data</option>');
+            }
+        });
+    });
+
+    $('#cara_bayar').on('change', function () {
+        const selected = $(this).val();
+        $('#cara_bayar_akhir')
+            .html(`<option value="${selected}">${selected}</option>`)
+            .val(selected);
+    });
 </script>
 
 {{-- Include the external JS file using file_get_contents to load directly from views directory --}}

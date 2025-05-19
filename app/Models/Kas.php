@@ -15,5 +15,7 @@ class Kas extends Model
         'transaction',
         'saldo',
         'type',
+        'is_canceled',
+        'is_manual',
     ];
 }

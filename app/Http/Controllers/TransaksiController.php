@@ -10,25 +10,46 @@ use App\Models\TransaksiItem;
 use App\Models\Customer;
 use App\Models\Panel;
 use App\Models\SuratJalanItem;
+use App\Models\Kas;
+use App\Models\CaraBayar;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 
-
-
 class TransaksiController extends Controller
 {
-    /**
-     * Display the sales transaction form.
-     */
-
     protected $stockController;
     protected $panelController;
 
     public function __construct(StockController $stockController, PanelController $panelController){
         $this->stockController = $stockController;
         $this->panelController = $panelController;
+    }
+
+    // Helper function to check if payment method is cash
+    private function isCashPayment($caraBayar)
+    {
+        $tunaiCaraBayars = CaraBayar::where('metode', 'Tunai')->pluck('nama')->toArray();
+        return in_array($caraBayar, $tunaiCaraBayars);
+    }
+
+    // Helper function to calculate and adjust kas saldo
+    private function adjustKasSaldo()
+    {
+        // Get all kas entries ordered by creation date
+        $allKas = Kas::orderBy('created_at', 'asc')->get();
+        
+        $saldo = 0;
+        foreach ($allKas as $kas) {
+            if ($kas->type == 'Kredit') {
+                $saldo += $kas->qty;
+            } else {
+                $saldo -= $kas->qty;
+            }
+            $kas->saldo = $saldo;
+            $kas->save();
+        }
     }
 
     public function index(Request $request)
@@ -138,6 +159,7 @@ class TransaksiController extends Controller
                 'dp' => $request->dp ?? 0,
                 'grand_total' => $request->grand_total,
                 'status' => 'baru',
+                'is_edited' => false,
             ]);
 
             // Get customer for stock mutation
@@ -145,7 +167,7 @@ class TransaksiController extends Controller
             $customerName = $customer ? $customer->nama : 'Unknown Customer';
 
             // Format transaction number for stock mutation
-            $creator = 'ADMIN'; // You can replace this with the actual user name
+            $creator = Auth::check() ? Auth::user()->name : 'ADMIN';
             $noTransaksi = $request->no_transaksi . " ({$creator})";
 
             // Create transaction items
@@ -182,12 +204,12 @@ class TransaksiController extends Controller
 
             foreach ($request->items as $item){
                 $panels = Panel::where('group_id', $item['kodeBarang'])
-                ->where('available', True)
+                ->where('available', true)
                 ->limit($item['qty'])
                 ->get();
 
                 foreach ($panels as $panel){
-                    $panel->available = False;
+                    $panel->available = false;
                     $panel->save();
                 }
             }
@@ -210,16 +232,274 @@ class TransaksiController extends Controller
     }
 
     /**
+     * Show the form for editing a transaction
+     */
+    public function edit($id)
+    {
+        $transaction = Transaksi::with(['items', 'customer'])->findOrFail($id);
+        
+        // Check if transaction can be edited (only if not canceled)
+        if (strpos($transaction->status, 'canceled') !== false) {
+            return redirect()->route('transaksi.index')->with('error', 'Transaksi yang sudah dibatalkan tidak dapat diedit.');
+        }
+        
+        // Get customer info
+        $customer = null;
+        if ($transaction->customer) {
+            $customer = $transaction->kode_customer . ' - ' . $transaction->customer->nama;
+        }
+        
+        $inventory = app(\App\Http\Controllers\PanelController::class)->getKodeSummary();
+        
+        return view('transaksi.edit', compact('transaction', 'customer', 'inventory'));
+    }
+
+    /**
+     * Update a transaction
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'tanggal' => 'required|date',
+            'kode_customer' => 'required|exists:customers,kode_customer',
+            'sales' => 'required|exists:stok_owners,kode_stok_owner',
+            'subtotal' => 'required|numeric',
+            'grand_total' => 'required|numeric',
+            'items' => 'required|array',
+            'items.*.kodeBarang' => 'required|string',
+            'items.*.harga' => 'required|numeric',
+            'items.*.qty' => 'required|numeric',
+            'edit_reason' => 'required|string|max:255',
+        ]);
+        
+        try {
+            DB::beginTransaction();
+            
+            // Find transaction
+            $transaksi = Transaksi::findOrFail($id);
+            $noTransaksi = $transaksi->no_transaksi; // Keep the original nota
+            
+            // Store original values for kas calculation
+            $originalGrandTotal = $transaksi->grand_total;
+            $originalCaraBayar = $transaksi->cara_bayar;
+            
+            // Check if transaction can be edited
+            if (strpos($transaksi->status, 'canceled') !== false) {
+                return redirect()->back()->with('error', 'Transaksi yang sudah dibatalkan tidak dapat diedit.');
+            }
+            
+            // Current datetime
+            $currentDateTime = now();
+            
+            // Get customer name for stock mutation record
+            $customer = Customer::where('kode_customer', $request->kode_customer)->first();
+            $customerName = $customer ? $customer->nama : 'Unknown Customer';
+            
+            // Get creator name from authenticated user or default to 'ADMIN'
+            $editor = Auth::check() ? Auth::user()->name : 'ADMIN';
+            
+            // Format transaction number for mutation record
+            $noTransaksiMutasi = $noTransaksi . " ({$editor}) [UPDATED]";
+            
+            // Get original items to handle stock reversal
+            $originalItems = TransaksiItem::where('transaksi_id', $id)->get();
+            
+            // Track panels to restore to available status
+            $panelsToRestore = [];
+            
+            // Revert stock changes for each original item
+            foreach ($originalItems as $item) {
+                // Find panels with this group_id that were marked unavailable from this transaction
+                $panels = Panel::where('group_id', $item->kode_barang)
+                    ->where('available', false)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($item->qty)
+                    ->get();
+                
+                foreach ($panels as $panel) {
+                    $panelsToRestore[] = $panel->id;
+                }
+                
+                // Record purchase to reverse the original sale in stock mutation
+                $this->stockController->recordPurchase(
+                    $item->kode_barang,
+                    $item->nama_barang,
+                    $noTransaksiMutasi,
+                    now(),
+                    $noTransaksi . ' (reversal)',
+                    $customerName . ' (' . $request->kode_customer . ')',
+                    $item->qty,
+                    'LBR',
+                    'Sale reversal for update',
+                    $editor,
+                    $transaksi->sales
+                );
+            }
+            
+            // Mark the panels as available
+            if (!empty($panelsToRestore)) {
+                Panel::whereIn('id', $panelsToRestore)->update(['available' => true]);
+            }
+            
+            // Update transaction
+            $transaksi->update([
+                'tanggal' => $request->tanggal,
+                'kode_customer' => $request->kode_customer,
+                'sales' => $request->sales,
+                'pembayaran' => $request->pembayaran,
+                'cara_bayar' => $request->cara_bayar,
+                'tanggal_jadi' => $request->tanggal_jadi,
+                'subtotal' => $request->subtotal,
+                'discount' => $request->discount ?? 0,
+                'disc_rupiah' => $request->disc_rupiah ?? 0,
+                'ppn' => $request->ppn ?? 0,
+                'dp' => $request->dp ?? 0,
+                'grand_total' => $request->grand_total,
+                'updated_at' => $currentDateTime,
+                'is_edited' => true,
+                'edited_by' => $editor,
+                'edited_at' => $currentDateTime,
+                'edit_reason' => $request->edit_reason,
+            ]);
+            
+            // Delete all existing items
+            TransaksiItem::where('transaksi_id', $id)->delete();
+            
+            // Create new transaction items and update stock
+            foreach ($request->items as $item) {
+                // Create transaction item
+                TransaksiItem::create([
+                    'transaksi_id' => $transaksi->id,
+                    'no_transaksi' => $noTransaksi,
+                    'kode_barang' => $item['kodeBarang'],
+                    'nama_barang' => $item['namaBarang'],
+                    'keterangan' => $item['keterangan'] ?? null,
+                    'harga' => $item['harga'],
+                    'panjang' => $item['panjang'] ?? 0,
+                    'lebar' => $item['lebar'] ?? 0,
+                    'qty' => $item['qty'],
+                    'diskon' => $item['diskon'] ?? 0,
+                    'total' => $item['total'],
+                ]);
+                
+                // Record new sale in stock mutation
+                $this->stockController->recordSale(
+                    $item['kodeBarang'],
+                    $item['namaBarang'],
+                    $noTransaksiMutasi,
+                    $currentDateTime,
+                    $noTransaksi . ' (updated)',
+                    $customerName . ' (' . $request->kode_customer . ')',
+                    $item['qty'],
+                    $transaksi->sales,
+                    'LBR'
+                );
+                
+                // Mark panels as unavailable
+                $availablePanels = Panel::where('group_id', $item['kodeBarang'])
+                    ->where('available', true)
+                    ->limit($item['qty'])
+                    ->get();
+                
+                foreach ($availablePanels as $panel) {
+                    $panel->available = false;
+                    $panel->save();
+                }
+            }
+            
+            // Handle Kas adjustment for cash transactions
+            $newGrandTotal = floatval($request->grand_total);
+            $wasOriginalCash = $this->isCashPayment($originalCaraBayar);
+            $isNewCash = $this->isCashPayment($request->cara_bayar);
+            
+            if ($wasOriginalCash || $isNewCash) {
+                // Case 1: Was cash, now not cash - Debit the full original amount
+                if ($wasOriginalCash && !$isNewCash) {
+                    Kas::create([
+                        'name' => "Edit Transaksi: {$noTransaksi} (Non-Tunai)",
+                        'description' => "Transaksi diubah dari tunai ke {$request->cara_bayar} oleh {$editor}. Alasan: {$request->edit_reason}",
+                        'qty' => $originalGrandTotal,
+                        'type' => 'Debit',
+                        'saldo' => 0, // Will be calculated by adjustKasSaldo
+                        'is_manual' => false,
+                    ]);
+                }
+                // Case 2: Was not cash, now cash - Credit the full new amount
+                elseif (!$wasOriginalCash && $isNewCash) {
+                    Kas::create([
+                        'name' => "Edit Transaksi: {$noTransaksi} (Tunai)",
+                        'description' => "Transaksi diubah dari {$originalCaraBayar} ke tunai oleh {$editor}. Alasan: {$request->edit_reason}",
+                        'qty' => $newGrandTotal,
+                        'type' => 'Kredit',
+                        'saldo' => 0, // Will be calculated by adjustKasSaldo
+                        'is_manual' => false,
+                    ]);
+                }
+                // Case 3: Both cash - Credit/Debit the difference
+                elseif ($wasOriginalCash && $isNewCash) {
+                    $difference = $newGrandTotal - $originalGrandTotal;
+                    if ($difference != 0) {
+                        Kas::create([
+                            'name' => "Edit Transaksi: {$noTransaksi}",
+                            'description' => "Transaksi diubah oleh {$editor}. Total: " . number_format($originalGrandTotal, 0, ',', '.') . " → " . number_format($newGrandTotal, 0, ',', '.') . ". Alasan: {$request->edit_reason}",
+                            'qty' => abs($difference),
+                            'type' => $difference > 0 ? 'Kredit' : 'Debit',
+                            'saldo' => 0, // Will be calculated by adjustKasSaldo
+                            'is_manual' => false,
+                        ]);
+                    }
+                }
+                
+                // Recalculate all kas saldo
+                $this->adjustKasSaldo();
+            }
+            
+            DB::commit();
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Transaksi berhasil diperbarui.',
+                    'redirect' => route('transaksi.shownota', $transaksi->id)
+                ]);
+            }
+            
+         // For non-AJAX requests
+            return redirect()->route('transaksi.shownota', $transaksi->id)
+                ->with('success', 'Transaksi berhasil diperbarui.');
+                    
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error in transaksi update:', ['exception' => $e->getMessage()]);
+                
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                    ], 500);
+                }
+                
+                return redirect()->back()
+                    ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            }
+    }
+
+    /**
      * Cancel Transaction Function
      */
-    public function cancelTransaction($id)
+    public function cancelTransaction(Request $request, $id)
     {
+        // Validate cancel reason
+        $request->validate([
+            'cancel_reason' => 'required|string|max:255',
+        ]);
+        
         DB::beginTransaction();
         try {
             $transaksi = Transaksi::with(['items', 'customer'])->findOrFail($id);
 
             // Cegah double cancel
-            if (strpos($transaksi->status, 'cancelled') !== false) {
+            if (strpos($transaksi->status, 'canceled') !== false) {
                 return back()->with('error', 'Transaksi sudah dibatalkan.');
             }
 
@@ -228,7 +508,7 @@ class TransaksiController extends Controller
             
             // Kembalikan stock & catat mutasi pembatalan
             foreach ($transaksi->items as $item) {
-                // 1. Update Panel model availability - CRITICAL FIX
+                // 1. Update Panel model availability
                 $panels = Panel::where('group_id', $item->kode_barang)
                     ->where('available', false)
                     ->limit($item->qty)
@@ -239,7 +519,7 @@ class TransaksiController extends Controller
                     $panel->save();
                 }
 
-                // 2. Update Stock model without SO filter - FIX
+                // 2. Update Stock model
                 $stock = \App\Models\Stock::where('kode_barang', $item->kode_barang)->first();
 
                 if ($stock) {
@@ -257,7 +537,7 @@ class TransaksiController extends Controller
                     ]);
                 }
 
-                // 3. Add detailed cancellation mutation record - FIX
+                // 3. Add detailed cancellation mutation record
                 \App\Models\StockMutation::create([
                     'kode_barang' => $item->kode_barang,
                     'nama_barang' => $item->nama_barang,
@@ -270,13 +550,31 @@ class TransaksiController extends Controller
                     'total' => $stock->good_stock,
                     'so' => $transaksi->sales,
                     'satuan' => 'LBR',
-                    'keterangan' => "Pembatalan transaksi oleh {$userName}",
+                    'keterangan' => "Pembatalan transaksi oleh {$userName}: " . $request->cancel_reason,
                     'created_by' => $userName
                 ]);
             }
 
-            // Store cancellation info in status
-            $transaksi->status = "cancelled by {$userName}";
+            // Handle Kas adjustment for cash transactions
+            if ($this->isCashPayment($transaksi->cara_bayar)) {
+                Kas::create([
+                    'name' => "Batal Transaksi: {$transaksi->no_transaksi}",
+                    'description' => "Transaksi dibatalkan oleh {$userName}. Alasan: {$request->cancel_reason}",
+                    'qty' => $transaksi->grand_total,
+                    'type' => 'Debit',
+                    'saldo' => 0, // Will be calculated by adjustKasSaldo
+                    'is_manual' => false,
+                ]);
+                
+                // Recalculate all kas saldo
+                $this->adjustKasSaldo();
+            }
+
+            // Store cancellation info
+            $transaksi->status = "canceled";
+            $transaksi->canceled_by = $userName;
+            $transaksi->canceled_at = now();
+            $transaksi->cancel_reason = $request->cancel_reason;
             $transaksi->save();
 
             DB::commit();
@@ -287,9 +585,6 @@ class TransaksiController extends Controller
         }
     }
 
-    /**
-     * Search for products
-     */
     public function searchProducts(Request $request)
     {
         $keyword = $request->keyword;
@@ -488,17 +783,24 @@ class TransaksiController extends Controller
     {
         $transaction = Transaksi::with('items', 'customer')->findOrFail($id);
 
-        $pdf = Pdf::loadView('transaksi.nota', ['transaction' => $transaction]);
+        // Split items into chunks of 10 per page
+        $itemsPerPage = 10;
+        $groupedItems = $transaction->items->chunk($itemsPerPage);
 
-        return $pdf->stream('nota.pdf'); // or use `stream()` to open in browser
+        $pdf = Pdf::loadView('transaksi.nota', [
+            'transaction' => $transaction,
+            'groupedItems' => $groupedItems
+        ]);
+
+        return $pdf->stream('nota.pdf');
     }
 
     public function listNota()
     {
-        // Fetch all transactions (penjualan & pembelian)
+        // Fetch all transactions
         $transactions = Transaksi::with('items')->orderBy('created_at', 'desc')->paginate(10);
 
         return view('transaksi.lihat_nota', compact('transactions'));
     }
 
- }
+}

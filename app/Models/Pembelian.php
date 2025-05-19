@@ -34,7 +34,12 @@ class Pembelian extends Model
     'status',
     'canceled_by',
     'canceled_at',
-    'cancel_reason'
+    'cancel_reason',
+     'is_edited', 
+    'edited_by', 
+    'edited_at', 
+    'edit_reason',
+    'no_surat_jalan',
     ];
 
     /**

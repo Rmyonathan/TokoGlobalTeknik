@@ -3,54 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <title>Nota Transaksi</title>
+     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Jika ada query ?print=1, langsung print
+            if (window.location.search.includes('print=1')) {
+                window.print();
+            }
+        });
+    </script>
     <style>
-            @page {
+       @page {
             size: 21.59cm 14cm;
+            margin: 8mm; /* Reduced margin from default */
         }
 
         body {
             font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.3;
+            font-size: 10px; /* Reduced from 12px */
+            line-height: 1.1; /* Reduced from 1.3 */
+            margin: 0;
+            padding: 0;
         }
 
         .header, .footer {
             text-align: center;
+            margin-bottom: 8px; /* Reduced margin */
         }
 
         .row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            margin-bottom: 3px; /* Reduced from 5px */
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 8px;
+            margin-top: 5px; /* Reduced from 8px */
+            margin-bottom: 5px;
         }
 
         th, td {
             border: 1px solid black;
-            padding: 3.3px;
+            padding: 2px; /* Reduced from 3.3px */
+            font-size: 9px; /* Smaller font for table */
         }
 
         .right { text-align: right; }
         .center { text-align: center; }
 
         .note {
-            font-size: 11px;
-            margin-top: 10px;
+            font-size: 9px; /* Reduced from 11px */
+            margin-top: 8px; /* Reduced from 10px */
+            margin-bottom: 5px;
+            line-height: 1.1;
         }
 
         .signature {
-            margin-top: 30px;
+            margin-top: 15px; /* Reduced from 30px */
             display: flex;
             justify-content: space-between;
+            font-size: 9px;
         }
 
         .page-break {
             page-break-after: always;
+        }
+
+        /* Compact spacing for specific elements */
+        .header strong {
+            font-size: 11px;
+        }
+
+        .header br {
+            line-height: 0.8;
+        }
+
+        /* Make the summary table more compact */
+        table:last-of-type th,
+        table:last-of-type td {
+            padding: 1.5px;
+            font-size: 9px;
+        }
+
+        /* Reduce spacing in customer info */
+        .row div {
+            line-height: 1.1;
+        }
+
+        /* Status badges - make them smaller */
+        .status-badge {
+            font-size: 8px;
+            padding: 2px 4px;
+            margin-top: 3px;
+        }
+
+        .edit-info-box {
+            font-size: 8px;
+            margin-top: 5px;
+            padding: 3px;
+            border: 1px solid #ccc;
+            line-height: 1.1;
         }
 
         /* Tombol di kanan atas, hanya tampil di layar */
@@ -78,6 +131,16 @@
             .top-right-buttons {
                 display: none !important;
             }
+            
+            /* Additional print-specific adjustments */
+            body {
+                font-size: 9px;
+            }
+            
+            .page {
+                height: auto;
+                overflow: visible;
+            }
         }
     </style>
 </head>
@@ -86,6 +149,9 @@
 <div class="top-right-buttons">
     <a href="{{ url()->previous() }}" class="btn btn-secondary">Kembali</a>
     <button onclick="window.print()">Print</button>
+    @if($transaction->status != 'canceled')
+        <a href="{{ route('transaksi.edit', $transaction->id) }}" class="btn btn-warning">Edit</a>
+    @endif
 </div>
 
 @php
@@ -103,6 +169,10 @@
             {{ $defaultCompany->kota ?? '8 ILIR' }}, {{ $defaultCompany->kode_pos ?? 'ILIR TIMUR II' }}<br>
             TELP. {{ $defaultCompany->telepon ?? '(0711) 311158' }} &nbsp;&nbsp; FAX {{ $defaultCompany->fax ?? '(0711) 311158' }}<br>
             NO FAKTUR: {{ $transaction->no_transaksi }}
+            
+            @if($transaction->status == 'canceled')
+                <div class="status-badge status-canceled">DIBATALKAN</div>
+            @endif
         </div>
 
         {{-- CUSTOMER --}}
@@ -141,7 +211,7 @@
                     <td>{{ $item->keterangan }}</td>
                     <td class="center">{{ $item->qty }}</td>
                     <td class="right">Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
-                    <td class="center">{{ $item->diskon_persen ?? 0 }}</td>
+                    <td class="center">{{ $item->diskon_persen ?? $item->diskon ?? 0 }}</td>
                     <td class="right">Rp {{ number_format($item->diskon ?? 0, 0, ',', '.') }}</td>
                     <td class="right">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
                 </tr>
@@ -196,6 +266,23 @@
                 (_____________)
             </div>
         </div>
+
+        @if($transaction->is_edited)
+        <div class="edit-info-box">
+            <strong>Informasi Edit:</strong><br>
+            Diedit oleh: {{ $transaction->edited_by }} pada {{ \Carbon\Carbon::parse($transaction->edited_at)->format('d M Y H:i') }}<br>
+            Alasan: {{ $transaction->edit_reason }}
+        </div>
+        @endif
+
+        @if($transaction->status == 'canceled')
+        <div class="edit-info-box">
+            <strong>Informasi Pembatalan:</strong><br>
+            Dibatalkan oleh: {{ $transaction->canceled_by }} pada {{ \Carbon\Carbon::parse($transaction->canceled_at)->format('d M Y H:i') }}<br>
+            Alasan: {{ $transaction->cancel_reason }}
+        </div>
+        @endif
+        
         @endif
 
     </div>

@@ -178,7 +178,10 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::get('/transaksi/shownota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.shownota');
     Route::get('/transaksi/nota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.nota');
     Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
-    Route::post('/transaksi/{id}/cancel', [TransaksiController::class, 'cancelTransaction'])->name('transaksi.cancel');
+    // Edit and Cancel routes for Transaksi
+    Route::get('/transaksi/edit/{id}', [TransaksiController::class, 'edit'])->name('transaksi.edit');
+    Route::post('/transaksi/update/{id}', [TransaksiController::class, 'update'])->name('transaksi.update');
+    Route::post('/transaksi/cancel/{id}', [TransaksiController::class, 'cancelTransaction'])->name('transaksi.cancel');
 
     // Penjualan Per Customer
     Route::get('/penjualanpercustomer', [TransaksiController::class, 'penjualanPercustomer'])->name('transaksi.penjualancustomer');
@@ -293,6 +296,8 @@ Route::middleware(['web', 'role'])->group(function () {
     Route::post('/transaksi/purchaseorder/{id}/complete', [PurchaseOrderController::class, 'completeTransaction'])->name('purchase-order.complete');
     // Route buat cancel PO
     Route::patch('/transaksi/purchaseorder/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-order.cancel');
+    Route::put('/purchase-order/{id}', [PurchaseOrderController::class, 'update'])->name('purchase-order.update');
+
 
     // Stock Adjustment Routes
     Route::group(['middleware' => ['auth'], 'prefix' => 'stock-adjustment', 'as' => 'stock.adjustment.'], function () {

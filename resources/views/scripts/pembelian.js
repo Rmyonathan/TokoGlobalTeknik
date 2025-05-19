@@ -348,6 +348,7 @@ $(document).ready(function () {
             // IMPORTANT: Changed 'supplier' to 'kode_supplier' to match the database column
             const transactionData = {
                 nota: $("#no_nota").val(),
+                no_surat_jalan: $("#no_surat_jalan").val(),
                 tanggal: $("#tanggal").val(),
                 kode_supplier: $("#kode_supplier").val(), // This field name must match your database column
                 pembayaran: $("#pembayaran").val(),

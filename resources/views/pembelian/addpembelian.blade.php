@@ -21,6 +21,12 @@
                         </div>
                         
                         <div class="form-group">
+                            <label for="no_surat_jalan">No. Surat Jalan</label>
+                            <input type="text" class="form-control" id="no_surat_jalan" name="no_surat_jalan" placeholder="Masukkan nomor surat jalan supplier">
+                            <small class="form-text text-muted">Masukkan nomor surat jalan yang tertera pada dokumen pengiriman dari supplier</small>
+                        </div>
+                        
+                        <div class="form-group">
                             <label for="tanggal">Tanggal</label>
                             <div class="input-group">
                                 <input type="date" class="form-control" id="tanggal" name="tanggal" value="{{ date('Y-m-d') }}">
@@ -40,7 +46,6 @@
                     
                     <div class="col-md-6">
                     
-                        
                         <div class="form-group">
                             <label for="metode_pembayaran">Metode Pembayaran</label>
                             <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
