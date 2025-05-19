@@ -12,9 +12,6 @@
                 <a href="{{ route('code.create-code') }}" class="btn btn-primary btn-sm me-2">
                     <i class="fas fa-plus mr-1"></i> Tambah Barang
                 </a>
-                <a href="{{ route('kategori.index') }}" class="btn btn-info btn-sm">
-                    <i class="fas fa-tags mr-1"></i> Kelola Kategori
-                </a>
             </div>
 
             <div class="d-flex">
