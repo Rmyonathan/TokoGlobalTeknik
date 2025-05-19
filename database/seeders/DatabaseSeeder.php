@@ -2,16 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Supplier;
 use App\Models\Customer;
-use App\Models\Rooms;
 use App\Models\Saldo;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,53 +14,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-        // Permission::create(['name' => 'view dashboard']);
-        // Permission::create(['name' => 'edit users']);
-        // Permission::create(['name' => 'access sales report']);
-
-        Permission::create([
-            'name' => 'view dashboard',
-        ]);
-
-        Permission::create([
-            'name' => 'edit users',
-        ]);
-
-        Permission::create([
-            'name' => 'access sales report',
-        ]);
-
-        $adminRole = Role::create(['name' => 'admin']);
-        $adminRole->givePermissionTo(['view dashboard', 'edit users', 'access sales report']);
-
-        User::factory()->create([
-            'name' => 'Admin Bos',
-            'email' => 'admin@gmail.com',
-            'password' => Hash::make('1234567890'),
-        ])->assignRole('admin');
-
-        User::factory()->create([
-            'name' => 'Pegawai X',
-            'email' => 'employee1@gmail.com',
-            'role' => 'first',
-            'password' => Hash::make('1234567890'),
-        ]);
-
-        User::factory()->create([
-            'name' => 'Pegawai Y',
-            'email' => 'employee2@gmail.com',
-            'role' => 'second',
-            'password' => Hash::make('1234567890'),
-        ]);
-
-        User::factory()->create([
-            'name' => 'Pegawai Z',
-            'email' => 'employee3@gmail.com',
-            'role' => 'third',
-            'password' => Hash::make('1234567890'),
-        ]);
-
+        // Run permissions and roles seeder
+        $this->call(PermissionSeeder::class);
+        
+        // Run user seeder
+        $this->call(UserSeeder::class);
+        
+        // Create sample data
+        $this->createSampleData();
+    }
+    
+    /**
+     * Create sample data for the application
+     */
+    private function createSampleData()
+    {
+        // Create sample supplier
         Supplier::factory()->create([
             'kode_supplier' => 'SUP001',
             'nama' => 'Supplier A',
@@ -77,7 +40,8 @@ class DatabaseSeeder extends Seeder
             'hp_contact_person' => '083234567890',
             'kode_kategori' => 'CAT001',
         ]);
-
+        
+        // Create sample customer
         Customer::factory()->create([
             'kode_customer' => 'CUST002',
             'nama' => 'Jane Smith',
@@ -86,8 +50,7 @@ class DatabaseSeeder extends Seeder
             'telepon' => '021-34567890',
         ]);
         
-
-
+        // Create sample saldo
         Saldo::factory()->create([
             'saldo' => 0,
             'room_rate' => 200000,

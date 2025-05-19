@@ -12,39 +12,9 @@
                 <a href="{{ route('code.create-code') }}" class="btn btn-primary btn-sm me-2">
                     <i class="fas fa-plus mr-1"></i> Tambah Barang
                 </a>
-                <a href="{{ route('kategori.index') }}" class="btn btn-info btn-sm">
-                    <i class="fas fa-tags mr-1"></i> Kelola Kategori
-                </a>
             </div>
 
-            <div class="d-flex">
-                <!-- Server-side search form -->
-                <form action="{{ route('master.barang') }}" method="GET" class="me-2 d-flex">
-                    <div class="input-group me-2">
-                        <select name="category_id" class="form-select form-select-sm">
-                            <option value="">All Categories</option>
-                            @foreach($categories as $category)
-                                <option value="{{ $category->id }}" {{ $categoryId == $category->id ? 'selected' : '' }}>
-                                    {{ $category->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="input-group">
-                        <input type="text" name="search" id="searchInput" class="form-control form-control-sm" 
-                            placeholder="Cari nama/kode barang..." value="{{ $search ?? '' }}">
-                        <button type="submit" class="btn btn-sm btn-primary">
-                            <i class="fas fa-search"></i>
-                        </button>
-                        @if(!empty($search) || !empty($categoryId))
-                            <a href="{{ route('master.barang') }}" class="btn btn-sm btn-secondary">
-                                <i class="fas fa-times"></i>
-                            </a>
-                        @endif
-                    </div>
-                </form>
-                
+            <div>
                 <a href="{{ route('code.view-code') }}" class="btn btn-sm" style="background-color: #3f8efc; color: white;">
                     <i class="fas fa-file-alt"></i> List Kode Barang
                 </a>
@@ -52,6 +22,32 @@
         </div>
 
         <div class="card-body">
+            <!-- Enhanced search panel similar to History Surat Jalan -->
+            <form method="GET" action="{{ route('master.barang') }}" class="row mb-3">
+                <div class="col-md-3 mb-2">
+                    <select name="search_by" id="search_by" class="form-control">
+                        <option selected disabled value=""> Cari Berdasarkan </option>
+                        <option value="group_id" {{ request('search_by') == 'group_id' ? 'selected' : '' }}>Kode Barang</option>
+                        <option value="name" {{ request('search_by') == 'name' ? 'selected' : '' }}>Nama Barang</option>
+                        <option value="group" {{ request('search_by') == 'group' ? 'selected' : '' }}>Group</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <input type="text" name="search" id="search_input" class="form-control" placeholder="Cari..." value="{{ request('search') }}" disabled>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <select name="status_filter" id="status_filter" class="form-control">
+                        <option value="">Semua Status</option>
+                        <option value="Active" {{ request('status_filter') == 'Active' ? 'selected' : '' }}>Active</option>
+                        <option value="Inactive" {{ request('status_filter') == 'Inactive' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{{ route('master.barang') }}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+
             <div class="card-body">
                 @if(isset($inventory) && count($inventory['inventory_by_length']) > 0)
                     <div class="table-responsive">
@@ -131,7 +127,7 @@
                     
                     <!-- Pagination Links -->
                     <div class="d-flex justify-content-center mt-4">
-                        {{ $inventory['paginator']->appends(['search' => $search ?? ''])->links() }}
+                        {{ $inventory['paginator']->appends(request()->except('page'))->links() }}
                     </div>
                 @else
                     <div class="alert alert-warning">
@@ -157,5 +153,28 @@
 @endsection
 
 @section('scripts')
-<!-- We're removing the client-side search JavaScript since we're using server-side search now -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Ambil elemen select dan input
+    const searchBySelect = document.getElementById('search_by');
+    const searchInput = document.getElementById('search_input');
+
+    // Fungsi untuk mengecek status dropdown dan mengatur disabled state pada input
+    function updateSearchInputState() {
+        // Cek apakah ada opsi yang dipilih dan bukan opsi default (disabled)
+        if (searchBySelect.value !== "" && searchBySelect.selectedIndex !== 0) {
+            searchInput.disabled = false;
+        } else {
+            searchInput.disabled = true;
+            searchInput.value = ''; // Kosongkan input jika disabled
+        }
+    }
+
+    // Panggil fungsi saat halaman dimuat untuk mengatur status awal
+    updateSearchInputState();
+
+    // Tambahkan event listener untuk dropdown
+    searchBySelect.addEventListener('change', updateSearchInputState);
+});
+</script>
 @endsection

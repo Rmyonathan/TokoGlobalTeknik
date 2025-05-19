@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
+     <style>
         :root {
             --primary-color: #7d8590; /* Lighter gray */
             --secondary-color: #e63946; /* Brighter, more visible red */
@@ -32,9 +32,9 @@
             background-color: var(--bg-color);
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-top: 50px; /* Reduced from 60px */
+            padding-top: 45px; /* Reduced from 50px */
             color: #333;
-            font-size: 0.9rem; /* Smaller base font size */
+            font-size: 0.85rem; /* Smaller base font size */
         }
 
         /* Top Navbar */
@@ -44,22 +44,22 @@
             z-index: 1030;
             top: 0;
             width: 100%;
-            height: 50px; /* Reduced from 60px */
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            height: 45px; /* Reduced from 50px */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
 
         .navbar-brand {
             font-weight: 600;
             color: var(--light-color) !important;
-            font-size: 1.2rem; /* Reduced from 1.4rem */
+            font-size: 1.1rem; /* Reduced from 1.2rem */
             display: flex;
             align-items: center;
         }
 
         .brand-logo {
             color: var(--secondary-color);
-            margin-right: 12px;
-            font-size: 1.4rem; /* Reduced from 1.6rem */
+            margin-right: 10px; /* Reduced from 12px */
+            font-size: 1.3rem; /* Reduced from 1.4rem */
             filter: drop-shadow(0 0 2px rgba(255,255,255,0.3));
         }
 
@@ -68,10 +68,10 @@
             background: var(--primary-color);
             position: fixed;
             z-index: 1020;
-            width: 200px; /* Reduced from 230px */
-            top: 50px; /* Reduced from 60px */
-            height: calc(100% - 50px); /* Adjusted for new navbar height */
-            padding-top: 10px; /* Reduced from 15px */
+            width: 180px; /* Reduced from 200px */
+            top: 45px; /* Reduced from 50px */
+            height: calc(100% - 45px); /* Adjusted for new navbar height */
+            padding-top: 8px; /* Reduced from 10px */
             transition: all 0.3s ease;
             box-shadow: 3px 0 15px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
@@ -86,7 +86,7 @@
 
         .side-navbar .nav-item {
             margin: 0px;
-            border-radius: 6px; /* Reduced from 8px */
+            border-radius: 5px; /* Reduced from 6px */
             overflow: hidden;
         }
 
@@ -105,13 +105,13 @@
             align-items: center;
             width: 100%;
             white-space: normal;
-            padding: 8px 12px; /* Reduced from 12px 15px */
+            padding: 6px 10px; /* Reduced from 8px 12px */
             color: var(--light-color);
             text-decoration: none;
             transition: all 0.3s ease;
             border-left: 3px solid transparent;
             font-weight: 500;
-            font-size: 0.9rem; /* Added smaller font size */
+            font-size: 0.85rem; /* Reduced from 0.9rem */
         }
 
         .side-navbar .nav-link:hover {
@@ -121,10 +121,10 @@
         }
 
         .side-navbar .nav-link i {
-            margin-right: 10px;
-            min-width: 20px; /* Reduced from 24px */
+            margin-right: 8px; /* Reduced from 10px */
+            min-width: 18px; /* Reduced from 20px */
             text-align: center;
-            font-size: 1rem; /* Reduced from 1.1rem */
+            font-size: 0.95rem; /* Reduced from 1rem */
             color: var(--secondary-color);
         }
 
@@ -143,7 +143,7 @@
             border: none;
             box-shadow: none;
             width: 100%;
-            margin-top: 5px;
+            margin-top: 3px; /* Reduced from 5px */
             padding: 0;
         }
 
@@ -152,14 +152,14 @@
             align-items: center;
             width: 100%;
             white-space: normal;
-            padding: 8px 12px; /* Reduced from 12px 15px */
+            padding: 6px 10px; /* Reduced from 8px 12px */
             color: var(--light-color);
             text-decoration: none;
             transition: all 0.3s ease;
             border-left: 3px solid transparent;
             font-weight: 500;
             background: none;
-            font-size: 0.9rem; /* Added smaller font size */
+            font-size: 0.85rem; /* Reduced from 0.9rem */
         }
 
         .side-navbar .dropdown-menu .dropdown-item:hover {
@@ -176,17 +176,17 @@
 
         /* Main Container */
         .main-container {
-            margin-left: 200px; /* Reduced from 220px */
-            padding: 15px; /* Reduced from 25px */
+            margin-left: 180px; /* Reduced from 200px */
+            padding: 12px; /* Reduced from 15px */
             transition: margin 0.3s ease;
             background-color: var(--bg-color);
         }
 
         /* Card and other UI elements */
         .card {
-            margin-bottom: 15px; /* Reduced from 25px */
-            border-radius: 6px; /* Reduced from 8px */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Reduced shadow */
+            margin-bottom: 12px; /* Reduced from 15px */
+            border-radius: 5px; /* Reduced from 6px */
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05); /* Reduced shadow */
             border: none;
             background-color: var(--light-color);
         }
@@ -195,24 +195,25 @@
             background-color: var(--primary-color);
             color: var(--light-color);
             font-weight: 600;
-            border-top-left-radius: 6px !important; /* Reduced from 8px */
-            border-top-right-radius: 6px !important; /* Reduced from 8px */
-            padding: 10px 15px; /* Added smaller padding */
-            font-size: 0.95rem;
+            border-top-left-radius: 5px !important; /* Reduced from 6px */
+            border-top-right-radius: 5px !important; /* Reduced from 6px */
+            padding: 8px 12px; /* Reduced from 10px 15px */
+            font-size: 0.9rem; /* Reduced from 0.95rem */
         }
 
         .card-body {
-            padding: 12px; /* Added to reduce card body padding */
+            padding: 10px; /* Reduced from 12px */
         }
 
         .title-box {
             background-color: var(--secondary-color);
             color: var(--light-color);
             text-align: center;
-            margin-bottom: 15px; /* Reduced from 25px */
-            padding: 10px; /* Reduced from 15px */
-            border-radius: 6px; /* Reduced from 8px */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Reduced shadow */
+            margin-bottom: 12px; /* Reduced from 15px */
+            padding: 8px; /* Reduced from 10px */
+            border-radius: 5px; /* Reduced from 6px */
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1); /* Reduced shadow */
+            font-size: 1.15rem; /* Add smaller font size for title */
         }
 
         /* Button styling */
@@ -233,18 +234,19 @@
 
         /* Form elements - smaller */
         .form-control {
-            padding: 0.375rem 0.5rem; /* Smaller padding */
-            font-size: 0.9rem;
-            height: calc(1.5em + 0.5rem + 2px); /* Smaller height */
+            padding: 0.3rem 0.45rem; /* Smaller padding */
+            font-size: 0.85rem; /* Reduced from 0.9rem */
+            height: calc(1.4em + 0.45rem + 2px); /* Smaller height */
         }
 
         /* Top navbar links */
         .navbar-top .nav-link {
             color: rgba(255, 255, 255, 0.9) !important;
-            padding: 8px 12px; /* Reduced from 10px 15px */
-            border-radius: 4px; /* Reduced from 5px */
-            margin: 0 5px;
+            padding: 6px 10px; /* Reduced from 8px 12px */
+            border-radius: 3px; /* Reduced from 4px */
+            margin: 0 4px;
             transition: all 0.3s ease;
+            font-size: 0.85rem; /* Added to make text smaller */
         }
 
         .navbar-top .nav-link:hover {
@@ -254,66 +256,67 @@
 
         .navbar-top .nav-link i {
             color: var(--secondary-color);
-            margin-right: 5px;
+            margin-right: 4px; /* Reduced from 5px */
         }
 
         /* Tables */
         .table {
             background-color: var(--light-color);
-            border-radius: 6px; /* Reduced from 8px */
+            border-radius: 5px; /* Reduced from 6px */
             overflow: hidden;
-            border: 5px solid black; /* Menambahkan border */
-            border-collapse: collapse; /* Pastikan border antar sel ter-collapse dengan benar */
+            border: 5px solid black; /* Keep existing border */
+            border-collapse: collapse;
         }
 
         .table th, .table td {
-            border: 1px solid black; /* Border pada sel tabel */
-            padding: 0.5rem; /* Reduced from 0.75rem */
-            font-size: 0.85rem;
+            border: 1px solid black; /* Keep existing border */
+            padding: 0.4rem; /* Reduced from 0.5rem */
+            font-size: 0.8rem; /* Reduced from 0.85rem */
         }
 
         .table thead th {
             background-color: var(--primary-color);
             color: var(--light-color);
             border-bottom: none;
+            font-size: 0.8rem; /* Specifically for header text */
         }
 
         /* Red accent border */
         .card {
-            border-top: 3px solid var(--secondary-color);
+            border-top: 2px solid var(--secondary-color); /* Reduced from 3px */
         }
 
         /* Buttons smaller */
         .btn {
-            padding: 0.25rem 0.5rem; /* Smaller padding */
-            font-size: 0.85rem;
+            padding: 0.2rem 0.4rem; /* Smaller padding */
+            font-size: 0.8rem; /* Reduced from 0.85rem */
         }
 
         .pagination {
             display: flex;
             justify-content: center;
-            margin-top: 15px; /* Reduced from 20px */
+            margin-top: 12px; /* Reduced from 15px */
             list-style: none;
             padding: 0;
         }
 
         /* Pagination items */
         .pagination li {
-            margin: 0 4px; /* Reduced from 5px */
+            margin: 0 3px; /* Reduced from 4px */
         }
 
         /* Pagination links */
         .pagination li a, 
         .pagination li span {
             display: block;
-            padding: 6px 10px; /* Reduced from 8px 12px */
+            padding: 5px 8px; /* Reduced from 6px 10px */
             text-decoration: none;
             color: #333;
             background-color: #fff;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 3px; /* Reduced from 4px */
             transition: all 0.3s ease;
-            font-size: 0.85rem; /* Added smaller font */
+            font-size: 0.8rem; /* Reduced from 0.85rem */
         }
 
         /* Hover state */
@@ -332,7 +335,7 @@
         /* Previous/Next buttons */
         .pagination .page-item:first-child .page-link,
         .pagination .page-item:last-child .page-link {
-            padding: 6px 12px; /* Reduced from 8px 16px */
+            padding: 5px 10px; /* Reduced from 6px 12px */
         }
 
         /* Disabled state */
@@ -341,6 +344,34 @@
             background-color: #f8f8f8;
             border-color: #eee;
             cursor: not-allowed;
+        }
+
+        /* Add specific styling for the Transaksi Penjualan heading */
+        h1, h2, h3, h4, h5, h6 {
+            font-size: 1.2rem; /* Default size for headings */
+        }
+
+        /* Title box with icon */
+        .title-box i {
+            font-size: 1.1rem; /* Reduced icon size */
+            margin-right: 5px;
+        }
+
+        /* Reduce the font size of specific title elements */
+        .title-box .transaksi-title {
+            font-size: 1.15rem; /* Smaller title font for Transaksi Penjualan */
+            font-weight: 600;
+        }
+
+        /* Section headers */
+        .section-header {
+            background-color: var(--primary-color);
+            color: var(--light-color);
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
         }
 
         /* Responsive styles */
@@ -355,7 +386,8 @@
             }
 
             .navbar-brand {
-                padding: 12px 0; /* Reduced from 15px */
+                padding: 10px 0; /* Reduced from 12px */
+                font-size: 1rem; /* Reduced size */
             }
 
             .side-navbar {
@@ -373,27 +405,28 @@
             }
 
             .side-navbar .nav-item {
-                margin: 2px 0;
+                margin: 1px 0; /* Reduced from 2px */
                 border-radius: 0;
             }
 
             .side-navbar .nav-link {
-                padding: 12px; /* Reduced from 15px */
+                padding: 10px; /* Reduced from 12px */
                 border-left: none;
                 border-left-width: 0;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                font-size: 0.9rem; /* Reduced size */
             }
 
             .main-container {
                 margin-left: 0;
-                padding: 10px; /* Reduced from 15px */
+                padding: 8px; /* Reduced from 10px */
             }
 
             /* Mobile-friendly table styles */
             .table-responsive {
                 overflow-x: auto;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                border-radius: 6px; /* Reduced from 8px */
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+                border-radius: 5px; /* Reduced from 6px */
             }
 
             .table {
@@ -402,23 +435,24 @@
             }
 
             .table th, .table td {
-                padding: 8px; /* Reduced from 10px */
-                font-size: 0.85rem; /* Reduced from 0.9rem */
+                padding: 6px; /* Reduced from 8px */
+                font-size: 0.8rem; /* Reduced from 0.85rem */
             }
 
             .btn {
-                font-size: 0.85rem; /* Reduced from 0.9rem */
-                padding: 5px 10px; /* Reduced from 8px 12px */
-                border-radius: 4px; /* Reduced from 6px */
+                font-size: 0.8rem; /* Reduced from 0.85rem */
+                padding: 4px 8px; /* Reduced from 5px 10px */
+                border-radius: 3px; /* Reduced from 4px */
             }
 
             .navbar-top .nav-link {
-                margin: 8px 0; /* Reduced from 10px */
-                padding: 10px 12px; /* Reduced from 12px 15px */
+                margin: 6px 0; /* Reduced from 8px */
+                padding: 8px 10px; /* Reduced from 10px 12px */
                 display: block;
                 width: 100%;
                 text-align: left;
                 border-radius: 0;
+                font-size: 0.85rem;
             }
 
             .navbar-top .nav-item {
@@ -426,7 +460,7 @@
             }
 
             .navbar-top form {
-                margin: 8px 0; /* Reduced from 10px */
+                margin: 6px 0; /* Reduced from 8px */
                 padding: 0;
                 width: 100%;
             }
@@ -442,9 +476,15 @@
             }
 
             .side-navbar .nav-link {
-                padding: 12px; /* Reduced from 15px */
-                font-size: 0.95rem; /* Reduced from 1rem */
+                padding: 10px; /* Reduced from 12px */
+                font-size: 0.9rem; /* Reduced from 0.95rem */
                 border-radius: 0;
+            }
+            
+            /* Reduce title box size on mobile */
+            .title-box {
+                font-size: 1rem;
+                padding: 6px;
             }
         }
     </style>
