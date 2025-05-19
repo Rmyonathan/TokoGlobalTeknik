@@ -15,12 +15,12 @@ use App\Models\PembelianItem;
 use App\Models\TransaksiItem;
 use Illuminate\Http\Request;
 
-    class KasController extends Controller
-    {
-        /**
-         * Display a listing of the resource.
-         */
-        public function create()
+class KasController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function create()
     {
         return view('addKas');
     }
@@ -48,10 +48,12 @@ use Illuminate\Http\Request;
             'qty' => $validated['qty'],
             'type' => $validated['type'],
             'saldo' => $newSaldo,
+            'is_manual' => true, // Mark this as a manually created entry
         ]);
 
         return redirect()->route('kas.create')->with('success', 'Kas entry added successfully.');
     }
+
     //BUAT ADD TRANSACTION
     public function index(Request $request)
     {
@@ -76,7 +78,7 @@ use Illuminate\Http\Request;
         $array_pembelian = [];
         $array_penjualan = [];
 
-        $kasQuery = Kas::all();
+        $kasQuery = Kas::where('is_canceled', false)->get();
         $array_kas = [];
 
         // // Handle Pembelian
@@ -114,13 +116,17 @@ use Illuminate\Http\Request;
                 'Type' => 'Kredit'
             ];
         }
+        
+        // Handle manual Kas entries - include ID for delete functionality
         foreach ($kasQuery as $kas) {
             $array_kas[] = [
+                'id' => $kas->id, // Add the ID field for reference
                 'Name' => $kas->name,
                 'Deskripsi' => $kas->description,
                 'Grand total' => $kas->qty,
                 'Date' => $kas->created_at,
-                'Type' => $kas->type
+                'Type' => $kas->type,
+                'is_manual' => $kas->is_manual // Add the is_manual flag
             ];
         }
 
@@ -148,22 +154,6 @@ use Illuminate\Http\Request;
             })->values()->all();
         }
 
-        // // Get mutations for the filtered products
-        // $mutations = collect([]);
-        // $openingBalance = 0;
-        // $selectedStock = null;
-
-        // // Check if we should show mutations (either a single result or user clicked on an item)
-        // $selectedKodeBarang = $request->input('selected_kode_barang');
-
-        // if ($selectedKodeBarang) {
-        //     // User specifically selected an item to view mutations for
-        //     $selectedStock = $stocks->where('kode_barang', $selectedKodeBarang)->first();
-        // } elseif ($stocks->count() == 1) {
-        //     // Only one stock item found in search, automatically show its mutations
-        //     $selectedStock = $stocks->first();
-        // }
-
         // Apply date filters if provided
         $gabungan = collect($gabungan);
         if ($tanggal_awal) {
@@ -180,12 +170,103 @@ use Illuminate\Http\Request;
 
         $gabungan = $gabungan->values()->all();
 
-        //     $mutations = $mutationsQuery->get();
-        // }
-
         return view('viewKas', compact('gabungan', 'value', 'tanggal_awal', 'tanggal_akhir'));
     }
+    
+    // DELETE KAS
+    public function delete_kas(Request $request)
+    {
+        // Find the Kas entry
+        $kasId = $request->kas_id;
+        $kas = Kas::findOrFail($kasId);
+        
+        // Security check: Only allow deletion of manually created entries
+        if (!$kas->is_manual) {
+            return redirect('/viewKas')->with('error', 'Hanya Kas yang dibuat manual yang dapat dihapus.');
+        }
+        
+        // Store the deleted entry's timestamp for comparison
+        $deletedTimestamp = $kas->created_at;
+        
+        // Delete the entry
+        $kas->delete();
+        
+        // Get all subsequent Kas entries and recalculate their saldo
+        $subsequentEntries = Kas::where('created_at', '>', $deletedTimestamp)
+                                ->orderBy('created_at', 'asc')
+                                ->get();
+        
+        if ($subsequentEntries->count() > 0) {
+            // Get the entry immediately before the first subsequent entry
+            $previousEntry = Kas::where('created_at', '<', $subsequentEntries->first()->created_at)
+                                ->orderBy('created_at', 'desc')
+                                ->first();
+            
+            $currentSaldo = $previousEntry ? $previousEntry->saldo : 0;
+            
+            // Update each subsequent entry with the new saldo
+            foreach ($subsequentEntries as $entry) {
+                if ($entry->type == 'Kredit') {
+                    $currentSaldo += $entry->qty;
+                } else {
+                    $currentSaldo -= $entry->qty;
+                }
+                
+                $entry->saldo = $currentSaldo;
+                $entry->save();
+            }
+        }
+        
+        return redirect('/viewKas')->with('success', 'Kas berhasil dihapus dan saldo telah diperbarui.');
+    }
 
-
-   
+    // Cancel kas
+    public function cancel_kas(Request $request)
+    {
+        // Find the Kas entry
+        $kasId = $request->kas_id;
+        $kas = Kas::findOrFail($kasId);
+        
+        // Security check: Only allow cancellation of manually created entries
+        if (!$kas->is_manual) {
+            return redirect('/viewKas')->with('error', 'Hanya Kas yang dibuat manual yang dapat dibatalkan.');
+        }
+        
+        // Store the canceled entry's timestamp for comparison
+        $canceledTimestamp = $kas->created_at;
+        
+        // Instead of deleting, mark as canceled
+        $kas->is_canceled = true;
+        $kas->save();
+        
+        // Get all subsequent Kas entries and recalculate their saldo
+        $subsequentEntries = Kas::where('created_at', '>', $canceledTimestamp)
+                                ->where('is_canceled', false) // Only include active entries
+                                ->orderBy('created_at', 'asc')
+                                ->get();
+        
+        if ($subsequentEntries->count() > 0) {
+            // Get the entry immediately before the first subsequent entry
+            $previousEntry = Kas::where('created_at', '<', $subsequentEntries->first()->created_at)
+                                ->where('is_canceled', false) // Only include active entries
+                                ->orderBy('created_at', 'desc')
+                                ->first();
+            
+            $currentSaldo = $previousEntry ? $previousEntry->saldo : 0;
+            
+            // Update each subsequent entry with the new saldo
+            foreach ($subsequentEntries as $entry) {
+                if ($entry->type == 'Kredit') {
+                    $currentSaldo += $entry->qty;
+                } else {
+                    $currentSaldo -= $entry->qty;
+                }
+                
+                $entry->saldo = $currentSaldo;
+                $entry->save();
+            }
+        }
+        
+        return redirect('/viewKas')->with('success', 'Kas berhasil dibatalkan dan saldo telah diperbarui.');
+    }
 }

@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Kas extends Model
 {
-    //
-
     protected $fillable = [
         'name',
         'description',
@@ -15,5 +13,7 @@ class Kas extends Model
         'transaction',
         'saldo',
         'type',
+        'is_canceled',
+        'is_manual',
     ];
 }

@@ -1,4 +1,4 @@
-\@extends('layout.Nav')
+@extends('layout.Nav')
 
 @section('content')
 <div class="container">
@@ -27,19 +27,26 @@
                     <button type="submit" class="btn btn-primary mx-1">
                         <i class="fas fa-search mr-1"></i> Cari
                     </button>
-                    {{-- <button type="reset" class="btn btn-secondary mx-1" onclick="window.location='{{ route('stock.mutasi') }}'">
-                        <i class="fas fa-sync-alt mr-1"></i> Refresh
-                    </button>
-                    <a href="{{ route('stock.mutasi') }}" class="btn btn-danger mx-1">
-                        <i class="fas fa-times mr-1"></i> Exit
-                    </a>
-                    <a href="{{ route('stock.print.good') }}?kolom={{ $kolom }}&value={{ $value }}" target="_blank" class="btn btn-success mx-1">
-                        <i class="fas fa-print mr-1"></i> Cetak Good Stock
-                    </a> --}}
                 </div>
             </form>
         </div>
     </div>
+    
+    <!-- Success Message -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    
+    <!-- Error Message -->
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
     <!-- Display Barang -->
     <div class="card mb-4">
@@ -57,13 +64,14 @@
                             <th>Debit</th>
                             <th>Date</th>
                             <th>Saldo</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($gabungan as $gab)
                             <tr>
                                 <td>{{ $gab['Name'] }}</td>
-                                <td>{{!! $gab['Deskripsi'] !!}}</td>
+                                <td>{!! $gab['Deskripsi'] !!}</td>
                                 @if($gab['Type'] == 'Kredit')
                                     <td>{{ $gab['Grand total'] }}</td>
                                     <td></td>
@@ -73,6 +81,30 @@
                                 @endif
                                 <td>{{ $gab['Date'] }}</td>
                                 <td>{{ $gab['Saldo'] }}</td>
+                                <td>
+                                    @if(isset($gab['id']) && isset($gab['is_manual']) && $gab['is_manual'] == true) 
+                                        <div class="btn-group">
+                                            <form action="/delete_kas" method="POST" style="display: inline;">
+                                                @csrf
+                                                <input type="hidden" name="kas_id" value="{{ $gab['id'] }}">
+                                                <button type="submit" class="btn btn-danger btn-sm" 
+                                                    onclick="return confirm('Yakin mau menghapus kas ini?')">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                            <form action="/cancel_kas" method="POST" class="ml-1" style="display: inline;">
+                                                @csrf
+                                                <input type="hidden" name="kas_id" value="{{ $gab['id'] }}">
+                                                <button type="submit" class="btn btn-warning btn-sm" 
+                                                    onclick="return confirm('Yakin mau membatalkan kas ini?')">
+                                                    <i class="fas fa-ban"></i> Cancel
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">N/A</span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
@@ -84,9 +116,7 @@
             </div>
         </div>
     </div>
-
    
-
     {{-- <!-- Mutasi Stock -->
     @if(isset($gabungan))
         <div class="card">
