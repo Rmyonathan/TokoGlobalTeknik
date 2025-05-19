@@ -3,6 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>Nota Transaksi</title>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Jika ada query ?print=1, langsung print
+            if (window.location.search.includes('print=1')) {
+                window.print();
+            }
+        });
+    </script>
     <style>
             @page {
             size: 21.59cm 14cm;

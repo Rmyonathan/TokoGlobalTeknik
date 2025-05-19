@@ -848,7 +848,7 @@ class PanelController extends Controller
         ];
     }
 
-    private function getKodeSummary($search = '', $categoryId = '', $perPage = 10): array
+    public function getKodeSummary($search = '', $categoryId = '', $perPage = 10): array
     {
         // Query builder for KodeBarang with search filter
         $query = KodeBarang::query();

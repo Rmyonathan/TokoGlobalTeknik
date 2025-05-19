@@ -55,6 +55,9 @@
                     <td class="text-right">Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</td>
                     <td>
                         <a href="{{ route('transaksi.shownota', $transaction->id) }}" class="btn btn-primary btn-sm">Lihat Nota</a>
+                        <a href="{{ route('transaksi.shownota', [$transaction->id, 'print => 1']) }}" class="btn btn-primary btn-sm" target="_blank">
+                            <i class="fas fa-print"></i> Print
+                        </a>
                         @if(!str_starts_with($transaction->status, 'cancelled'))
                             <form action="{{ route('transaksi.cancel', $transaction->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Batalkan transaksi ini?')">
                                 @csrf
