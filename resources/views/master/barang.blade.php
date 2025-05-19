@@ -12,18 +12,32 @@
                 <a href="{{ route('code.create-code') }}" class="btn btn-primary btn-sm me-2">
                     <i class="fas fa-plus mr-1"></i> Tambah Barang
                 </a>
+                <a href="{{ route('kategori.index') }}" class="btn btn-info btn-sm">
+                    <i class="fas fa-tags mr-1"></i> Kelola Kategori
+                </a>
             </div>
 
             <div class="d-flex">
                 <!-- Server-side search form -->
-                <form action="{{ route('master.barang') }}" method="GET" class="me-2">
+                <form action="{{ route('master.barang') }}" method="GET" class="me-2 d-flex">
+                    <div class="input-group me-2">
+                        <select name="category_id" class="form-select form-select-sm">
+                            <option value="">All Categories</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ $categoryId == $category->id ? 'selected' : '' }}>
+                                    {{ $category->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     <div class="input-group">
                         <input type="text" name="search" id="searchInput" class="form-control form-control-sm" 
-                               placeholder="Cari nama/kode barang..." value="{{ $search ?? '' }}">
+                            placeholder="Cari nama/kode barang..." value="{{ $search ?? '' }}">
                         <button type="submit" class="btn btn-sm btn-primary">
                             <i class="fas fa-search"></i>
                         </button>
-                        @if(!empty($search))
+                        @if(!empty($search) || !empty($categoryId))
                             <a href="{{ route('master.barang') }}" class="btn btn-sm btn-secondary">
                                 <i class="fas fa-times"></i>
                             </a>
@@ -48,6 +62,7 @@
                                     <th>Kode Barang</th>
                                     <th>Name</th>
                                     <th>Group</th>
+                                    <th>Category</th>
                                     <th>Harga Beli</th>
                                     <th>Harga Jual</th>
                                     <th>Length (meters)</th>
@@ -64,6 +79,7 @@
                                         <td>{{ $item['group_id'] }}</td>
                                         <td>{{ $item['name'] }}</td>
                                         <td>{{ $item['group'] }}</td>
+                                        <td>{{ $item['kategori_name'] }}</td>
                                         <td>Rp. {{ number_format($item['cost'], 2) }}</td>
                                         <td>Rp. {{ number_format($item['price'], 2) }}</td>
                                         <td>{{ number_format($item['length'], 2) }}</td>

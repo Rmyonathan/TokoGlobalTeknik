@@ -17,7 +17,8 @@ class KodeBarang extends Model
         'kode_barang',
         'attribute',
         'length',
-        'status'
+        'status',
+        'kategori_id' // Add kategori_id to fillable
     ];
 
     protected $casts = [
@@ -29,5 +30,11 @@ class KodeBarang extends Model
     public function getPanels()
     {
         return $this->hasMany(Panel::class);
+    }
+
+    // Add relationship to KategoriBarang
+    public function kategori()
+    {
+        return $this->belongsTo(KategoriBarang::class, 'kategori_id');
     }
 }

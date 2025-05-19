@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\KodeBarang;
+use App\Models\KategoriBarang;
 use App\Models\Panel;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -34,10 +35,16 @@ class PanelController extends Controller
     public function viewBarang(Request $request)
     {
         $search = $request->input('search', '');
-        $perPage = 10; // Number of items per page
-        
-        $inventory = $this->getKodeSummary($search, $perPage);
-        return view('master.barang', compact('inventory', 'search'));
+        $categoryId = $request->input('category_id', '');
+        $perPage = 10;
+
+        // Ambil data inventory sesuai filter
+        $inventory = $this->getKodeSummary($search, $categoryId, $perPage);
+
+        // Ambil kategori untuk filter
+        $categories = \App\Models\KategoriBarang::all();
+
+        return view('master.barang', compact('inventory', 'search', 'categoryId', 'categories'));
     }
 
     /**
@@ -841,7 +848,7 @@ class PanelController extends Controller
         ];
     }
 
-    public function getKodeSummary($search = '', $perPage = 10): array
+    private function getKodeSummary($search = '', $categoryId = '', $perPage = 10): array
     {
         // Query builder for KodeBarang with search filter
         $query = KodeBarang::query();
@@ -853,6 +860,11 @@ class PanelController extends Controller
                 ->orWhere('name', 'like', "%{$search}%")
                 ->orWhere('attribute', 'like', "%{$search}%");
             });
+        }
+        
+        // Apply category filter if category_id exists
+        if (!empty($categoryId)) {
+            $query->where('kategori_id', $categoryId);
         }
         
         // Paginate the results
@@ -876,6 +888,8 @@ class PanelController extends Controller
                     'group_id' => $panel->kode_barang,
                     'group' => $panel->attribute,
                     'status' => $panel->status,
+                    'kategori_id' => $panel->kategori_id,
+                    'kategori_name' => $panel->kategori ? $panel->kategori->name : 'Uncategorized',
                     'quantity' => Panel::where('group_id', $panel->kode_barang)->where('available', True)->count()
                 ];
             } else {

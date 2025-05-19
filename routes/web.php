@@ -22,6 +22,7 @@ use App\Http\Controllers\CaraBayarController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PerusahaanController;
 use App\Http\Controllers\StockAdjustmentController;
+use App\Http\Controllers\KategoriBarangController;
 
 use App\Models\StokOwner;
 use App\Models\Supplier;
@@ -44,10 +45,6 @@ Route::middleware(['web'])->group(function () {
     Route::get('/signin', function () {
         return view('signin');
     })->name('signin');
-
-    Route::get('', function () {
-        return view('master.barang');
-    })->name('master.barang');
 
     Route::group(['middleware' => ['permission:edit users']], function () {
     Route::get('/account-maintenance', [AccountsController::class, 'accountMaintenance']);
@@ -146,12 +143,10 @@ Route::middleware(['web', 'role'])->group(function () {
     //ROute edit and delete kode barang -yoyo
     Route::get('/code/edit/{id}', [KodeBarangController::class, 'edit'])->name('code.edit');
     Route::put('/code/update/{id}', [KodeBarangController::class, 'update'])->name('code.update');
-    Route::delete('/code/delete/{id}', [KodeBarangController::class, 'destroy'])->name('code.delete');
+    Route::delete('/code/delete/{id}', [KodeBarangController::class, 'destroy'])->name('code.delete');;
 
-    // Route::get('/master/barang', function () {
-    //     return view('master.barang');
-    // })->name('master.barang');
-
+    Route::get('', [\App\Http\Controllers\PanelController::class, 'viewBarang'])->name('master.barang');
+    Route::get('/master/barang', [\App\Http\Controllers\PanelController::class, 'viewBarang'])->name('master.barang');
     Route::get('/master/barang', [PanelController::class, 'viewBarang'])->name('master.barang');
 
     // Mutasi Stok Barang
@@ -307,6 +302,15 @@ Route::middleware(['web', 'role'])->group(function () {
         Route::post('/store', [StockAdjustmentController::class, 'store'])->name('store');
         Route::get('/adjust/{kodeBarang}', [StockAdjustmentController::class, 'adjust'])->name('adjust');
         Route::get('/{id}', [StockAdjustmentController::class, 'show'])->name('show');
+    });
+
+    Route::prefix('kategori')->group(function () {
+        Route::get('/', [KategoriBarangController::class, 'index'])->name('kategori.index');
+        Route::get('/create', [KategoriBarangController::class, 'create'])->name('kategori.create');
+        Route::post('/', [KategoriBarangController::class, 'store'])->name('kategori.store');
+        Route::get('/{id}/edit', [KategoriBarangController::class, 'edit'])->name('kategori.edit');
+        Route::put('/{id}', [KategoriBarangController::class, 'update'])->name('kategori.update');
+        Route::delete('/{id}', [KategoriBarangController::class, 'destroy'])->name('kategori.destroy');
     });
 
 
