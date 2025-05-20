@@ -52,6 +52,10 @@ Route::middleware(['web'])->group(function () {
     Route::get('/signin', function () {
         return view('signin');
     })->name('signin');
+
+    Route::get('/login', function () {
+        return redirect()->route('signin');
+    })->name('login');
 });
 
 // Protected routes (need authentication)

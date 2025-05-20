@@ -48,7 +48,7 @@ class AdminDatabaseSwitchMiddleware
             }
             // Jika tidak ada mapping, fallback ke default
             else {
-                Config::set('database.connections.mariadb.database', 'first_database');
+                Config::set('database.connections.mariadb.database', 'atapjerri');
 
                 app('db')->purge('mariadb');
                 app('db')->reconnect('mariadb');

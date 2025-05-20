@@ -32,11 +32,24 @@ class PermissionSeeder extends Seeder
     }
 
     /**
+     * Create permission if it doesn't exist
+     */
+    private function createPermissionIfNotExists($name)
+    {
+        if (!Permission::where('name', $name)->exists()) {
+            Permission::create(['name' => $name]);
+            $this->command->info("Permission '{$name}' created.");
+        } else {
+            $this->command->comment("Permission '{$name}' already exists. Skipped.");
+        }
+    }
+
+    /**
      * Create Dashboard permissions
      */
     private function createDashboardPermissions()
     {
-        Permission::create(['name' => 'view dashboard']);
+        $this->createPermissionIfNotExists('view dashboard');
     }
 
     /**
@@ -44,11 +57,11 @@ class PermissionSeeder extends Seeder
      */
     private function createUserManagementPermissions()
     {
-        Permission::create(['name' => 'view users']);
-        Permission::create(['name' => 'create users']);
-        Permission::create(['name' => 'edit users']);
-        Permission::create(['name' => 'delete users']);
-        Permission::create(['name' => 'manage roles']);
+        $this->createPermissionIfNotExists('view users');
+        $this->createPermissionIfNotExists('create users');
+        $this->createPermissionIfNotExists('edit users');
+        $this->createPermissionIfNotExists('delete users');
+        $this->createPermissionIfNotExists('manage roles');
     }
 
     /**
@@ -56,15 +69,15 @@ class PermissionSeeder extends Seeder
      */
     private function createMasterDataPermissions()
     {
-        Permission::create(['name' => 'view master data']);
-        Permission::create(['name' => 'manage customers']);
-        Permission::create(['name' => 'manage suppliers']);
-        Permission::create(['name' => 'manage barang']);
-        Permission::create(['name' => 'manage kode barang']);
-        Permission::create(['name' => 'manage categories']);
-        Permission::create(['name' => 'manage stok owner']);
-        Permission::create(['name' => 'manage perusahaan']);
-        Permission::create(['name' => 'manage cara bayar']);
+        $this->createPermissionIfNotExists('view master data');
+        $this->createPermissionIfNotExists('manage customers');
+        $this->createPermissionIfNotExists('manage suppliers');
+        $this->createPermissionIfNotExists('manage barang');
+        $this->createPermissionIfNotExists('manage kode barang');
+        $this->createPermissionIfNotExists('manage categories');
+        $this->createPermissionIfNotExists('manage stok owner');
+        $this->createPermissionIfNotExists('manage perusahaan');
+        $this->createPermissionIfNotExists('manage cara bayar');
     }
 
     /**
@@ -72,11 +85,11 @@ class PermissionSeeder extends Seeder
      */
     private function createTransactionPermissions()
     {
-        Permission::create(['name' => 'view transactions']);
-        Permission::create(['name' => 'manage penjualan']);
-        Permission::create(['name' => 'manage pembelian']);
-        Permission::create(['name' => 'manage purchase orders']);
-        Permission::create(['name' => 'manage surat jalan']);
+        $this->createPermissionIfNotExists('view transactions');
+        $this->createPermissionIfNotExists('manage penjualan');
+        $this->createPermissionIfNotExists('manage pembelian');
+        $this->createPermissionIfNotExists('manage purchase orders');
+        $this->createPermissionIfNotExists('manage surat jalan');
     }
 
     /**
@@ -84,10 +97,10 @@ class PermissionSeeder extends Seeder
      */
     private function createFinancePermissions()
     {
-        Permission::create(['name' => 'view kas']);
-        Permission::create(['name' => 'manage kas']);
-        Permission::create(['name' => 'view hutang']);
-        Permission::create(['name' => 'manage hutang']);
+        $this->createPermissionIfNotExists('view kas');
+        $this->createPermissionIfNotExists('manage kas');
+        $this->createPermissionIfNotExists('view hutang');
+        $this->createPermissionIfNotExists('manage hutang');
     }
 
     /**
@@ -95,10 +108,10 @@ class PermissionSeeder extends Seeder
      */
     private function createInventoryPermissions()
     {
-        Permission::create(['name' => 'view stock']);
-        Permission::create(['name' => 'manage stock']);
-        Permission::create(['name' => 'manage stock adjustment']);
-        Permission::create(['name' => 'manage panels']);
+        $this->createPermissionIfNotExists('view stock');
+        $this->createPermissionIfNotExists('manage stock');
+        $this->createPermissionIfNotExists('manage stock adjustment');
+        $this->createPermissionIfNotExists('manage panels');
     }
 
     /**
@@ -106,10 +119,10 @@ class PermissionSeeder extends Seeder
      */
     private function createReportPermissions()
     {
-        Permission::create(['name' => 'access sales report']);
-        Permission::create(['name' => 'access purchase report']);
-        Permission::create(['name' => 'access inventory report']);
-        Permission::create(['name' => 'access finance report']);
+        $this->createPermissionIfNotExists('access sales report');
+        $this->createPermissionIfNotExists('access purchase report');
+        $this->createPermissionIfNotExists('access inventory report');
+        $this->createPermissionIfNotExists('access finance report');
     }
 
     /**
@@ -169,25 +182,15 @@ class PermissionSeeder extends Seeder
             'access finance report'
         ];
         
-        // Create roles with corresponding permissions
-        $adminRole = Role::create(['name' => 'admin']);
-        $adminRole->givePermissionTo($adminPermissions);
-        
-        $managerRole = Role::create(['name' => 'manager']);
-        $managerRole->givePermissionTo($managerPermissions);
-        
-        $salesRole = Role::create(['name' => 'sales']);
-        $salesRole->givePermissionTo($salesPermissions);
-        
-        $inventoryRole = Role::create(['name' => 'inventory']);
-        $inventoryRole->givePermissionTo($inventoryPermissions);
-        
-        $financeRole = Role::create(['name' => 'finance']);
-        $financeRole->givePermissionTo($financePermissions);
+        // Create or update roles with corresponding permissions
+        $this->createOrUpdateRole('admin', $adminPermissions);
+        $this->createOrUpdateRole('manager', $managerPermissions);
+        $this->createOrUpdateRole('sales', $salesPermissions);
+        $this->createOrUpdateRole('inventory', $inventoryPermissions);
+        $this->createOrUpdateRole('finance', $financePermissions);
         
         // Create additional custom roles (first, second, third)
-        $firstRole = Role::create(['name' => 'first']);
-        $firstRole->givePermissionTo([
+        $this->createOrUpdateRole('first', [
             'view dashboard',
             'view master data', 
             'manage penjualan',
@@ -195,8 +198,7 @@ class PermissionSeeder extends Seeder
             'view stock'
         ]);
         
-        $secondRole = Role::create(['name' => 'second']);
-        $secondRole->givePermissionTo([
+        $this->createOrUpdateRole('second', [
             'view dashboard',
             'view master data',
             'view stock',
@@ -205,13 +207,33 @@ class PermissionSeeder extends Seeder
             'manage kode barang'
         ]);
         
-        $thirdRole = Role::create(['name' => 'third']);
-        $thirdRole->givePermissionTo([
+        $this->createOrUpdateRole('third', [
             'view dashboard',
             'view kas',
             'manage kas',
             'view hutang',
             'manage hutang'
         ]);
+    }
+    
+    /**
+     * Create or update a role with permissions
+     */
+    private function createOrUpdateRole($name, $permissions)
+    {
+        // Check if role exists
+        $role = Role::where('name', $name)->first();
+        
+        if (!$role) {
+            // Create new role
+            $role = Role::create(['name' => $name]);
+            $this->command->info("Role '{$name}' created.");
+        } else {
+            $this->command->comment("Role '{$name}' already exists. Updating permissions.");
+        }
+        
+        // Sync permissions
+        $role->syncPermissions($permissions);
+        $this->command->info("Permissions synced for role '{$name}'.");
     }
 }

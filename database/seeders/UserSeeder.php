@@ -24,6 +24,7 @@ class UserSeeder extends Seeder
         ])->assignRole('admin');
 
         // Create users with existing roles but assign them the new Spatie roles as well
+        // Create manager user
         // First role user
         User::factory()->create([
             'name' => 'Sales Staff',
@@ -48,27 +49,7 @@ class UserSeeder extends Seeder
             'password' => Hash::make('1234567890'),
         ])->assignRole('finance'); // Assign Spatie role
 
-        // Create the original users from your seeder
-        User::factory()->create([
-            'name' => 'Pegawai X',
-            'email' => 'employee1@gmail.com',
-            'role' => 'first',
-            'password' => Hash::make('1234567890'),
-        ])->assignRole('first');
-
-        User::factory()->create([
-            'name' => 'Pegawai Y',
-            'email' => 'employee2@gmail.com',
-            'role' => 'second',
-            'password' => Hash::make('1234567890'),
-        ])->assignRole('second');
-
-        User::factory()->create([
-            'name' => 'Pegawai Z',
-            'email' => 'employee3@gmail.com',
-            'role' => 'third',
-            'password' => Hash::make('1234567890'),
-        ])->assignRole('third');
+        
     }
 }
 
