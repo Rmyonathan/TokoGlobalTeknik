@@ -210,35 +210,39 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::group(['middleware' => ['permission:manage kas'], 'prefix' => 'kas'], function () {
         Route::get('/add', [KasController::class, 'create'])->name('kas.create');
         Route::post('/add', [KasController::class, 'store'])->name('kas.store');
-        Route::post('/delete', [KasController::class, 'delete_kas']);
-        Route::post('/cancel', [KasController::class, 'cancel_kas']);
+        Route::post('/delete', [KasController::class, 'delete_kas'])->name('kas.delete');
+        Route::post('/cancel', [KasController::class, 'cancel_kas'])->name('kas.cancel');
         Route::post('/edit', [KasController::class, 'edit_kas']);
         Route::post('/update', [KasController::class, 'update_kas']);
         Route::get('/addtransaction', [KasController::class, 'index']);
     });
     
     // Transaksi Penjualan routes
+    // Transaksi Routes - Reordered to avoid route conflicts
     Route::group(['middleware' => ['permission:manage penjualan'], 'prefix' => 'transaksi'], function () {
+        // Static routes first (no parameters)
+        Route::get('/', [TransaksiController::class, 'index'])->name('transaksi.index');
         Route::get('/penjualan', [TransaksiController::class, 'penjualan'])->name('transaksi.penjualan');
         Route::post('/store', [TransaksiController::class, 'store'])->name('transaksi.store');
-        Route::get('/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
+        
+        // IMPORTANT: Fixed route name to match what's used in the controller
+        Route::get('/lihat_nota', [TransaksiController::class, 'listNota'])->name('transaksi.listnota');
+        
+        // Display view for penjualan
+        Route::get('/displaypenjualan', function () {
+            return view('transaksi.displaypenjualan');
+        })->name('transaksi.displaypenjualan');
+        
+        // Dynamic routes with specific prefixes
+        Route::get('/lihatnota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.lihatnota');
         Route::get('/shownota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.shownota');
         Route::get('/nota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.nota');
-        Route::get('/', [TransaksiController::class, 'index'])->name('transaksi.index');
-        
-        // Edit and Cancel routes for Transaksi
         Route::get('/edit/{id}', [TransaksiController::class, 'edit'])->name('transaksi.edit');
         Route::post('/update/{id}', [TransaksiController::class, 'update'])->name('transaksi.update');
         Route::post('/cancel/{id}', [TransaksiController::class, 'cancelTransaction'])->name('transaksi.cancel');
         
-        // Lihat Nota
-        Route::get('/lihatnota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.lihatnota');
-        Route::get('/lihat_nota', [TransaksiController::class, 'listNota'])->name('transaksi.listnota');
-        
-        // Display view
-        Route::get('/displaypenjualan', function () {
-            return view('transaksi.displaypenjualan');
-        })->name('transaksi.displaypenjualan');
+        // This catch-all route should be LAST
+        Route::get('/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
     });
     
     // Additional Penjualan routes

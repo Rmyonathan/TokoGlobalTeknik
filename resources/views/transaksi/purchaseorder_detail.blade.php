@@ -432,218 +432,223 @@
 @section('scripts')
 <script>
     $(document).ready(function() {
-        // Calculate item total
-        function calculateItemTotal(row) {
-            const harga = parseFloat($(row).find('.item-harga').val()) || 0;
-            const qty = parseInt($(row).find('.item-qty').val()) || 0;
-            const diskon = parseFloat($(row).find('.item-diskon').val()) || 0;
-            
-            let total = harga * qty;
-            if (diskon > 0) {
-                total = total - (total * diskon / 100);
-            }
-            
-            $(row).find('.item-total').val(total.toFixed(0));
-            calculateGrandTotal();
+    // Calculate item total
+    function calculateItemTotal(row) {
+        const harga = parseFloat($(row).find('.item-harga').val()) || 0;
+        const qty = parseInt($(row).find('.item-qty').val()) || 0;
+        const diskon = parseFloat($(row).find('.item-diskon').val()) || 0;
+        
+        let total = harga * qty;
+        if (diskon > 0) {
+            total = total - (total * diskon / 100);
         }
         
-        // Calculate grand total
-        function calculateGrandTotal() {
-            let subtotal = 0;
-            $('.item-total').each(function() {
-                subtotal += parseFloat($(this).val()) || 0;
-            });
-            
-            $('#edit_subtotal').val(subtotal.toFixed(0));
-            
-            const discountPercent = parseFloat($('#edit_discount').val()) || 0;
-            const discountRupiah = parseFloat($('#edit_disc_rupiah').val()) || 0;
-            const ppn = parseFloat($('#edit_ppn').val()) || 0;
-            const dp = parseFloat($('#edit_dp').val()) || 0;
-            
-            let discountAmount = (subtotal * discountPercent / 100) + discountRupiah;
-            let grandTotal = subtotal - discountAmount + ppn - dp;
-            
-            $('#edit_grand_total').val(grandTotal.toFixed(0));
-        }
-        
-        // Initialize calculations
-        $('.item-row').each(function() {
-            calculateItemTotal(this);
+        $(row).find('.item-total').val(total.toFixed(0));
+        calculateGrandTotal();
+    }
+    
+    // Calculate grand total
+    function calculateGrandTotal() {
+        let subtotal = 0;
+        $('.item-total').each(function() {
+            subtotal += parseFloat($(this).val()) || 0;
         });
         
-        // Handle input changes
-        $(document).on('input', '.item-harga, .item-qty, .item-diskon', function() {
-            calculateItemTotal($(this).closest('tr'));
-        });
+        $('#edit_subtotal').val(subtotal.toFixed(0));
         
-        // Handle discount, PPN, DP changes
-        $('#edit_discount, #edit_disc_rupiah, #edit_ppn, #edit_dp').on('input', function() {
-            calculateGrandTotal();
-        });
+        const discountPercent = parseFloat($('#edit_discount').val()) || 0;
+        const discountRupiah = parseFloat($('#edit_disc_rupiah').val()) || 0;
+        const ppn = parseFloat($('#edit_ppn').val()) || 0;
+        const dp = parseFloat($('#edit_dp').val()) || 0;
         
-        // Remove item
-        $(document).on('click', '.remove-item', function() {
-            if ($('.item-row').length > 1) {
-                $(this).closest('tr').remove();
-                calculateGrandTotal();
-            } else {
-                alert('Minimal harus ada 1 item!');
-            }
-        });
+        let discountAmount = (subtotal * discountPercent / 100) + discountRupiah;
+        let grandTotal = subtotal - discountAmount + ppn - dp;
         
-        // Add item button
-        $('#addItemBtn').click(function() {
-            $('#addItemModal').modal('show');
-        });
-        
-        // Search kode barang
-        $('#searchKodeBarang').on('input', function() {
-            const keyword = $(this).val();
-            if (keyword.length >= 2) {
-                $.ajax({
-                    url: '/api/panels/search-available',
-                    method: 'GET',
-                    data: { keyword: keyword },
-                    success: function(data) {
-                        let html = '<div class="list-group">';
-                        if (data.length > 0) {
-                            data.forEach(function(item) {
-                                html += `<a href="#" class="list-group-item list-group-item-action select-item" 
-                                            data-kode="${item.group_id}" 
-                                            data-nama="${item.name}"
-                                            data-price="${item.price}">
-                                            ${item.group_id} - ${item.name}
-                                        </a>`;
-                            });
-                        } else {
-                            html += '<div class="list-group-item">Tidak ditemukan</div>';
-                        }
-                        html += '</div>';
-                        $('#searchResults').html(html);
-                    }
-                });
-            } else {
-                $('#searchResults').html('');
-            }
-        });
-        
-        // Select item from search results
-        $(document).on('click', '.select-item', function(e) {
-            e.preventDefault();
-            const kode = $(this).data('kode');
-            const nama = $(this).data('nama');
-            const price = $(this).data('price');
-            
-            $('#newKodeBarang').val(kode);
-            $('#newNamaBarang').val(nama);
-            $('#newHarga').val(price);
-            $('#newQty').val(1);
-            $('#newDiskon').val(0);
-            
-            // Calculate total
-            const harga = parseFloat(price) || 0;
-            const qty = 1;
-            $('#newTotal').val(harga * qty);
-            
-            $('#searchResults').html('');
-            $('#selectedItemForm').show();
-            $('#saveItemBtn').prop('disabled', false);
-        });
-        
-        // Calculate new item total
-        $('#newHarga, #newQty, #newDiskon').on('input', function() {
-            const harga = parseFloat($('#newHarga').val()) || 0;
-            const qty = parseInt($('#newQty').val()) || 0;
-            const diskon = parseFloat($('#newDiskon').val()) || 0;
-            
-            let total = harga * qty;
-            if (diskon > 0) {
-                total = total - (total * diskon / 100);
-            }
-            
-            $('#newTotal').val(total.toFixed(0));
-        });
-        
-        // Save new item
-        $('#saveItemBtn').click(function() {
-            const kodeBarang = $('#newKodeBarang').val();
-            const namaBarang = $('#newNamaBarang').val();
-            const keterangan = $('#newKeterangan').val();
-            const harga = $('#newHarga').val();
-            const panjang = $('#newPanjang').val() || 0;
-            const qty = $('#newQty').val();
-            const diskon = $('#newDiskon').val();
-            const total = $('#newTotal').val();
-            
-            if (!kodeBarang || !namaBarang || !harga || !qty) {
-                alert('Mohon lengkapi data item!');
-                return;
-            }
-            
-            const index = $('.item-row').length;
-            const newRow = `
-                <tr class="item-row">
-                    <td>
-                        <input type="hidden" name="items[${index}][id]" value="new">
-                        <input type="text" class="form-control item-kode" name="items[${index}][kodeBarang]" value="${kodeBarang}" readonly>
-                    </td>
-                    <td>
-                        <input type="text" class="form-control" name="items[${index}][namaBarang]" value="${namaBarang}" readonly>
-                    </td>
-                    <td>
-                        <input type="text" class="form-control" name="items[${index}][keterangan]" value="${keterangan}">
-                    </td>
-                    <td>
-                        <input type="number" class="form-control item-harga" name="items[${index}][harga]" value="${harga}" min="0" required>
-                    </td>
-                    <td>
-                        <input type="number" class="form-control" name="items[${index}][panjang]" value="${panjang}" step="0.01" min="0">
-                    </td>
-                    <td>
-                        <input type="number" class="form-control item-qty" name="items[${index}][qty]" value="${qty}" min="1" required>
-                    </td>
-                    <td>
-                        <input type="number" class="form-control item-diskon" name="items[${index}][diskon]" value="${diskon}" min="0" max="100">
-                    </td>
-                    <td>
-                        <input type="number" class="form-control item-total" name="items[${index}][total]" value="${total}" readonly>
-                    </td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-danger remove-item">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-            
-            $('#editItemsTableBody').append(newRow);
-            calculateGrandTotal();
-            
-            // Reset form and close modal
-            $('#selectedItemForm').hide();
-            $('#searchKodeBarang').val('');
-            $('#saveItemBtn').prop('disabled', true);
-            $('#addItemModal').modal('hide');
-        });
-        
-        // Form validation before submit
-        $('#editForm').submit(function(e) {
-            const editReason = $('#edit_reason').val().trim();
-            if (!editReason) {
-                e.preventDefault();
-                alert('Harap isi alasan edit!');
-                return false;
-            }
-            
-            if ($('.item-row').length === 0) {
-                e.preventDefault();
-                alert('Minimal harus ada 1 item!');
-                return false;
-            }
-            
-            return true;
-        });
+        $('#edit_grand_total').val(grandTotal.toFixed(0));
+    }
+    
+    // Initialize calculations
+    $('.item-row').each(function() {
+        calculateItemTotal(this);
     });
+    
+    // Handle input changes
+    $(document).on('input', '.item-harga, .item-qty, .item-diskon', function() {
+        calculateItemTotal($(this).closest('tr'));
+    });
+    
+    // Handle discount, PPN, DP changes
+    $('#edit_discount, #edit_disc_rupiah, #edit_ppn, #edit_dp').on('input', function() {
+        calculateGrandTotal();
+    });
+    
+    // Remove item
+    $(document).on('click', '.remove-item', function() {
+        if ($('.item-row').length > 1) {
+            $(this).closest('tr').remove();
+            calculateGrandTotal();
+        } else {
+            alert('Minimal harus ada 1 item!');
+        }
+    });
+    
+    // Add item button
+    $('#addItemBtn').click(function() {
+        $('#addItemModal').modal('show');
+    });
+    
+    // Search kode barang
+    $('#searchKodeBarang').on('input', function() {
+        const keyword = $(this).val();
+        if (keyword.length >= 2) {
+            $.ajax({
+                url: '/api/panels/search-available',
+                method: 'GET',
+                data: { keyword: keyword },
+                success: function(data) {
+                    let html = '<div class="list-group">';
+                    if (data.length > 0) {
+                        data.forEach(function(item) {
+                            html += `<a href="#" class="list-group-item list-group-item-action select-item" 
+                                        data-kode="${item.group_id}" 
+                                        data-nama="${item.name}"
+                                        data-price="${item.price}"
+                                        data-panjang="${item.panjang || 0}">
+                                        ${item.group_id} - ${item.name}
+                                    </a>`;
+                        });
+                    } else {
+                        html += '<div class="list-group-item">Tidak ditemukan</div>';
+                    }
+                    html += '</div>';
+                    $('#searchResults').html(html);
+                }
+            });
+        } else {
+            $('#searchResults').html('');
+        }
+    });
+    
+    // Select item from search results
+    $(document).on('click', '.select-item', function(e) {
+        e.preventDefault();
+        const kode = $(this).data('kode');
+        const nama = $(this).data('nama');
+        const price = $(this).data('price');
+        const panjang = $(this).data('panjang') || 0;
+        
+        $('#newKodeBarang').val(kode);
+        $('#newNamaBarang').val(nama);
+        // Autofill keterangan with the same value as nama barang
+        $('#newKeterangan').val(nama);
+        $('#newHarga').val(price);
+        $('#newPanjang').val(panjang);
+        $('#newQty').val(1);
+        $('#newDiskon').val(0);
+        
+        // Calculate total
+        const harga = parseFloat(price) || 0;
+        const qty = 1;
+        $('#newTotal').val(harga * qty);
+        
+        $('#searchResults').html('');
+        $('#selectedItemForm').show();
+        $('#saveItemBtn').prop('disabled', false);
+    });
+    
+    // Calculate new item total
+    $('#newHarga, #newQty, #newDiskon').on('input', function() {
+        const harga = parseFloat($('#newHarga').val()) || 0;
+        const qty = parseInt($('#newQty').val()) || 0;
+        const diskon = parseFloat($('#newDiskon').val()) || 0;
+        
+        let total = harga * qty;
+        if (diskon > 0) {
+            total = total - (total * diskon / 100);
+        }
+        
+        $('#newTotal').val(total.toFixed(0));
+    });
+    
+    // Save new item
+    $('#saveItemBtn').click(function() {
+        const kodeBarang = $('#newKodeBarang').val();
+        const namaBarang = $('#newNamaBarang').val();
+        const keterangan = $('#newKeterangan').val();
+        const harga = $('#newHarga').val();
+        const panjang = $('#newPanjang').val() || 0;
+        const qty = $('#newQty').val();
+        const diskon = $('#newDiskon').val();
+        const total = $('#newTotal').val();
+        
+        if (!kodeBarang || !namaBarang || !harga || !qty) {
+            alert('Mohon lengkapi data item!');
+            return;
+        }
+        
+        const index = $('.item-row').length;
+        const newRow = `
+            <tr class="item-row">
+                <td>
+                    <input type="hidden" name="items[${index}][id]" value="new">
+                    <input type="text" class="form-control item-kode" name="items[${index}][kodeBarang]" value="${kodeBarang}" readonly>
+                </td>
+                <td>
+                    <input type="text" class="form-control" name="items[${index}][namaBarang]" value="${namaBarang}" readonly>
+                </td>
+                <td>
+                    <input type="text" class="form-control" name="items[${index}][keterangan]" value="${keterangan}">
+                </td>
+                <td>
+                    <input type="number" class="form-control item-harga" name="items[${index}][harga]" value="${harga}" min="0" required>
+                </td>
+                <td>
+                    <input type="number" class="form-control" name="items[${index}][panjang]" value="${panjang}" step="0.01" min="0">
+                </td>
+                <td>
+                    <input type="number" class="form-control item-qty" name="items[${index}][qty]" value="${qty}" min="1" required>
+                </td>
+                <td>
+                    <input type="number" class="form-control item-diskon" name="items[${index}][diskon]" value="${diskon}" min="0" max="100">
+                </td>
+                <td>
+                    <input type="number" class="form-control item-total" name="items[${index}][total]" value="${total}" readonly>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger remove-item">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        
+        $('#editItemsTableBody').append(newRow);
+        calculateGrandTotal();
+        
+        // Reset form and close modal
+        $('#selectedItemForm').hide();
+        $('#searchKodeBarang').val('');
+        $('#saveItemBtn').prop('disabled', true);
+        $('#addItemModal').modal('hide');
+    });
+    
+    // Form validation before submit
+    $('#editForm').submit(function(e) {
+        const editReason = $('#edit_reason').val().trim();
+        if (!editReason) {
+            e.preventDefault();
+            alert('Harap isi alasan edit!');
+            return false;
+        }
+        
+        if ($('.item-row').length === 0) {
+            e.preventDefault();
+            alert('Minimal harus ada 1 item!');
+            return false;
+        }
+        
+        return true;
+    });
+});
 </script>
 @endsection
