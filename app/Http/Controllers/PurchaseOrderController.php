@@ -123,6 +123,7 @@ class PurchaseOrderController extends Controller
                 'dp' => $request->dp ?? 0,
                 'grand_total' => $request->grand_total,
                 'status' => 'pending',
+                'is_edited' => false,
             ]);
     
             Log::info('PO Created:', ['po_id' => $po->id, 'no_po' => $po->no_po]);
@@ -160,6 +161,115 @@ class PurchaseOrderController extends Controller
         }
     }
 
+    public function update(Request $request, $id)
+    {
+        Log::info('PO Update Request:', $request->all());
+        
+        try {
+            // Validate the request
+            $request->validate([
+                'tanggal' => 'required|date',
+                'kode_customer' => 'required|exists:customers,kode_customer',
+                'sales' => 'required|exists:stok_owners,kode_stok_owner',
+                'subtotal' => 'required|numeric',
+                'grand_total' => 'required|numeric',
+                'items' => 'required|array|min:1',
+                'items.*.kodeBarang' => 'required|exists:panels,group_id',
+                'items.*.harga' => 'required|numeric',
+                'items.*.qty' => 'required|numeric|min:1',
+                'edit_reason' => 'required|string|max:255',
+            ]);
+    
+            DB::beginTransaction();
+    
+            // Find the PO
+            $po = PurchaseOrder::with('items')->findOrFail($id);
+            
+            // Check if PO can be edited
+            if ($po->status !== 'pending') {
+                return redirect()->back()->with('error', 'Hanya PO dengan status pending yang bisa diedit.');
+            }
+    
+            // Get the current user
+            $editor = Auth::check() ? Auth::user()->name : 'ADMIN';
+            $currentDateTime = now();
+    
+            // Update purchase order
+            $po->update([
+                'tanggal' => $request->tanggal,
+                'kode_customer' => $request->kode_customer,
+                'sales' => $request->sales,
+                'pembayaran' => $request->pembayaran,
+                'cara_bayar' => $request->cara_bayar,
+                'subtotal' => $request->subtotal,
+                'discount' => $request->discount ?? 0,
+                'disc_rupiah' => $request->disc_rupiah ?? 0,
+                'ppn' => $request->ppn,
+                'dp' => $request->dp ?? 0,
+                'grand_total' => $request->grand_total,
+                'is_edited' => true,
+                'edited_by' => $editor,
+                'edited_at' => $currentDateTime,
+                'edit_reason' => $request->edit_reason,
+            ]);
+    
+            // Process items
+            $existingItemIds = $po->items->pluck('id')->toArray();
+            $updatedItemIds = [];
+            
+            foreach ($request->items as $itemData) {
+                // Check if it's an existing item or a new one
+                if (isset($itemData['id']) && $itemData['id'] !== 'new') {
+                    // Update existing item
+                    $item = PurchaseOrderItem::find($itemData['id']);
+                    if ($item) {
+                        $item->update([
+                            'kode_barang' => $itemData['kodeBarang'],
+                            'nama_barang' => $itemData['namaBarang'],
+                            'keterangan' => $itemData['keterangan'] ?? '',
+                            'harga' => $itemData['harga'],
+                            'panjang' => $itemData['panjang'] ?? 0,
+                            'qty' => $itemData['qty'],
+                            'total' => $itemData['total'],
+                            'diskon' => $itemData['diskon'] ?? 0,
+                        ]);
+                        $updatedItemIds[] = $item->id;
+                    }
+                } else {
+                    // Create new item
+                    $item = $po->items()->create([
+                        'kode_barang' => $itemData['kodeBarang'],
+                        'nama_barang' => $itemData['namaBarang'],
+                        'keterangan' => $itemData['keterangan'] ?? '',
+                        'harga' => $itemData['harga'],
+                        'panjang' => $itemData['panjang'] ?? 0,
+                        'qty' => $itemData['qty'],
+                        'total' => $itemData['total'],
+                        'diskon' => $itemData['diskon'] ?? 0,
+                    ]);
+                    $updatedItemIds[] = $item->id;
+                }
+            }
+            
+            // Delete items that are no longer in the updated PO
+            $itemsToDelete = array_diff($existingItemIds, $updatedItemIds);
+            if (!empty($itemsToDelete)) {
+                PurchaseOrderItem::whereIn('id', $itemsToDelete)->delete();
+            }
+    
+            DB::commit();
+            Log::info('PO update completed successfully');
+    
+            return redirect()->route('purchase-order.show', ['id' => $po->id])
+                ->with('success', 'Purchase Order berhasil diubah.');
+    
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('PO Update Error:', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
     public function cancel($id)
     {
         $po = PurchaseOrder::findOrFail($id);
@@ -171,17 +281,16 @@ class PurchaseOrderController extends Controller
         return redirect()->route('transaksi.purchaseorder')->with('success', 'PO dibatalkan.');
     }
     
-
     public function completeTransaction($id)
     {
-    Log::info('CompleteTransaction started for PO ID: ' . $id);
+        Log::info('CompleteTransaction started for PO ID: ' . $id);
 
-    $po = PurchaseOrder::with('items', 'customer')->findOrFail($id);
+        $po = PurchaseOrder::with('items', 'customer')->findOrFail($id);
 
-    DB::beginTransaction();
+        DB::beginTransaction();
 
-    try {
-        Log::info('PO Data:', $po->toArray());
+        try {
+            Log::info('PO Data:', $po->toArray());
 
             // Generate a new transaction number
             $lastTransaction = Transaksi::orderBy('created_at', 'desc')->first();
@@ -194,7 +303,7 @@ class PurchaseOrderController extends Controller
             $customerName = $customer ? $customer->nama : 'Unknown Customer';
     
             // Format transaction number for stock mutation
-            $creator = 'ADMIN'; // You can replace this with the actual user name
+            $creator = Auth::check() ? Auth::user()->name : 'ADMIN';
             $noTransaksiMutasi = $noTransaksi . " ({$creator})";
     
             // Create a new transaction
@@ -213,6 +322,11 @@ class PurchaseOrderController extends Controller
                 'dp' => $po->dp,
                 'grand_total' => $po->grand_total,
                 'status' => 'baru',
+                'created_from_po' => $po->no_po,
+                'is_edited' => $po->is_edited,
+                'edited_by' => $po->edited_by,
+                'edited_at' => $po->edited_at,
+                'edit_reason' => $po->edit_reason,
             ]);
     
             // Create transaction items and record stock mutations

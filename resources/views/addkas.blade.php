@@ -18,13 +18,13 @@
         </div>
 
         <div class="form-group">
-            <label>Deskripsi</label>
+            <label>Deskripsi x Qty</label>
             <textarea name="description" class="form-control">{{ old('description') }}</textarea>
             @error('description') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 
         <div class="form-group">
-            <label>Jumlah (Qty)</label>
+            <label>Nominal</label>
             <input type="number" name="qty" class="form-control" required value="{{ old('qty') }}">
             @error('qty') <div class="text-danger">{{ $message }}</div> @enderror
         </div>

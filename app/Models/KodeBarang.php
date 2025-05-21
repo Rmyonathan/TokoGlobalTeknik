@@ -18,7 +18,6 @@ class KodeBarang extends Model
         'attribute',
         'length',
         'status',
-        'kategori_id' // Add kategori_id to fillable
     ];
 
     protected $casts = [

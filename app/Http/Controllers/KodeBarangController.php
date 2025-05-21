@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\KodeBarang;
-use App\Models\KategoriBarang;
 use App\Http\Requests\StoreKodeBarangRequest;
 use App\Http\Requests\UpdateKodeBarangRequest;
 use Illuminate\Http\Request;
@@ -15,8 +14,9 @@ class KodeBarangController extends Controller
      */
     public function createCode()
     {
-        $categories = KategoriBarang::where('status', 'Active')->get();
-        return view('panels.add-code', compact('categories'));
+        //
+        $group_names = KodeBarang::distinct()->pluck('attribute');
+        return view('panels.add-code', compact('group_names'));
     }
 
     public function viewCode()
@@ -40,8 +40,6 @@ class KodeBarangController extends Controller
             'attribute' => 'required|string|max:255',
             'kode_barang' => 'required|string|max:255',
             'length' => 'required|numeric|min:0.1',
-            'kategori_id' => 'required|exists:kategori_barang,id', // Add validation for kategori_id
-
         ], [
             'kode_barang.required' => 'Item code is required',
             'kode_barang.string' => 'Item code must be a valid string',
@@ -66,9 +64,6 @@ class KodeBarangController extends Controller
             'price.required' => 'Price is required',
             'price.numeric' => 'Price must be a valid number',
             'price.min' => 'Price must be at least 0',
-
-            'kategori_id.required' => 'Category is required',
-            'kategori_id.exists' => 'Selected category is invalid',
         ]);
 
         // $attribute = $validated['attribute'];
@@ -109,8 +104,7 @@ class KodeBarangController extends Controller
         $viewPath = resource_path('views/panels/edit-code.blade.php');
         if (file_exists($viewPath)) {
             $code = KodeBarang::findOrFail($id);
-            $categories = KategoriBarang::where('status', 'Active')->get();
-            return view('panels.edit-code', compact('code','categories'));
+            return view('panels.edit-code', compact('code'));
         } else {
             return "View file does not exist at: " . $viewPath;
         }
@@ -126,7 +120,6 @@ class KodeBarangController extends Controller
             'attribute' => 'required|string|max:255',
             'kode_barang' => 'required|string|max:255',
             'length' => 'required|numeric|min:0.1',
-            'kategori_id' => 'required|exists:kategori_barang,id', // Add validation for kategori_id
         ], [
             'kode_barang.required' => 'Item code is required',
             'kode_barang.string' => 'Item code must be a valid string',
@@ -139,9 +132,6 @@ class KodeBarangController extends Controller
             'length.required' => 'Panel length is required',
             'length.numeric' => 'Panel length must be a number',
             'length.min' => 'Panel length must be at least 0.1 meters',
-        
-            'kategori_id.required' => 'Category is required',
-            'kategori_id.exists' => 'Selected category is invalid',
         ]);
 
         $code = KodeBarang::findOrFail($id);

@@ -27,9 +27,9 @@
                             <tr>
                                 <td>{{ $stock->kode_barang }}</td>
                                 <td>{{ $stock->nama_barang }}</td>
-                                <td>{{ number_format($stock->good_stock, 2) }}</td>
+                                <td>{{ number_format($stock->good_stock) }}</td>
                                 <td>{{ $stock->satuan }}</td>
-                                <td>{{ number_format($stock->bad_stock, 2) }}</td>
+                                <td>{{ number_format($stock->bad_stock) }}</td>
                                 <td>
                                     <a href="{{ route('stock.mutasi', [
                                         'kolom' => $kolom, 
@@ -136,9 +136,9 @@
                                     <td>{{ \Carbon\Carbon::parse($mutation->tanggal)->format('d M Y H:i') }}</td>
                                     <td>{{ $mutation->no_nota ?: '-' }}</td>
                                     <td>{{ $mutation->supplier_customer }}</td>
-                                    <td>{{ number_format($mutation->plus, 2) }}</td>
-                                    <td>{{ number_format($mutation->minus, 2) }}</td>
-                                    <td>{{ number_format($mutation->total, 2) }}</td>
+                                    <td>{{ number_format($mutation->plus) }}</td>
+                                    <td>{{ number_format($mutation->minus) }}</td>
+                                    <td>{{ number_format($mutation->total) }}</td>
                                 </tr>
                             @empty
                                 <tr>

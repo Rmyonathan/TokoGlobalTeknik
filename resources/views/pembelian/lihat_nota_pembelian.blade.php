@@ -24,6 +24,22 @@
     </div>
     @endif
 
+    <!-- Custom CSS for highlighting edited rows -->
+    <style>
+        tr.edited-row {
+            background-color: rgba(255, 193, 7, 0.1) !important;
+        }
+        .badge-warning {
+            background-color: #ffc107;
+            color: #212529;
+            font-weight: bold;
+        }
+        .edit-info {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+    </style>
+
     <!-- Filters -->
     <div class="card mb-3">
         <div class="card-body">
@@ -70,8 +86,13 @@
                     </thead>
                     <tbody>
                         @forelse($purchases as $purchase)
-                        <tr>
-                            <td>{{ $purchase->nota }}</td>
+                        <tr class="{{ (isset($purchase->is_edited) && $purchase->is_edited) ? 'edited-row' : '' }}">
+                            <td>
+                                {{ $purchase->nota }}
+                                @if(isset($purchase->is_edited) && $purchase->is_edited)
+                                    <i class="fas fa-edit text-warning ml-1" data-toggle="tooltip" title="Diedit oleh: {{ $purchase->edited_by }} pada {{ date('d/m/Y H:i', strtotime($purchase->edited_at)) }}"></i>
+                                @endif
+                            </td>
                             <td>{{ date('Y-m-d', strtotime($purchase->tanggal)) }}</td>
                             <td>{{ $purchase->kode_supplier }} - {{ $purchase->supplierRelation->nama ?? '' }}</td>
                             <td>{{ $purchase->cara_bayar }}</td>
@@ -79,39 +100,61 @@
                             <td>
                                 @if(isset($purchase->status) && $purchase->status == 'canceled')
                                     <span class="badge badge-danger">Dibatalkan</span>
+                                    <small class="d-block edit-info mt-1">
+                                        Oleh: {{ $purchase->canceled_by ?? 'Unknown' }}
+                                    </small>
+                                    <small class="d-block edit-info">
+                                        {{ isset($purchase->canceled_at) ? date('d/m/Y H:i', strtotime($purchase->canceled_at)) : '' }}
+                                    </small>
+                                @elseif(isset($purchase->is_edited) && $purchase->is_edited)
+                                    <span class="badge badge-warning">Diedit</span>
+                                    <small class="d-block edit-info mt-1">
+                                        Oleh: {{ $purchase->edited_by ?? 'Unknown' }}
+                                    </small>
+                                    <small class="d-block edit-info">
+                                        {{ isset($purchase->edited_at) ? date('d/m/Y H:i', strtotime($purchase->edited_at)) : '' }}
+                                    </small>
                                 @else
                                     <span class="badge badge-success">Aktif</span>
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('pembelian.nota.show', $purchase->id) }}" class="btn btn-sm btn-info" title="Lihat Nota">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                
-                                @if(!isset($purchase->status) || $purchase->status != 'canceled')
-                                    <a href="{{ route('pembelian.edit', $purchase->id) }}" class="btn btn-sm btn-warning" title="Edit Nota">
-                                        <i class="fas fa-edit"></i>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ route('pembelian.nota.show', $purchase->id) }}" class="btn btn-sm btn-info" title="Lihat Nota">
+                                        <i class="fas fa-eye"></i>
                                     </a>
                                     
-                                    <button type="button" class="btn btn-sm btn-danger cancel-btn" 
-                                            data-toggle="modal" 
-                                            data-target="#cancelModal" 
-                                            data-id="{{ $purchase->id }}"
-                                            data-nota="{{ $purchase->nota }}"
-                                            title="Batalkan Nota">
-                                        <i class="fas fa-ban"></i>
-                                    </button>
+                                    @if(!isset($purchase->status) || $purchase->status != 'canceled')
+                                        <a href="{{ route('pembelian.edit', $purchase->id) }}" class="btn btn-sm btn-warning" title="Edit Nota">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        
+                                        <button type="button" class="btn btn-sm btn-danger cancel-btn" 
+                                                data-toggle="modal" 
+                                                data-target="#cancelModal" 
+                                                data-id="{{ $purchase->id }}"
+                                                data-nota="{{ $purchase->nota }}"
+                                                title="Batalkan Nota">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    @endif
                                     
-                                   
-                                @else
-                                    <button type="button" class="btn btn-sm btn-secondary" data-toggle="tooltip" title="Dibatalkan oleh: {{ $purchase->canceled_by }} pada {{ date('d/m/Y H:i', strtotime($purchase->canceled_at)) }}">
-                                        <i class="fas fa-info-circle"></i> Info
-                                    </button>
-                                @endif
-                                
-                                <a href="{{ route('pembelian.nota.show', $purchase->id) }}" class="btn btn-sm btn-primary" target="_blank" title="Cetak Nota">
-                                    <i class="fas fa-print"></i>
-                                </a>
+                                    @if(isset($purchase->is_edited) && $purchase->is_edited)
+                                        <button type="button" class="btn btn-sm btn-info edit-history-btn" 
+                                                data-toggle="modal" 
+                                                data-target="#editHistoryModal"
+                                                data-nota="{{ $purchase->nota }}"
+                                                data-editor="{{ $purchase->edited_by }}"
+                                                data-date="{{ date('d/m/Y H:i', strtotime($purchase->edited_at)) }}"
+                                                data-reason="{{ $purchase->edit_reason }}">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                    @endif
+                                    
+                                    <a href="{{ route('pembelian.nota.show', $purchase->id) }}" class="btn btn-sm btn-primary" target="_blank" title="Cetak Nota">
+                                        <i class="fas fa-print"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -124,32 +167,6 @@
                 <div class="d-flex justify-content-center mt-4">
                     {{ $purchases->links() }}
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Konfirmasi Hapus</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p>Apakah Anda yakin ingin menghapus nota pembelian ini?</p>
-                <p class="text-danger">Perhatian: Tindakan ini tidak dapat dibatalkan!</p>
-            </div>
-            <div class="modal-footer">
-                <form id="deleteForm" action="" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-danger">Hapus</button>
-                </form>
             </div>
         </div>
     </div>
@@ -185,11 +202,46 @@
         </div>
     </div>
 </div>
+
+<!-- Edit History Modal -->
+<div class="modal fade" id="editHistoryModal" tabindex="-1" role="dialog" aria-labelledby="editHistoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editHistoryModalLabel">Riwayat Edit</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>No. Nota:</strong> <span id="edit-nota-display"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Diedit oleh:</strong> <span id="edit-user-display"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Tanggal Edit:</strong> <span id="edit-date-display"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Alasan Edit:</strong>
+                    <p id="edit-reason-display" class="p-2 bg-light rounded"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
 <script>
     $(document).ready(function() {
+        // Initialize tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+        
         function checkInDateRange(dateStr, start, end) {
             if (!start && !end) return true;
             if (!start && end) return dateStr <= end;
@@ -225,11 +277,8 @@
             $('#purchaseTable tbody tr').show();
         });
 
-        // Optional: filter langsung saat mengetik
+        // Filter saat mengetik
         $('#searchInput').on('input', applyFilters);
-        
-        // Initialize tooltips
-        $('[data-toggle="tooltip"]').tooltip();
         
         // Cancel Modal handling
         $('.cancel-btn').click(function() {
@@ -238,6 +287,19 @@
             
             $('#cancel-nota-display').text(nota);
             $('#cancelForm').attr('action', `{{ url('/pembelian/cancel') }}/${id}`);
+        });
+        
+        // Edit History Modal handling
+        $('.edit-history-btn').click(function() {
+            const nota = $(this).data('nota');
+            const editor = $(this).data('editor');
+            const date = $(this).data('date');
+            const reason = $(this).data('reason');
+            
+            $('#edit-nota-display').text(nota);
+            $('#edit-user-display').text(editor);
+            $('#edit-date-display').text(date);
+            $('#edit-reason-display').text(reason);
         });
         
         // Validate and submit the cancel form

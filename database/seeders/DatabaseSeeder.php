@@ -2,16 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Supplier;
 use App\Models\Customer;
-use App\Models\Rooms;
 use App\Models\Saldo;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,53 +14,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-        // Permission::create(['name' => 'view dashboard']);
-        // Permission::create(['name' => 'edit users']);
-        // Permission::create(['name' => 'access sales report']);
-
-        Permission::create([
-            'name' => 'view dashboard',
-        ]);
-
-        Permission::create([
-            'name' => 'edit users',
-        ]);
-
-        Permission::create([
-            'name' => 'access sales report',
-        ]);
-
-        $adminRole = Role::create(['name' => 'admin']);
-        $adminRole->givePermissionTo(['view dashboard', 'edit users', 'access sales report']);
-
-        User::factory()->create([
-            'name' => 'Admin Bos',
-            'email' => 'admin@gmail.com',
-            'password' => Hash::make('1234567890'),
-        ])->assignRole('admin');
-
-        User::factory()->create([
-            'name' => 'Pegawai X',
-            'email' => 'employee1@gmail.com',
-            'role' => 'first',
-            'password' => Hash::make('1234567890'),
-        ]);
-
-        User::factory()->create([
-            'name' => 'Pegawai Y',
-            'email' => 'employee2@gmail.com',
-            'role' => 'second',
-            'password' => Hash::make('1234567890'),
-        ]);
-
-        User::factory()->create([
-            'name' => 'Pegawai Z',
-            'email' => 'employee3@gmail.com',
-            'role' => 'third',
-            'password' => Hash::make('1234567890'),
-        ]);
-
+        // Run permissions and roles seeder
+        $this->call(PermissionSeeder::class);
+        
+        // Run user seeder
+        $this->call(UserSeeder::class);
+        
+        // Create sample data
+        $this->createSampleData();
+    }
+    
+    /**
+     * Create sample data for the application
+     */
+    private function createSampleData()
+    {
+        // Create sample supplier
         Supplier::factory()->create([
             'kode_supplier' => 'SUP001',
             'nama' => 'Supplier A',
@@ -77,7 +40,8 @@ class DatabaseSeeder extends Seeder
             'hp_contact_person' => '083234567890',
             'kode_kategori' => 'CAT001',
         ]);
-
+        
+        // Create sample customer
         Customer::factory()->create([
             'kode_customer' => 'CUST002',
             'nama' => 'Jane Smith',
@@ -85,114 +49,8 @@ class DatabaseSeeder extends Seeder
             'hp' => '082345678901',
             'telepon' => '021-34567890',
         ]);
-
-        // name	description	price	stocks	auto_stock	auto_stock_value
-        // Items::factory()->create([
-        //     'name' => 'Pegawai',
-        //     'description' => '-',
-        //     'price' => 'user',
-        //     'stocks' => ,
-        //     'price' => 'user',
-        //     'password' => Hash::make('1234567890'),
-        // ]);
-
-
-
-        // Rooms::factory()->create([
-        //     'room_number' => '001',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '002',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '003',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '004',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '005',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '006',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '007',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '008',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '009',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-        // Rooms::factory()->create([
-        //     'room_number' => '010',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '011',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '012',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '013',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '014',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '015',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
-        // Rooms::factory()->create([
-        //     'room_number' => '016',
-        //     'price_per_night' => 200000,
-        //     'status' => 'vacant',
-        // ]);
-
+        
+        // Create sample saldo
         Saldo::factory()->create([
             'saldo' => 0,
             'room_rate' => 200000,

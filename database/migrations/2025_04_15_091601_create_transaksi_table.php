@@ -27,6 +27,21 @@ return new class extends Migration
             $table->decimal('dp', 15, 2)->default(0);
             $table->decimal('grand_total', 15, 2);
             $table->string('status')->default('baru');
+            
+            // Edit tracking fields
+            $table->boolean('is_edited')->default(false);
+            $table->string('edited_by')->nullable();
+            $table->timestamp('edited_at')->nullable();
+            $table->string('edit_reason')->nullable();
+            
+            // Cancel tracking fields
+            $table->string('canceled_by')->nullable();
+            $table->timestamp('canceled_at')->nullable();
+            $table->string('cancel_reason')->nullable();
+            
+            // Connection to PO if created from PO
+            $table->string('created_from_po')->nullable();
+            
             $table->timestamps();
         });
     }

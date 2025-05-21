@@ -168,10 +168,10 @@ return [
 
     ],
 
-    'available_databases' => [
-        'first' => 'first_database',
-        'second' => 'second_database',
-        'third' => 'third_database',
-    ],
+    // 'available_databases' => [
+    //     'first' => 'first_database',
+    //     'second' => 'second_database',
+    //     'third' => 'third_database',
+    // ],
 
 ];

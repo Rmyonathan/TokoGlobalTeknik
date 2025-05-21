@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\KodeBarang;
-use App\Models\KategoriBarang;
 use App\Models\Panel;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -34,17 +33,75 @@ class PanelController extends Controller
 
     public function viewBarang(Request $request)
     {
+        // Get search parameters
+        $searchBy = $request->input('search_by', '');
         $search = $request->input('search', '');
-        $categoryId = $request->input('category_id', '');
-        $perPage = 10;
+        $statusFilter = $request->input('status_filter', '');
+        $perPage = 10; // Number of items per page
 
-        // Ambil data inventory sesuai filter
-        $inventory = $this->getKodeSummary($search, $categoryId, $perPage);
+        // Build the query for KodeBarang
+        $query = KodeBarang::query();
 
-        // Ambil kategori untuk filter
-        $categories = \App\Models\KategoriBarang::all();
+        // Apply search filter if search term exists and search_by is specified
+        if (!empty($search) && !empty($searchBy)) {
+            if ($searchBy === 'group_id') {
+                $query->where('kode_barang', 'like', "%{$search}%");
+            } elseif ($searchBy === 'name') {
+                $query->where('name', 'like', "%{$search}%");
+            } elseif ($searchBy === 'group') {
+                $query->where('attribute', 'like', "%{$search}%");
+            }
+        }
 
-        return view('master.barang', compact('inventory', 'search', 'categoryId', 'categories'));
+        // Apply status filter if provided
+        if (!empty($statusFilter)) {
+            $query->where('status', $statusFilter);
+        }
+
+        // Paginate the results
+        $panelsPaginator = $query->paginate($perPage);
+
+        // Get the data from the paginator
+        $panels = $panelsPaginator->items();
+
+        // Manually group the panels
+        $groupedPanels = [];
+        foreach ($panels as $panel) {
+            $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->kode_barang;
+
+            if (!isset($groupedPanels[$key])) {
+                $groupedPanels[$key] = [
+                    'id' => $panel->id,
+                    'length' => $panel->length,
+                    'name' => $panel->name,
+                    'cost' => $panel->cost,
+                    'price' => $panel->price,
+                    'group_id' => $panel->kode_barang,
+                    'group' => $panel->attribute,
+                    'status' => $panel->status,
+                    'quantity' => Panel::where('group_id', $panel->kode_barang)->where('available', True)->count()
+                ];
+            } else {
+                $groupedPanels[$key]['quantity']++;
+            }
+        }
+
+        // Convert to array values
+        $inventory = array_values($groupedPanels);
+
+        // Sort by length
+        usort($inventory, function($a, $b) {
+            return $a['length'] <=> $b['length'];
+        });
+
+        $inventory = [
+            'total_panels' => $panelsPaginator->total(),
+            'inventory_by_length' => $inventory,
+            'paginator' => $panelsPaginator // Pass the paginator object for use in the view
+        ];
+
+        // Pass search parameters to the view for maintaining selected values
+        return view('master.barang', compact('inventory', 'search', 'searchBy', 'statusFilter'));
     }
 
     /**
@@ -475,119 +532,120 @@ class PanelController extends Controller
         $penambah = KodeBarang::where('kode_barang', $validated['penambah'])->first();
         $pengurangs = $validated['pengurang'];
         $quantities = $validated['quantity'];
+        $frequency = $request->frequency ?? 1;
 
-        $totalPengurangLength = 0;
-        $totalTransaction = 0;
-        $totalQty = 0;
+        for ($j = 0; $j < $frequency; $j++) {
+            $totalPengurangLength = 0;
+            $totalTransaction = 0;
+            $totalQty = 0;
+            $pengurangData = [];
 
-        $pengurangData = [];
+            foreach ($pengurangs as $index => $kode) {
+                $pengurang = KodeBarang::where('kode_barang', $kode)->first();
+                $qty = $quantities[$index];
 
-        foreach ($pengurangs as $index => $kode) {
-            $pengurang = KodeBarang::where('kode_barang', $kode)->first();
-            $qty = $quantities[$index];
+                $totalPengurangLength += $pengurang->length * $qty;
+                $totalTransaction += $pengurang->price * $pengurang->length * $qty;
+                $totalQty += $qty;
 
-            $totalPengurangLength += $pengurang->length * $qty;
-            $totalTransaction += $pengurang->price * $pengurang->length * $qty;
-            $totalQty += $qty;
-
-            $pengurangData[] = [
-                'item' => $pengurang,
-                'qty' => $qty,
-            ];
-        }
-
-        // Check invalid conversion or insufficient inventory
-        if (
-            ($penambah->length >= $totalPengurangLength && ($penambah->length - $totalPengurangLength) != 0)
-            || ($penambah->length < $totalPengurangLength && ($totalPengurangLength % $penambah->length != 0))
-            || ($totalPengurangLength > (Panel::where('group_id', $penambah->kode_barang)->where('available', true)->count() * $penambah->length))
-        ) {
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json(['error' => 'Invalid conversion ratio.'], 400);
-            } else {
-                return redirect()->back()->with('error', 'Invalid conversion ratio.');
-            }
-        }
-
-        // Calculate how many panels of penambah are needed
-        $reduction = ($penambah->length - $totalPengurangLength == 0) ? 1 : ($totalPengurangLength / $penambah->length);
-
-        $panelPenambah = Panel::where('group_id', $penambah->kode_barang)
-            ->where('available', true)
-            ->limit((int) $reduction)
-            ->get();
-
-        // Create main order
-        $order = Order::create([
-            'total_quantity' => $totalQty,
-            'name' => 'Multi-Item Repack',
-            'transaction' => $totalTransaction,
-            'total_length' => $totalPengurangLength,
-            'status' => 'completed',
-            'notes' => "Repack from {$penambah->kode_barang} to multiple items"
-        ]);
-
-        // Record stock reduction for penambah (the source material)
-        $this->stockController->recordSale(
-            $penambah->kode_barang,
-            $penambah->name,
-            'REPACK-FROM-' . date('YmdHis'),
-            now(),
-            'REPACK-' . $order->id,
-            'REPACK PROCESS',
-            $reduction, // We're using this many panels
-            'LBR', // Satuan
-            "Source material for repack to multiple items",
-            null, // created_by (optional)
-            'default' // SO
-        );
-
-        foreach ($panelPenambah as $p) {
-            $p->available = false;
-            $p->save();
-        }
-
-        // For each pengurang, create OrderItems and inventory
-        foreach ($pengurangData as $entry) {
-            $item = $entry['item'];
-            $qty = $entry['qty'];
-
-            for ($i = 0; $i < $qty; $i++) {
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'panel_id' => $panelPenambah[0]->id ?? null, // Optional: random assignment
-                    'name' => $item->name . " (from " . $penambah->name . ")",
-                    'length' => $item->length,
-                    'transaction' => $item->price * $item->length,
-                    'original_panel_length' => $penambah->length,
-                    'remaining_length' => 0
-                ]);
+                $pengurangData[] = [
+                    'item' => $pengurang,
+                    'qty' => $qty,
+                ];
             }
 
-            // Add panels to inventory
-            $this->addPanelsToInventory(
-                $item->name,
-                $item->cost,
-                $item->price,
-                $item->length,
-                $item->kode_barang,
-                $qty
-            );
+            // Check invalid conversion or insufficient inventory
+            if (
+                ($penambah->length >= $totalPengurangLength && ($penambah->length - $totalPengurangLength) != 0)
+                || ($penambah->length < $totalPengurangLength && ($totalPengurangLength % $penambah->length != 0))
+                || ($totalPengurangLength * $frequency > (Panel::where('group_id', $penambah->kode_barang)->where('available', true)->count() * $penambah->length * $frequency))
+            ) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['error' => 'Invalid conversion ratio.'], 400);
+                } else {
+                    return redirect()->back()->with('error', 'Invalid conversion ratio.');
+                }
+            }
+            // Calculate how many panels of penambah are needed
+            $reduction = ($penambah->length - $totalPengurangLength == 0) ? 1 : ($totalPengurangLength / $penambah->length);
 
-            // Record stock increase for pengurang (the resulting material)
-            $this->stockController->recordPurchase(
-                $item->kode_barang,
-                $item->name,
-                'REPACK-TO-' . date('YmdHis'),
+            $panelPenambah = Panel::where('group_id', $penambah->kode_barang)
+                ->where('available', true)
+                ->limit((int) $reduction)
+                ->get();
+
+            // Create main order
+            $order = Order::create([
+                'total_quantity' => $totalQty,
+                'name' => 'Multi-Item Repack',
+                'transaction' => $totalTransaction,
+                'total_length' => $totalPengurangLength,
+                'status' => 'completed',
+                'notes' => "Repack from {$penambah->kode_barang} to multiple items"
+            ]);
+
+            // Record stock reduction for penambah (the source material)
+            $this->stockController->recordSale(
+                $penambah->kode_barang,
+                $penambah->name,
+                'REPACK-FROM-' . date('YmdHis'),
                 now(),
                 'REPACK-' . $order->id,
                 'REPACK PROCESS',
-                $qty, // Quantity of new items created
+                $reduction, // We're using this many panels
                 'LBR', // Satuan
-                "Result from repack of {$penambah->kode_barang}",
+                "Source material for repack to multiple items",
                 null, // created_by (optional)
                 'default' // SO
             );
+
+            foreach ($panelPenambah as $p) {
+                $p->available = false;
+                $p->save();
+            }
+
+            // For each pengurang, create OrderItems and inventory
+            foreach ($pengurangData as $entry) {
+                $item = $entry['item'];
+                $qty = $entry['qty'];
+
+                for ($i = 0; $i < $qty; $i++) {
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'panel_id' => $panelPenambah[0]->id ?? null, // Optional: random assignment
+                        'name' => $item->name . " (from " . $penambah->name . ")",
+                        'length' => $item->length,
+                        'transaction' => $item->price * $item->length,
+                        'original_panel_length' => $penambah->length,
+                        'remaining_length' => 0
+                    ]);
+                }
+
+                // Add panels to inventory
+                $this->addPanelsToInventory(
+                    $item->name,
+                    $item->cost,
+                    $item->price,
+                    $item->length,
+                    $item->kode_barang,
+                    $qty
+                );
+
+                // Record stock increase for pengurang (the resulting material)
+                $this->stockController->recordPurchase(
+                    $item->kode_barang,
+                    $item->name,
+                    'REPACK-TO-' . date('YmdHis'),
+                    now(),
+                    'REPACK-' . $order->id,
+                    'REPACK PROCESS',
+                    $qty, // Quantity of new items created
+                    'LBR', // Satuan
+                    "Result from repack of {$penambah->kode_barang}",
+                    null, // created_by (optional)
+                    'default' // SO
+                );
+            }
         }
 
         $successMessage = "Successfully processed multi-item repack.";
@@ -848,11 +906,11 @@ class PanelController extends Controller
         ];
     }
 
-    public function getKodeSummary($search = '', $categoryId = '', $perPage = 10): array
+    public function getKodeSummary($search = '', $perPage = 10): array
     {
         // Query builder for KodeBarang with search filter
         $query = KodeBarang::query();
-        
+
         // Apply search filter if search term exists
         if (!empty($search)) {
             $query->where(function($q) use ($search) {
@@ -861,18 +919,13 @@ class PanelController extends Controller
                 ->orWhere('attribute', 'like', "%{$search}%");
             });
         }
-        
-        // Apply category filter if category_id exists
-        if (!empty($categoryId)) {
-            $query->where('kategori_id', $categoryId);
-        }
-        
+
         // Paginate the results
         $panelsPaginator = $query->paginate($perPage);
-        
+
         // Get the data from the paginator
         $panels = $panelsPaginator->items();
-        
+
         // Manually group the panels
         $groupedPanels = [];
         foreach ($panels as $panel) {
@@ -888,8 +941,6 @@ class PanelController extends Controller
                     'group_id' => $panel->kode_barang,
                     'group' => $panel->attribute,
                     'status' => $panel->status,
-                    'kategori_id' => $panel->kategori_id,
-                    'kategori_name' => $panel->kategori ? $panel->kategori->name : 'Uncategorized',
                     'quantity' => Panel::where('group_id', $panel->kode_barang)->where('available', True)->count()
                 ];
             } else {
