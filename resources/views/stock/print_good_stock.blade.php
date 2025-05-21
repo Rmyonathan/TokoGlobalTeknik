@@ -90,7 +90,6 @@
                 <th>No.</th>
                 <th>Kode Barang</th>
                 <th>Nama Barang</th>
-                <th>SO</th>
                 <th>Good Stock</th>
                 <th>Satuan</th>
             </tr>
@@ -101,7 +100,6 @@
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>{{ $stock->kode_barang }}</td>
                     <td>{{ $stock->nama_barang }}</td>
-                    <td>{{ $stock->so }}</td>
                     <td class="text-right">{{ number_format($stock->good_stock, 2) }}</td>
                     <td>{{ $stock->satuan }}</td>
                 </tr>

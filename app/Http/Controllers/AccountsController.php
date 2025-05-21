@@ -38,13 +38,14 @@ class AccountsController extends Controller
     {
         $permissions = Permission::all();
         return view('addRole', compact('permissions'));
+        
     }
 
     public function storeRole(Request $request)
     {
         $role = Role::create(['name' => $request->name]);
         $role->syncPermissions($request->permissions); // array of permission IDs
-        return redirect()->route('createRole');
+        return redirect()->route('accounts.maintenance')->with('success', 'Role created successfully!');
     }
 
     public function switchDatabase(Request $request)

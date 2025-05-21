@@ -8,10 +8,29 @@ use Illuminate\Support\Facades\DB;
 
 class StokOwnerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $stokOwners = StokOwner::all();
-        return view('master.stok_owner', compact('stokOwners'));
+        $searchBy = $request->input('search_by');
+        $keyword = $request->input('search');
+        $query = StokOwner::query();
+
+        if ($searchBy && $keyword) {
+            if ($searchBy === 'keterangan') {
+                $query->where('keterangan', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'kode_stok_owner') {
+                $query->where('kode_stok_owner', 'like', "%{$keyword}%");
+            }
+        } elseif ($keyword) {
+            // Default: search in keterangan and kode_stok_owner
+            $query->where(function($q) use ($keyword) {
+                $q->where('keterangan', 'like', "%{$keyword}%")
+                ->orWhere('kode_stok_owner', 'like', "%{$keyword}%");
+            });
+        }
+
+        $stokOwners = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
+        
+        return view('master.stok_owner', compact('stokOwners', 'keyword', 'searchBy'));
     }
 
     public function store(Request $request)

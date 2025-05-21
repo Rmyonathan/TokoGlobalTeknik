@@ -58,7 +58,7 @@
 
                         <div class="form-group">
                             <label for="quantity"><i class="fas fa-layer-group mr-1"></i> Quantity</label>
-                            <input type="number" class="form-control @error('quantity') is-invalid @enderror" id="quantity" name="quantity" value="{{ $quantity }}" min="1" required>
+                            <input type="number" class="form-control @error('quantity') is-invalid @enderror" id="quantity" name="quantity" value="{{ $quantity }}" min="0" required>
                             @error('quantity')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -91,7 +91,7 @@
                                 </button>
                             </div>
                             <div class="col-md-6">
-                                <a href="{{ route('panels.inventory') }}" class="btn btn-secondary btn-block">
+                                <a href="{{ route('master.barang') }}" class="btn btn-secondary btn-block">
                                     <i class="fas fa-arrow-left mr-1"></i> Back to Inventory
                                 </a>
                             </div>

@@ -358,4 +358,5 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Penjualan API routes
         Route::get('/getpenjualancustomer', [TransaksiController::class, 'getPenjualan']);
     });
+    
 });
