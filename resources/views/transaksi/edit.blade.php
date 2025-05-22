@@ -208,7 +208,7 @@
                         <button type="button" class="btn btn-success" id="updateTransaction">
                             <i class="fas fa-save"></i> Simpan Perubahan
                         </button>
-                        <a href="{{ route('transaksi.shownota', $transaction->id) }}" class="btn btn-secondary">
+                        <a href="{{ route('transaksi.index') }}" class="btn btn-secondary">
                             <i class="fas fa-times"></i> Batal
                         </a>
                     </div>
