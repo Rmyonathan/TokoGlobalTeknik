@@ -54,7 +54,7 @@ class KasController extends Controller
             'is_manual' => true, // Mark this as a manually created entry
         ]);
 
-        return redirect()->route('kas.create')->with('success', 'Kas entry added successfully.');
+        return redirect()->route('kas.view')->with('success', 'Kas entry added successfully.');
     }
 
     //BUAT ADD TRANSACTION

@@ -151,17 +151,31 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     searchPenambahInput.addEventListener('input', function () {
-        const keyword = this.value;
+        const keyword = this.value.trim(); // Trim whitespace
+        
         if (keyword.length >= 2) {
             searchCodesDropdown(keyword, 'penambah');
         } else {
+            // Hide dropdown when input is less than 2 characters or empty
             document.getElementById('penambahDropdown').style.display = 'none';
+        }
+    });
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('penambahDropdown');
+        const input = document.getElementById('searchPenambah');
+        
+        if (!dropdown.contains(e.target) && !input.contains(e.target)) {
+            dropdown.style.display = 'none';
         }
     });
 
     function searchCodesDropdown(keyword, type) {
         const panels = @json($group_names ?? []);
         const dropdown = document.getElementById(`${type}Dropdown`);
+        
+        // Filter panels that match the keyword
         const matchingPanels = panels.filter(panel =>
             panel.toLowerCase().includes(keyword.toLowerCase())
         );
@@ -176,6 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
             dropdown.innerHTML = html;
             dropdown.style.display = 'block';
 
+            // Add click event listeners to the dropdown items
             document.querySelectorAll(`.${type}-dropdown-item`).forEach(item => {
                 item.addEventListener('click', function () {
                     const kode = this.getAttribute('data-kode');
@@ -184,8 +199,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
         } else {
-            dropdown.innerHTML = '<div class="dropdown-item text-muted">No matching codes found</div>';
-            dropdown.style.display = 'block';
+            // Only show "No matching codes found" if there was actually a search attempt
+            if (keyword.length >= 2) {
+                dropdown.innerHTML = '<div class="dropdown-item text-muted">No matching codes found</div>';
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
         }
     }
 });

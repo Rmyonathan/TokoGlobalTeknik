@@ -102,66 +102,112 @@ Route::middleware(['web', 'auth'])->group(function () {
         })->name('master.mutasistokbarang');
     });
     
-    // Customer Management routes
+    // Customer Management routes - View and Create
     Route::group(['middleware' => ['permission:manage customers'], 'prefix' => 'master'], function () {
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
         Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
+    });
+    
+    // Customer Management routes - Edit
+    Route::group(['middleware' => ['permission:edit customers'], 'prefix' => 'master'], function () {
         Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+    });
+    
+    // Customer Management routes - Delete
+    Route::group(['middleware' => ['permission:delete customers'], 'prefix' => 'master'], function () {
         Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
     });
     
-    // Supplier Management routes
+    // Supplier Management routes - View and Create
     Route::group(['middleware' => ['permission:manage suppliers'], 'prefix' => 'master'], function () {
         Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
         Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
+    });
+    
+    // Supplier Management routes - Edit
+    Route::group(['middleware' => ['permission:edit suppliers'], 'prefix' => 'master'], function () {
         Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
+    });
+    
+    // Supplier Management routes - Delete
+    Route::group(['middleware' => ['permission:delete suppliers'], 'prefix' => 'master'], function () {
         Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
     });
     
-    // Stok Owner Management routes
+    // Stok Owner Management routes - View and Create
     Route::group(['middleware' => ['permission:manage stok owner'], 'prefix' => 'master'], function () {
         Route::get('/stok_owner', [StokOwnerController::class, 'index'])->name('stok_owner.index');
         Route::post('/stok_owner', [StokOwnerController::class, 'store'])->name('stok_owner.store');
+    });
+    
+    // Stok Owner Management routes - Delete
+    Route::group(['middleware' => ['permission:delete stok owner'], 'prefix' => 'master'], function () {
         Route::delete('/stok_owner/{stokOwner}', [StokOwnerController::class, 'destroy'])->name('stok_owner.destroy');
     });
     
-    // Cara Bayar Management routes
+    // Cara Bayar Management routes - View and Create
     Route::group(['middleware' => ['permission:manage cara bayar'], 'prefix' => 'master'], function () {
         Route::get('/cara_bayar', [CaraBayarController::class, 'index'])->name('master.cara_bayar');
         Route::post('/cara_bayar', [CaraBayarController::class, 'store'])->name('master.cara_bayar.store');
+    });
+    
+    // Cara Bayar Management routes - Delete
+    Route::group(['middleware' => ['permission:delete cara bayar'], 'prefix' => 'master'], function () {
         Route::delete('/cara_bayar/{id}', [CaraBayarController::class, 'destroy'])->name('master.cara_bayar.destroy');
     });
     
-    // Perusahaan Management routes
+    // Perusahaan Management routes - View and Create
     Route::group(['middleware' => ['permission:manage perusahaan']], function () {
         Route::get('/perusahaan', [PerusahaanController::class, 'index'])->name('perusahaan.index');
         Route::get('/perusahaan/create', [PerusahaanController::class, 'create'])->name('perusahaan.create');
         Route::post('/perusahaan', [PerusahaanController::class, 'store'])->name('perusahaan.store');
-        Route::get('/perusahaan/{id}/edit', [PerusahaanController::class, 'edit'])->name('perusahaan.edit');
-        Route::put('/perusahaan/{id}', [PerusahaanController::class, 'update'])->name('perusahaan.update');
-        Route::delete('/perusahaan/{id}', [PerusahaanController::class, 'destroy'])->name('perusahaan.destroy');
         Route::post('/perusahaan/{id}/set-default', [PerusahaanController::class, 'setDefault'])->name('perusahaan.set-default');
     });
     
-    // Kategori routes
+    // Perusahaan Management routes - Edit
+    Route::group(['middleware' => ['permission:edit perusahaan']], function () {
+        Route::get('/perusahaan/{id}/edit', [PerusahaanController::class, 'edit'])->name('perusahaan.edit');
+        Route::put('/perusahaan/{id}', [PerusahaanController::class, 'update'])->name('perusahaan.update');
+    });
+    
+    // Perusahaan Management routes - Delete
+    Route::group(['middleware' => ['permission:delete perusahaan']], function () {
+        Route::delete('/perusahaan/{id}', [PerusahaanController::class, 'destroy'])->name('perusahaan.destroy');
+    });
+    
+    // Kategori routes - View and Create
     Route::group(['middleware' => ['permission:manage categories'], 'prefix' => 'kategori'], function () {
         Route::get('/', [KategoriBarangController::class, 'index'])->name('kategori.index');
         Route::get('/create', [KategoriBarangController::class, 'create'])->name('kategori.create');
         Route::post('/', [KategoriBarangController::class, 'store'])->name('kategori.store');
+    });
+    
+    // Kategori routes - Edit
+    Route::group(['middleware' => ['permission:edit categories'], 'prefix' => 'kategori'], function () {
         Route::get('/{id}/edit', [KategoriBarangController::class, 'edit'])->name('kategori.edit');
         Route::put('/{id}', [KategoriBarangController::class, 'update'])->name('kategori.update');
+    });
+    
+    // Kategori routes - Delete
+    Route::group(['middleware' => ['permission:delete categories'], 'prefix' => 'kategori'], function () {
         Route::delete('/{id}', [KategoriBarangController::class, 'destroy'])->name('kategori.destroy');
     });
     
-    // Kode Barang Management routes
+    // Kode Barang Management routes - View and Create
     Route::group(['middleware' => ['permission:manage kode barang'], 'prefix' => 'kode_barang'], function () {
         Route::get('/add', [KodeBarangController::class, 'createCode'])->name('code.create-code');
         Route::get('/view', [KodeBarangController::class, 'viewCode'])->name('code.view-code');
         Route::post('/add', [KodeBarangController::class, 'storeCode'])->name('code.store-code');
-        
-        // Edit and delete kode barang
+    });
+    
+    // Kode Barang Management routes - Edit
+    Route::group(['middleware' => ['permission:edit kode barang'], 'prefix' => 'kode_barang'], function () {
         Route::get('/edit/{id}', [KodeBarangController::class, 'edit'])->name('code.edit');
         Route::put('/update/{id}', [KodeBarangController::class, 'update'])->name('code.update');
+    });
+    
+    // Kode Barang Management routes - Delete
+    Route::group(['middleware' => ['permission:delete kode barang'], 'prefix' => 'kode_barang'], function () {
         Route::delete('/delete/{id}', [KodeBarangController::class, 'destroy'])->name('code.delete');
     });
     
@@ -169,7 +215,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     // PANEL MANAGEMENT SECTION
     // ==============================
     
-    // Panel Inventory routes
+    // Panel Inventory routes - View and Create
     Route::group(['middleware' => ['permission:manage panels'], 'prefix' => 'panels'], function () {
         // Panel Inventory
         Route::get('/inventory', [PanelController::class, 'inventory'])->name('panels.inventory');
@@ -186,10 +232,16 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/repack', [PanelController::class, 'repack'])->name('panels.repack');
         Route::get('/print-receipt/{id}', [PanelController::class, 'printReceipt'])->name('panels.print-receipt');
         Route::get('/view-order/{id}', [PanelController::class, 'viewOrder'])->name('panels.view-order');
-        
-        // Edit and Delete
+    });
+    
+    // Panel Inventory routes - Edit
+    Route::group(['middleware' => ['permission:edit panels'], 'prefix' => 'panels'], function () {
         Route::get('/edit/{id}', [PanelController::class, 'editInventory'])->name('panels.edit-inventory');
         Route::post('/edit', [PanelController::class, 'updateInventory'])->name('panels.update-inventory');
+    });
+    
+    // Panel Inventory routes - Delete
+    Route::group(['middleware' => ['permission:delete panels'], 'prefix' => 'panels'], function () {
         Route::post('/delete/{id}', [PanelController::class, 'deleteInventory'])->name('panels.delete-inventory');
     });
     
@@ -197,28 +249,36 @@ Route::middleware(['web', 'auth'])->group(function () {
     // TRANSACTION SECTION
     // ==============================
     
-    // Kas Management routes
+    // Kas Management routes - View
     Route::group(['middleware' => ['permission:view kas|manage kas']], function () {
         Route::get('/viewKas', [KasController::class, 'viewKas'])->name('kas.view');
         Route::get('/viewSlide', [KasController::class, 'viewSlide']);
-        Route::get('/listutang', [KasController::class, 'viewDebt']);
-        Route::get('/viewDebt', [KasController::class, 'viewDebt']);
-        Route::get('/hutanglunas', [KasController::class, 'hutangLunas']);
-        Route::get('/hutangbelumlunas', [KasController::class, 'hutangBelumLunas']);
     });
     
+    // Kas Management routes - Create
     Route::group(['middleware' => ['permission:manage kas'], 'prefix' => 'kas'], function () {
         Route::get('/add', [KasController::class, 'create'])->name('kas.create');
         Route::post('/add', [KasController::class, 'store'])->name('kas.store');
-        Route::post('/delete', [KasController::class, 'delete_kas'])->name('kas.delete');
-        Route::post('/cancel', [KasController::class, 'cancel_kas'])->name('kas.cancel');
-        Route::post('/edit', [KasController::class, 'edit_kas']);
-        Route::post('/update', [KasController::class, 'update_kas']);
         Route::get('/addtransaction', [KasController::class, 'index']);
     });
     
-    // Transaksi Penjualan routes
-    // Transaksi Routes - Reordered to avoid route conflicts
+    // Kas Management routes - Edit
+    Route::group(['middleware' => ['permission:edit kas'], 'prefix' => 'kas'], function () {
+        Route::post('/edit', [KasController::class, 'edit_kas']);
+        Route::post('/update', [KasController::class, 'update_kas']);
+    });
+    
+    // Kas Management routes - Cancel
+    Route::group(['middleware' => ['permission:cancel kas'], 'prefix' => 'kas'], function () {
+        Route::post('/cancel', [KasController::class, 'cancel_kas'])->name('kas.cancel');
+    });
+    
+    // Kas Management routes - Delete
+    Route::group(['middleware' => ['permission:delete kas'], 'prefix' => 'kas'], function () {
+        Route::post('/delete', [KasController::class, 'delete_kas'])->name('kas.delete');
+    });
+    
+    // Transaksi Penjualan routes - View and Create
     Route::group(['middleware' => ['permission:manage penjualan'], 'prefix' => 'transaksi'], function () {
         // Static routes first (no parameters)
         Route::get('/', [TransaksiController::class, 'index'])->name('transaksi.index');
@@ -233,16 +293,24 @@ Route::middleware(['web', 'auth'])->group(function () {
             return view('transaksi.displaypenjualan');
         })->name('transaksi.displaypenjualan');
         
-        // Dynamic routes with specific prefixes
+        // View routes
         Route::get('/lihatnota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.lihatnota');
         Route::get('/shownota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.shownota');
         Route::get('/nota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.nota');
-        Route::get('/edit/{id}', [TransaksiController::class, 'edit'])->name('transaksi.edit');
-        Route::post('/update/{id}', [TransaksiController::class, 'update'])->name('transaksi.update');
-        Route::post('/cancel/{id}', [TransaksiController::class, 'cancelTransaction'])->name('transaksi.cancel');
         
         // This catch-all route should be LAST
         Route::get('/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
+    });
+    
+    // Transaksi Penjualan routes - Edit
+    Route::group(['middleware' => ['permission:edit penjualan'], 'prefix' => 'transaksi'], function () {
+        Route::get('/edit/{id}', [TransaksiController::class, 'edit'])->name('transaksi.edit');
+        Route::post('/update/{id}', [TransaksiController::class, 'update'])->name('transaksi.update');
+    });
+    
+    // Transaksi Penjualan routes - Cancel
+    Route::group(['middleware' => ['permission:cancel penjualan'], 'prefix' => 'transaksi'], function () {
+        Route::post('/cancel/{id}', [TransaksiController::class, 'cancelTransaction'])->name('transaksi.cancel');
     });
     
     // Additional Penjualan routes
@@ -254,7 +322,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->middleware('permission:view master data')
         ->name('api.panel.get');
     
-    // Pembelian (Purchase) routes
+    // Pembelian (Purchase) routes - View and Create
     Route::group(['middleware' => ['permission:manage pembelian'], 'prefix' => 'pembelian'], function () {
         // Main routes
         Route::get('/', [PembelianController::class, 'index'])->name('pembelian.index');
@@ -265,20 +333,25 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/lihatnota/{id}', [PembelianController::class, 'showNota'])->name('pembelian.nota.show');
         Route::get('/nota/{nota}', [PembelianController::class, 'nota'])->name('pembelian.nota');
         Route::get('/lihat/nota', [PembelianController::class, 'listNota'])->name('pembelian.nota.list');
-        
-        // Edit, update and delete
-        Route::get('/edit/{id}', [PembelianController::class, 'edit'])->name('pembelian.edit');
-        Route::post('/update/{id}', [PembelianController::class, 'update'])->name('pembelian.update');
-        Route::delete('/delete/{id}', [PembelianController::class, 'destroy'])->name('pembelian.delete');
-        Route::post('/cancel/{id}', [PembelianController::class, 'cancel'])->name('pembelian.cancel');
-        
-        // Views
-        Route::get('/historypembelian', function () {
-            return view('pembelian.historypembelian');
-        })->name('pembelian.historypembelian');
     });
     
-    // Surat Jalan routes
+    // Pembelian (Purchase) routes - Edit
+    Route::group(['middleware' => ['permission:edit pembelian'], 'prefix' => 'pembelian'], function () {
+        Route::get('/edit/{id}', [PembelianController::class, 'edit'])->name('pembelian.edit');
+        Route::post('/update/{id}', [PembelianController::class, 'update'])->name('pembelian.update');
+    });
+    
+    // Pembelian (Purchase) routes - Cancel
+    Route::group(['middleware' => ['permission:cancel pembelian'], 'prefix' => 'pembelian'], function () {
+        Route::post('/cancel/{id}', [PembelianController::class, 'cancel'])->name('pembelian.cancel');
+    });
+    
+    // Pembelian (Purchase) routes - Delete
+    Route::group(['middleware' => ['permission:delete pembelian'], 'prefix' => 'pembelian'], function () {
+        Route::delete('/delete/{id}', [PembelianController::class, 'destroy'])->name('pembelian.delete');
+    });
+    
+    // Surat Jalan routes - View and Create
     Route::group(['middleware' => ['permission:manage surat jalan'], 'prefix' => 'suratjalan'], function () {
         Route::get('/create', [SuratJalanController::class, 'create'])->name('suratjalan.create');
         Route::post('/store', [SuratJalanController::class, 'store'])->name('suratjalan.store');
@@ -286,14 +359,35 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/detail/{id}', [SuratJalanController::class, 'detail'])->name('suratjalan.detail');
     });
     
-    // Purchase Order routes
+    // Surat Jalan routes - Edit (if you have edit functionality)
+    Route::group(['middleware' => ['permission:edit surat jalan'], 'prefix' => 'suratjalan'], function () {
+        // Add edit routes for surat jalan if needed
+        // Route::get('/edit/{id}', [SuratJalanController::class, 'edit'])->name('suratjalan.edit');
+        // Route::post('/update/{id}', [SuratJalanController::class, 'update'])->name('suratjalan.update');
+    });
+    
+    // Surat Jalan routes - Cancel (if you have cancel functionality)
+    Route::group(['middleware' => ['permission:cancel surat jalan'], 'prefix' => 'suratjalan'], function () {
+        // Add cancel routes for surat jalan if needed
+        // Route::post('/cancel/{id}', [SuratJalanController::class, 'cancel'])->name('suratjalan.cancel');
+    });
+    
+    // Purchase Order routes - View and Create
     Route::group(['middleware' => ['permission:manage purchase orders'], 'prefix' => 'purchase-order'], function () {
         Route::get('/', [PurchaseOrderController::class, 'index'])->name('transaksi.purchaseorder');
         Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
         Route::post('/store', [PurchaseOrderController::class, 'store'])->name('purchase-order.store');
         Route::post('/{id}/complete', [PurchaseOrderController::class, 'completeTransaction'])->name('purchase-order.complete');
-        Route::patch('/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-order.cancel');
+    });
+    
+    // Purchase Order routes - Edit
+    Route::group(['middleware' => ['permission:edit purchase orders'], 'prefix' => 'purchase-order'], function () {
         Route::put('/{id}', [PurchaseOrderController::class, 'update'])->name('purchase-order.update');
+    });
+    
+    // Purchase Order routes - Cancel
+    Route::group(['middleware' => ['permission:cancel purchase orders'], 'prefix' => 'purchase-order'], function () {
+        Route::patch('/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-order.cancel');
     });
     
     // ==============================
@@ -308,7 +402,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/mutations', [StockController::class, 'getStockMutations'])->name('stock.mutations');
     });
     
-    // Stock Adjustment routes
+    // Stock Adjustment routes - View and Create
     Route::group(['middleware' => ['permission:manage stock adjustment'], 'prefix' => 'stock-adjustment'], function () {
         Route::get('/', [StockAdjustmentController::class, 'index'])->name('stock.adjustment.index');
         Route::get('/history', [StockAdjustmentController::class, 'history'])->name('stock.adjustment.history');
@@ -316,6 +410,19 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/store', [StockAdjustmentController::class, 'store'])->name('stock.adjustment.store');
         Route::get('/adjust/{kodeBarang}', [StockAdjustmentController::class, 'adjust'])->name('stock.adjustment.adjust');
         Route::get('/{id}', [StockAdjustmentController::class, 'show'])->name('stock.adjustment.show');
+    });
+    
+    // Stock Adjustment routes - Edit
+    Route::group(['middleware' => ['permission:edit stock adjustment'], 'prefix' => 'stock-adjustment'], function () {
+        // Add edit routes for stock adjustment if needed
+        // Route::get('/edit/{id}', [StockAdjustmentController::class, 'edit'])->name('stock.adjustment.edit');
+        // Route::post('/update/{id}', [StockAdjustmentController::class, 'update'])->name('stock.adjustment.update');
+    });
+    
+    // Stock Adjustment routes - Cancel
+    Route::group(['middleware' => ['permission:cancel stock adjustment'], 'prefix' => 'stock-adjustment'], function () {
+        // Add cancel routes for stock adjustment if needed
+        // Route::post('/cancel/{id}', [StockAdjustmentController::class, 'cancel'])->name('stock.adjustment.cancel');
     });
     
     // ==============================
@@ -358,5 +465,4 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Penjualan API routes
         Route::get('/getpenjualancustomer', [TransaksiController::class, 'getPenjualan']);
     });
-    
 });

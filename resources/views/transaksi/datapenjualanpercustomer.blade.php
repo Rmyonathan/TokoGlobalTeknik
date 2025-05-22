@@ -54,6 +54,66 @@
         text-align: center;
         background-color: #f8f9fa;
     }
+
+    /* Transaction status styling */
+    .transaction-canceled {
+        background-color: #f8d7da !important;
+        color: #721c24;
+        text-decoration: line-through;
+    }
+
+    .transaction-edited {
+        background-color: #fff3cd !important;
+        color: #856404;
+    }
+
+    .transaction-normal {
+        background-color: #d1ecf1 !important;
+        color: #0c5460;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    .badge-canceled {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .badge-edited {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    .badge-normal {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .transaction-details {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+
+    /* Filter buttons */
+    .filter-buttons {
+        margin-bottom: 1rem;
+    }
+
+    .filter-btn {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .filter-btn.active {
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
 </style>
 
 @section('content')
@@ -123,6 +183,22 @@
             </div>
         </div>
         <div class="card-body">
+            <!-- Status Filter Buttons -->
+            <div class="filter-buttons">
+                <button type="button" class="btn btn-outline-primary filter-btn active" data-status="all">
+                    <i class="fas fa-list"></i> Semua
+                </button>
+                <button type="button" class="btn btn-outline-success filter-btn" data-status="normal">
+                    <i class="fas fa-check-circle"></i> Normal
+                </button>
+                <button type="button" class="btn btn-outline-warning filter-btn" data-status="edited">
+                    <i class="fas fa-edit"></i> Diedit
+                </button>
+                <button type="button" class="btn btn-outline-danger filter-btn" data-status="canceled">
+                    <i class="fas fa-times-circle"></i> Dibatalkan
+                </button>
+            </div>
+
             <div class="row mb-3">
                 <div class="col-md-3 mb-2">
                     <label for="startDate">Dari Tanggal</label>
@@ -150,8 +226,9 @@
                             <tr>
                                 <th>No Transaksi</th>
                                 <th>Tanggal</th>
+                                <th>Status</th>
                                 <th>Total</th>
-                                <th width="180px">Aksi</th>
+                                <th width="200px">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyTransaksi">
@@ -165,6 +242,11 @@
             <div id="totalTransaksiCustomer" class="mt-3 text-right font-weight-bold text-danger">
                 <!-- Total penjualan customer terpilih akan muncul di sini -->
             </div>
+
+            <!-- SUMMARY STATISTICS -->
+            <div id="transactionSummary" class="mt-3 row">
+                <!-- Summary will be displayed here -->
+            </div>
         </div>
     </div>
 </div>
@@ -177,10 +259,17 @@
         let selectedCustomerName = '';
         let allTransactions = [];
         let debounceTimer;
+        let currentStatusFilter = 'all';
         
         // Format rupiah
         function formatRupiah(angka) {
             return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        // Format date for display
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID');
         }
 
         // Debounce function for search
@@ -189,12 +278,23 @@
             debounceTimer = setTimeout(func, delay);
         }
 
+        // Status filter buttons
+        $('.filter-btn').on('click', function() {
+            $('.filter-btn').removeClass('active');
+            $(this).addClass('active');
+            currentStatusFilter = $(this).data('status');
+            
+            if (selectedCustomerKode) {
+                renderTransactions(allTransactions);
+            }
+        });
+
         // Efficiently filter customers
         $('#searchInput').on('input', function() {
             const input = $(this).val().toLowerCase();
             debounce(function() {
                 filterCustomers(input);
-            }, 300); // 300ms delay for better performance
+            }, 300);
         });
         
         function filterCustomers(keyword) {
@@ -243,11 +343,8 @@
             $('#loadingTransaksi').show();
             $('#tbodyTransaksi').empty();
             
-            // In a real implementation, you'd fetch this from the server
-            // For now we'll filter the existing transactions
             setTimeout(() => {
                 let filteredTransactions = [];
-                let total = 0;
                 
                 @foreach($transactions as $transaction)
                     if ('{{ $transaction->kode_customer }}' === selectedCustomerKode) {
@@ -256,7 +353,14 @@
                             no_transaksi: '{{ $transaction->no_transaksi }}',
                             tanggal: '{{ $transaction->tanggal }}',
                             grand_total: {{ $transaction->grand_total }},
-                            status: '{{ $transaction->status ?? "active" }}'
+                            status: '{{ $transaction->status ?? "active" }}',
+                            is_edited: {{ $transaction->is_edited ? 'true' : 'false' }},
+                            canceled_at: '{{ $transaction->canceled_at ?? '' }}',
+                            edited_at: '{{ $transaction->edited_at ?? '' }}',
+                            edited_by: '{{ $transaction->edited_by ?? '' }}',
+                            canceled_by: '{{ $transaction->canceled_by ?? '' }}',
+                            edit_reason: '{{ $transaction->edit_reason ?? '' }}',
+                            cancel_reason: '{{ $transaction->cancel_reason ?? '' }}'
                         });
                     }
                 @endforeach
@@ -267,50 +371,192 @@
                 $('#loadingTransaksi').hide();
             }, 300);
         }
+
+        function getTransactionStatus(transaction) {
+            if (transaction.status === 'canceled' || transaction.canceled_at) {
+                return 'canceled';
+            } else if (transaction.is_edited) {
+                return 'edited';
+            }
+            return 'normal';
+        }
+
+        function getStatusBadge(status, transaction) {
+            switch(status) {
+                case 'canceled':
+                    return `<span class="status-badge badge-canceled">Dibatalkan</span>`;
+                case 'edited':
+                    return `<span class="status-badge badge-edited">Diedit</span>`;
+                default:
+                    return `<span class="status-badge badge-normal">Normal</span>`;
+            }
+        }
+
+        function getTransactionDetails(status, transaction) {
+            let details = '';
+            
+            if (status === 'canceled') {
+                details = `<div class="transaction-details">
+                    <i class="fas fa-user"></i> Dibatalkan oleh: ${transaction.canceled_by || 'Unknown'}<br>
+                    <i class="fas fa-calendar"></i> Pada: ${formatDate(transaction.canceled_at)}<br>
+                    <i class="fas fa-comment"></i> Alasan: ${transaction.cancel_reason || 'Tidak ada alasan'}
+                </div>`;
+            } else if (status === 'edited') {
+                details = `<div class="transaction-details">
+                    <i class="fas fa-user"></i> Diedit oleh: ${transaction.edited_by || 'Unknown'}<br>
+                    <i class="fas fa-calendar"></i> Pada: ${formatDate(transaction.edited_at)}<br>
+                    <i class="fas fa-comment"></i> Alasan: ${transaction.edit_reason || 'Tidak ada alasan'}
+                </div>`;
+            }
+            
+            return details;
+        }
         
         function renderTransactions(transactions) {
             let html = '';
-            let total = 0;
+            let normalTotal = 0;
+            let editedTotal = 0;
+            let canceledTotal = 0;
+            let displayedTotal = 0;
+            let displayedCount = 0;
             
             if (transactions.length === 0) {
-                html = '<tr><td colspan="4" class="text-center">Tidak ada transaksi</td></tr>';
+                html = '<tr><td colspan="5" class="text-center">Tidak ada transaksi</td></tr>';
             } else {
                 const startDate = $('#startDate').val();
                 const endDate = $('#endDate').val();
                 
                 transactions.forEach(transaction => {
                     if (checkInDateRange(transaction.tanggal, startDate, endDate)) {
-                        html += `
-                            <tr>
-                                <td>${transaction.no_transaksi}</td>
-                                <td>${transaction.tanggal}</td>
-                                <td class="text-right">${formatRupiah(transaction.grand_total)}</td>
-                                <td>
-                                    <a href="{{ route('transaksi.nota', '') }}/${transaction.id}" class="btn btn-primary btn-sm">Lihat Nota</a>
-                                    ${transaction.status !== 'cancelled' ? 
-                                        `<form action="{{ route('transaksi.cancel', '') }}/${transaction.id}" method="POST" style="display:inline;" onsubmit="return confirm('Batalkan transaksi ini?')">
-                                            @csrf
-                                            <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
-                                        </form>` : 
-                                        '<span class="badge badge-danger">Cancelled</span>'
-                                    }
-                                </td>
-                            </tr>
-                        `;
-                        total += transaction.grand_total;
+                        const status = getTransactionStatus(transaction);
+                        const statusBadge = getStatusBadge(status, transaction);
+                        const details = getTransactionDetails(status, transaction);
+                        
+                        // Track totals by status
+                        if (status === 'canceled') {
+                            canceledTotal += transaction.grand_total;
+                        } else if (status === 'edited') {
+                            editedTotal += transaction.grand_total;
+                        } else {
+                            normalTotal += transaction.grand_total;
+                        }
+                        
+                        // Apply status filter
+                        if (currentStatusFilter === 'all' || currentStatusFilter === status) {
+                            const rowClass = `transaction-${status}`;
+                            const totalDisplay = status === 'canceled' ? 
+                                `<span style="text-decoration: line-through;">${formatRupiah(transaction.grand_total)}</span>` : 
+                                formatRupiah(transaction.grand_total);
+                            
+                            html += `
+                                <tr class="${rowClass}">
+                                    <td>
+                                        ${transaction.no_transaksi}
+                                        ${details}
+                                    </td>
+                                    <td>${formatDate(transaction.tanggal)}</td>
+                                    <td>${statusBadge}</td>
+                                    <td class="text-right">${totalDisplay}</td>
+                                    <td>
+                                        <a href="{{ route('transaksi.nota', '') }}/${transaction.id}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-eye"></i> Lihat
+                                        </a>
+                                        ${getActionButtons(status, transaction)}
+                                    </td>
+                                </tr>
+                            `;
+                            
+                            if (status !== 'canceled') {
+                                displayedTotal += transaction.grand_total;
+                            }
+                            displayedCount++;
+                        }
                     }
                 });
             }
             
             $('#tbodyTransaksi').html(html);
             
-            if (total > 0) {
-                $('#totalTransaksiCustomer').html(
-                    `Total Penjualan <strong>${selectedCustomerName}</strong>: ${formatRupiah(total)}`
-                );
-            } else {
-                $('#totalTransaksiCustomer').html('');
+            // Update totals display
+            updateTotalDisplay(displayedTotal, displayedCount);
+            
+            // Update summary statistics
+            updateSummaryStatistics(normalTotal, editedTotal, canceledTotal, transactions.length);
+        }
+
+        function getActionButtons(status, transaction) {
+            if (status === 'canceled') {
+                return `<span class="badge badge-secondary">Dibatalkan</span>`;
             }
+            
+            return `
+                <a href="{{ route('transaksi.edit', '') }}/${transaction.id}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+                <form action="{{ route('transaksi.cancel', '') }}/${transaction.id}" method="POST" style="display:inline;" 
+                      onsubmit="return confirm('Batalkan transaksi ${transaction.no_transaksi}?')">
+                    @csrf
+                    <input type="hidden" name="from_customer_data" value="1">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                </form>
+            `;
+        }
+
+        function updateTotalDisplay(total, count) {
+            const statusText = currentStatusFilter === 'all' ? 'Semua Status' : 
+                              currentStatusFilter === 'normal' ? 'Normal' :
+                              currentStatusFilter === 'edited' ? 'Diedit' : 'Dibatalkan';
+                              
+            $('#totalTransaksiCustomer').html(
+                `Total Penjualan <strong>${selectedCustomerName}</strong> (${statusText}): ${formatRupiah(total)} <small>(${count} transaksi)</small>`
+            );
+        }
+
+        function updateSummaryStatistics(normalTotal, editedTotal, canceledTotal, totalTransactions) {
+            const normalCount = allTransactions.filter(t => getTransactionStatus(t) === 'normal').length;
+            const editedCount = allTransactions.filter(t => getTransactionStatus(t) === 'edited').length;
+            const canceledCount = allTransactions.filter(t => getTransactionStatus(t) === 'canceled').length;
+            
+            $('#transactionSummary').html(`
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Transaksi Normal</h6>
+                            <h4>${normalCount}</h4>
+                            <small>${formatRupiah(normalTotal)}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body">
+                            <h6 class="card-title">Transaksi Diedit</h6>
+                            <h4>${editedCount}</h4>
+                            <small>${formatRupiah(editedTotal)}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Transaksi Dibatalkan</h6>
+                            <h4>${canceledCount}</h4>
+                            <small>${formatRupiah(canceledTotal)}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Total Aktif</h6>
+                            <h4>${normalCount + editedCount}</h4>
+                            <small>${formatRupiah(normalTotal + editedTotal)}</small>
+                        </div>
+                    </div>
+                </div>
+            `);
         }
 
         // Apply date filter
@@ -352,7 +598,7 @@
             return true;
         }
         
-        // Print functionality
+        // Enhanced print functionality
         $('#printTransaksi').on('click', function() {
             if (!selectedCustomerName) return;
             
@@ -362,14 +608,19 @@
                 `${startDate || 'Awal'} hingga ${endDate || 'Sekarang'}` : 
                 'Semua Periode';
                 
+            const statusText = currentStatusFilter === 'all' ? 'Semua Status' : 
+                              currentStatusFilter === 'normal' ? 'Normal' :
+                              currentStatusFilter === 'edited' ? 'Diedit' : 'Dibatalkan';
+                
             let printContent = `
                 <h3 style="text-align:center">Data Penjualan Customer: ${selectedCustomerName}</h3>
-                <p style="text-align:center">Periode: ${dateRange}</p>
+                <p style="text-align:center">Periode: ${dateRange} | Status: ${statusText}</p>
                 <table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background-color:#f2f2f2">
                             <th>No Transaksi</th>
                             <th>Tanggal</th>
+                            <th>Status</th>
                             <th>Total</th>
                         </tr>
                     </thead>
@@ -377,17 +628,33 @@
             `;
             
             let total = 0;
+            let count = 0;
             
             allTransactions.forEach(transaction => {
                 if (checkInDateRange(transaction.tanggal, startDate, endDate)) {
-                    printContent += `
-                        <tr>
-                            <td>${transaction.no_transaksi}</td>
-                            <td>${transaction.tanggal}</td>
-                            <td style="text-align:right">${formatRupiah(transaction.grand_total)}</td>
-                        </tr>
-                    `;
-                    total += transaction.grand_total;
+                    const status = getTransactionStatus(transaction);
+                    
+                    if (currentStatusFilter === 'all' || currentStatusFilter === status) {
+                        const statusLabel = status === 'canceled' ? 'DIBATALKAN' :
+                                          status === 'edited' ? 'DIEDIT' : 'NORMAL';
+                        const totalDisplay = status === 'canceled' ? 
+                            `<s>${formatRupiah(transaction.grand_total)}</s>` : 
+                            formatRupiah(transaction.grand_total);
+                            
+                        printContent += `
+                            <tr>
+                                <td>${transaction.no_transaksi}</td>
+                                <td>${formatDate(transaction.tanggal)}</td>
+                                <td>${statusLabel}</td>
+                                <td style="text-align:right">${totalDisplay}</td>
+                            </tr>
+                        `;
+                        
+                        if (status !== 'canceled') {
+                            total += transaction.grand_total;
+                        }
+                        count++;
+                    }
                 }
             });
             
@@ -395,7 +662,7 @@
                     </tbody>
                     <tfoot>
                         <tr style="font-weight:bold; background-color:#f2f2f2">
-                            <td colspan="2" style="text-align:right">Total:</td>
+                            <td colspan="3" style="text-align:right">Total (${count} transaksi):</td>
                             <td style="text-align:right">${formatRupiah(total)}</td>
                         </tr>
                     </tfoot>
@@ -412,6 +679,7 @@
                         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
                         th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }
                         th { background-color: #f2f2f2; }
+                        s { color: #dc3545; }
                     </style>
                 </head>
                 <body>
@@ -423,7 +691,6 @@
             printWindow.document.close();
             printWindow.focus();
             
-            // Add slight delay to ensure content is loaded
             setTimeout(() => {
                 printWindow.print();
                 printWindow.close();
