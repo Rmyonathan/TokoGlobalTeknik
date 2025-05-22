@@ -341,7 +341,7 @@ class TransaksiController extends Controller
                 Panel::whereIn('id', $panelsToRestore)->update(['available' => true]);
             }
             
-            // Update transaction
+            // Update transaction with proper timestamps for customer data tracking
             $transaksi->update([
                 'tanggal' => $request->tanggal,
                 'kode_customer' => $request->kode_customer,
@@ -355,7 +355,7 @@ class TransaksiController extends Controller
                 'ppn' => $request->ppn ?? 0,
                 'dp' => $request->dp ?? 0,
                 'grand_total' => $request->grand_total,
-                'updated_at' => $currentDateTime,
+                'updated_at' => $currentDateTime, // This helps track when changes occurred
                 'is_edited' => true,
                 'edited_by' => $editor,
                 'edited_at' => $currentDateTime,
@@ -464,6 +464,12 @@ class TransaksiController extends Controller
                 ]);
             }
             
+            // Check if request came from customer data page and redirect accordingly
+            if ($request->has('from_customer_data')) {
+                return redirect()->route('transaksi.penjualancustomer')
+                    ->with('success', 'Transaksi berhasil diperbarui. Data customer telah diperbarui.');
+            }
+            
          // For non-AJAX requests
             return redirect()->route('transaksi.shownota', $transaksi->id)
                 ->with('success', 'Transaksi berhasil diperbarui.');
@@ -570,17 +576,25 @@ class TransaksiController extends Controller
                 $this->adjustKasSaldo();
             }
 
-            // Store cancellation info
+            // Store cancellation info with proper timestamp
             $transaksi->status = "canceled";
             $transaksi->canceled_by = $userName;
-            $transaksi->canceled_at = now();
+            $transaksi->canceled_at = now(); // This is crucial for customer data updates
             $transaksi->cancel_reason = $request->cancel_reason;
             $transaksi->save();
 
             DB::commit();
+
+            // Check if request came from customer data page and redirect accordingly
+            if ($request->has('from_customer_data')) {
+                return redirect()->route('transaksi.penjualancustomer')
+                    ->with('success', 'Transaksi berhasil dibatalkan. Data customer telah diperbarui.');
+            }
+
             return back()->with('success', 'Transaksi berhasil dibatalkan.');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error in cancelTransaction:', ['message' => $e->getMessage()]);
             return back()->with('error', 'Gagal membatalkan transaksi: ' . $e->getMessage());
         }
     }
@@ -707,33 +721,157 @@ class TransaksiController extends Controller
     /**
      * Get transaction data from customers
      */
-    public function penjualanPercustomer(){
-        // Fetch all customers
-        $customers = Customer::all();
+     public function penjualanPercustomer(Request $request){
+    // Get search filters
+        $search = $request->get('search');
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+        $status = $request->get('status', 'all'); // all, active, canceled
 
+        // Fetch all customers with proper column selection
+        // Check what columns actually exist in your customers table first
+        try {
+            $customers = Customer::select([
+                'kode_customer', 
+                'nama', 
+                'alamat', 
+                'telepon'
+                // Only include 'hp' if it exists in your database
+                // 'hp' 
+            ])->get();
+        } catch (\Exception $e) {
+            // Fallback: get all customers and let Eloquent handle it
+            $customers = Customer::all();
+        }
 
-        // Fetch all transactions (penjualan & pembelian)
-        $transactions = Transaksi::with('items')->orderBy('created_at', 'desc')->get();
+        // Apply customer name search filter if provided
+        if ($search) {
+            $customers = $customers->filter(function($customer) use ($search) {
+                return stripos($customer->nama, $search) !== false || 
+                    stripos($customer->kode_customer, $search) !== false;
+            });
+        }
 
-        return view('transaksi.datapenjualanpercustomer', compact('transactions', 'customers'));        
+        // Fetch all transactions with related data
+        $transactionsQuery = Transaksi::with(['items', 'customer'])
+            ->select([
+                'id',
+                'no_transaksi',
+                'tanggal',
+                'kode_customer',
+                'grand_total',
+                'status',
+                'is_edited',
+                'canceled_at',
+                'edited_at',
+                'edited_by',
+                'canceled_by',
+                'edit_reason',
+                'cancel_reason',
+                'created_at',
+                'updated_at'
+            ]);
+
+        // Apply date filters if provided
+        if ($dateFrom) {
+            $transactionsQuery->whereDate('tanggal', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $transactionsQuery->whereDate('tanggal', '<=', $dateTo);
+        }
+
+        // Apply status filter
+        if ($status === 'active') {
+            $transactionsQuery->where('status', '!=', 'canceled')
+                            ->whereNull('canceled_at');
+        } elseif ($status === 'canceled') {
+            $transactionsQuery->where('status', '=', 'canceled')
+                            ->whereNotNull('canceled_at');
+        } elseif ($status === 'edited') {
+            $transactionsQuery->where('is_edited', true);
+        }
+
+        $transactions = $transactionsQuery->orderBy('tanggal', 'desc')->get();
+
+        // Get selected customer transactions if requested
+        $selectedCustomerTransactions = [];
+        $selectedCustomer = null;
+        if ($request->has('kode_customer') && $request->kode_customer) {
+            $selectedCustomer = Customer::where('kode_customer', $request->kode_customer)->first();
+            $selectedCustomerTransactions = $transactions->where('kode_customer', $request->kode_customer);
+        }
+
+        return view('transaksi.datapenjualanpercustomer', compact(
+            'customers', 
+            'transactions',
+            'selectedCustomerTransactions', 
+            'selectedCustomer',
+            'search',
+            'dateFrom',
+            'dateTo',
+            'status'
+        ));        
     }
 
     public function getPenjualancustomer(Request $request){
-        // Ambil daftar customer yang telah melakukan transaksi
-        $customers = DB::table('transaksi')
-            ->join('customers', 'transaksi.kode_customer', '=', 'customers.kode_customer')
-            ->select('customers.kode_customer', 'customers.nama', DB::raw('COUNT(transaksi.id) as total_transaksi'))
-            ->groupBy('customers.kode_customer', 'customers.nama')
-            ->get();
+        try {
+            $kodeCustomer = $request->get('kode_customer');
+            $dateFrom = $request->get('date_from');
+            $dateTo = $request->get('date_to');
+            $status = $request->get('status', 'all');
 
-        // Jika ada customer yang dipilih, ambil daftar transaksi
-        $transaksi = [];
-        if ($request->has('kode_customer')) {
-            $transaksi = DB::table('transaksi')
-                ->where('kode_customer', $request->kode_customer)
-                ->get();
+            if (!$kodeCustomer) {
+                return response()->json(['error' => 'Customer code is required'], 400);
+            }
+
+            // Get customer info
+            $customer = Customer::where('kode_customer', $kodeCustomer)->first();
+            if (!$customer) {
+                return response()->json(['error' => 'Customer not found'], 404);
+            }
+
+            // Build transactions query
+            $transactionsQuery = Transaksi::with(['items'])
+                ->where('kode_customer', $kodeCustomer);
+
+            // Apply status filter
+            if ($status === 'active') {
+                $transactionsQuery->where('status', '!=', 'canceled')
+                                 ->whereNull('canceled_at');
+            } elseif ($status === 'canceled') {
+                $transactionsQuery->where('status', '=', 'canceled')
+                                 ->whereNotNull('canceled_at');
+            }
+
+            // Apply date filters
+            if ($dateFrom) {
+                $transactionsQuery->whereDate('tanggal', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $transactionsQuery->whereDate('tanggal', '<=', $dateTo);
+            }
+
+            $transactions = $transactionsQuery->orderBy('tanggal', 'desc')->get();
+
+            // Calculate summary statistics
+            $summary = [
+                'total_transaksi_aktif' => $transactions->where('status', '!=', 'canceled')->whereNull('canceled_at')->count(),
+                'total_transaksi_batal' => $transactions->where('status', '=', 'canceled')->whereNotNull('canceled_at')->count(),
+                'total_nilai_aktif' => $transactions->where('status', '!=', 'canceled')->whereNull('canceled_at')->sum('grand_total'),
+                'total_nilai_batal' => $transactions->where('status', '=', 'canceled')->whereNotNull('canceled_at')->sum('grand_total'),
+                'transaksi_terakhir' => $transactions->where('status', '!=', 'canceled')->whereNull('canceled_at')->max('tanggal')
+            ];
+
+            return response()->json([
+                'customer' => $customer,
+                'transactions' => $transactions,
+                'summary' => $summary
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error in getPenjualancustomer:', ['message' => $e->getMessage()]);
+            return response()->json(['error' => 'Internal Server Error'], 500);
         }
-        
     }
 
     // Mencari transaksi berdasarkan id untuk surat jalan

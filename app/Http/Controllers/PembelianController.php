@@ -247,14 +247,71 @@ class PembelianController extends Controller
         return view('pembelian.nota_pembelian', compact('purchase'));
     }
 
-    public function listNota()
+    public function listNota(Request $request)
     {
-        // Fetch all purchases
-        $purchases = Pembelian::with('items')
-            ->orderBy('created_at', 'desc')
-            ->paginate(5);
-
-        return view('pembelian.lihat_nota_pembelian', compact('purchases'));
+        // Get search parameters
+        $searchBy = $request->input('search_by', '');
+        $search = $request->input('search', '');
+        $startDate = $request->input('startDate', '');
+        $endDate = $request->input('endDate', '');
+        
+        // Build the query for Pembelian
+        $query = Pembelian::with('items', 'supplierRelation');
+        
+        // Apply search filter if search term exists and search_by is specified
+        if (!empty($search) && !empty($searchBy)) {
+            if ($searchBy === 'nota') {
+                $query->where('nota', 'like', "%{$search}%");
+            } else if ($searchBy === 'kode_supplier') {
+                $query->where('kode_supplier', 'like', "%{$search}%");
+            } else if ($searchBy === 'nama_supplier') {
+                $query->whereHas('supplierRelation', function($q) use ($search) {
+                    $q->where('nama', 'like', "%{$search}%");
+                });
+            } else if ($searchBy === 'cara_bayar') {
+                $query->where('cara_bayar', 'like', "%{$search}%");
+            }
+        } else if (!empty($search)) {
+            // If search_by is not specified but search term exists, search in all relevant fields
+            $query->where(function($q) use ($search) {
+                $q->where('nota', 'like', "%{$search}%")
+                ->orWhere('kode_supplier', 'like', "%{$search}%")
+                ->orWhere('cara_bayar', 'like', "%{$search}%")
+                ->orWhereHas('supplierRelation', function($sq) use ($search) {
+                    $sq->where('nama', 'like', "%{$search}%");
+                });
+            });
+        }
+        
+        // Apply date filter if provided
+        if (!empty($startDate) && !empty($endDate)) {
+            $query->whereDate('tanggal', '>=', $startDate)
+                ->whereDate('tanggal', '<=', $endDate);
+        } else if (!empty($startDate)) {
+            $query->whereDate('tanggal', '>=', $startDate);
+        } else if (!empty($endDate)) {
+            $query->whereDate('tanggal', '<=', $endDate);
+        }
+        
+        // Order by created_at descending
+        $query->orderBy('created_at', 'desc');
+        
+        // Paginate the results and append query params to the pagination links
+        $purchases = $query->paginate(10);
+        $purchases->appends([
+            'search_by' => $searchBy,
+            'search' => $search,
+            'startDate' => $startDate,
+            'endDate' => $endDate
+        ]);
+        
+        return view('pembelian.lihat_nota_pembelian', compact(
+            'purchases', 
+            'searchBy',
+            'search', 
+            'startDate', 
+            'endDate'
+        ));
     }
 
     /**
@@ -655,6 +712,211 @@ class PembelianController extends Controller
             
             return redirect()->route('pembelian.nota.list')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+    /**
+ * Generate purchase transactions for all products for testing purposes.
+ * THIS IS FOR DEVELOPMENT ONLY - DO NOT USE IN PRODUCTION
+ */
+    public function generateTestTransactions()
+    {
+        // Only allow in local/development environment
+        if (!app()->environment('local', 'development')) {
+            return 'This function is only available in development environment.';
+        }
+
+        try {
+            DB::beginTransaction();
+            
+            // Get all kode barang items
+            $kodeBarangItems = KodeBarang::where('status', 'Active')->get();
+            
+            if ($kodeBarangItems->isEmpty()) {
+                return 'No active KodeBarang items found.';
+            }
+            
+            // Get suppliers or create a default one if none exists
+            $suppliers = Supplier::all();
+            if ($suppliers->isEmpty()) {
+                // Create a default supplier
+                $supplier = Supplier::create([
+                    'kode_supplier' => 'SUP-001',
+                    'nama' => 'Supplier Test',
+                    'alamat' => 'Jl. Test No. 123',
+                    'telepon' => '08123456789',
+                    'email' => 'supplier@test.com',
+                ]);
+                $suppliers = collect([$supplier]);
+            }
+            
+            // Group items by attribute to create transactions for similar items
+            $groupedItems = $kodeBarangItems->groupBy('attribute');
+            
+            $faker = \Faker\Factory::create('id_ID');
+            $generatedCount = 0;
+            
+            // Find the highest nota number to avoid duplicates
+            $currentMonth = date('m');
+            $currentYear = date('y');
+            $lastPurchase = Pembelian::where('nota', 'like', "BL/{$currentMonth}/{$currentYear}-%")
+                                    ->orderBy('nota', 'desc')
+                                    ->first();
+            
+            $notaNumber = 1;
+            if ($lastPurchase) {
+                // Extract the number part from the last nota
+                $lastNotaParts = explode('-', $lastPurchase->nota);
+                if (count($lastNotaParts) > 1) {
+                    $notaNumber = (int)$lastNotaParts[1] + 1;
+                }
+            }
+            
+            // Create a transaction for each group of items (by attribute)
+            foreach ($groupedItems as $attribute => $items) {
+                // Skip processing if there are no items in this group
+                if ($items->isEmpty()) {
+                    continue;
+                }
+                
+                // Generate transaction details with unique nota
+                $nota = "BL/{$currentMonth}/{$currentYear}-" . str_pad($notaNumber, 5, '0', STR_PAD_LEFT);
+                $notaNumber++;
+                
+                // Verify this nota doesn't already exist
+                while (Pembelian::where('nota', $nota)->exists()) {
+                    $nota = "BL/{$currentMonth}/{$currentYear}-" . str_pad($notaNumber, 5, '0', STR_PAD_LEFT);
+                    $notaNumber++;
+                }
+                
+                // Select a random supplier
+                $supplier = $suppliers->random();
+                
+                // Use a date within the last 60 days
+                $transactionDate = now()->subDays($faker->numberBetween(1, 60));
+                
+                // Create new transaction
+                $subtotal = 0;
+                $transactionItems = [];
+                
+                // Prepare items for this transaction
+                foreach ($items as $item) {
+                    // Random quantity between 1 and 5
+                    $qty = $faker->numberBetween(1, 5);
+                    // Use the item's cost as the purchase price
+                    $harga = $item->cost;
+                    // Calculate total
+                    $total = $qty * $harga;
+                    $subtotal += $total;
+                    
+                    $transactionItems[] = [
+                        'kodeBarang' => $item->kode_barang,
+                        'namaBarang' => $item->name,
+                        'harga' => $harga,
+                        'qty' => $qty,
+                        'total' => $total,
+                        'diskon' => 0,
+                        'keterangan' => 'Auto-generated for testing'
+                    ];
+                }
+                
+                // Random discount between 0% and 5%
+                $diskonPersen = $faker->randomFloat(2, 0, 5);
+                $diskon = round($subtotal * ($diskonPersen / 100));
+                
+                // Random PPN between 0% and 11%
+                $ppnPersen = $faker->randomFloat(2, 0, 11);
+                $ppn = round(($subtotal - $diskon) * ($ppnPersen / 100));
+                
+                // Calculate grand total
+                $grandTotal = $subtotal - $diskon + $ppn;
+                
+                // Payment methods
+                $paymentMethods = ['Tunai', 'Transfer', 'Kredit'];
+                $pembayaran = $faker->randomElement($paymentMethods);
+                
+                $surat_jalan = 'SJ-' . strtoupper($faker->bothify('??####'));
+                
+                // Create the purchase record
+                $pembelian = Pembelian::create([
+                    'nota' => $nota,
+                    'no_surat_jalan' => $surat_jalan,
+                    'tanggal' => $transactionDate,
+                    'kode_supplier' => $supplier->kode_supplier,
+                    'pembayaran' => $pembayaran,
+                    'cara_bayar' => $pembayaran,
+                    'subtotal' => $subtotal,
+                    'diskon' => $diskon,
+                    'ppn' => $ppn,
+                    'grand_total' => $grandTotal,
+                    'created_at' => $transactionDate,
+                    'updated_at' => $transactionDate,
+                ]);
+                
+                // Get creator name
+                $creator = 'SYSTEM-TEST';
+                
+                // Format transaction number for mutation record
+                $noTransaksi = "BL-" . $transactionDate->format('m/y') . "-" . 
+                            substr($nota, strrpos($nota, '-') + 1) . 
+                            " ({$creator})";
+                
+                // Create purchase items
+                foreach ($transactionItems as $item) {
+                    // Create purchase item
+                    PembelianItem::create([
+                        'nota' => $nota,
+                        'kode_barang' => $item['kodeBarang'],
+                        'nama_barang' => $item['namaBarang'],
+                        'keterangan' => $item['keterangan'],
+                        'harga' => $item['harga'],
+                        'qty' => $item['qty'],
+                        'diskon' => $item['diskon'],
+                        'total' => $item['total'],
+                        'created_at' => $transactionDate,
+                        'updated_at' => $transactionDate,
+                    ]);
+                    
+                    // Record purchase in stock mutation
+                    $this->stockController->recordPurchase(
+                        $item['kodeBarang'],
+                        $item['namaBarang'],
+                        $noTransaksi,
+                        $transactionDate->format('Y-m-d H:i:s'),
+                        $nota,
+                        $supplier->nama . ' (' . $supplier->kode_supplier . ')',
+                        $item['qty'],
+                        'LBR',
+                        'Auto-generated test transaction',
+                        $creator,
+                        'default'
+                    );
+                    
+                    // Get the kode barang record for panel creation
+                    $kodeBarang = KodeBarang::where('kode_barang', $item['kodeBarang'])->first();
+                    if ($kodeBarang) {
+                        // Add panels to inventory
+                        $result = $this->panelController->addPanelsToInventory(
+                            $item['namaBarang'],
+                            $item['harga'], // cost
+                            $kodeBarang->price,
+                            $kodeBarang->length,
+                            $item['kodeBarang'],
+                            $item['qty']
+                        );
+                        
+                        $generatedCount += $item['qty'];
+                    }
+                }
+            }
+            
+            DB::commit();
+            
+            return "Successfully generated " . count($groupedItems) . " purchase transactions with {$generatedCount} total items!";
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error generating test transactions:', ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return 'Error generating test transactions: ' . $e->getMessage();
         }
     }
     }

@@ -43,23 +43,34 @@
     <!-- Filters -->
     <div class="card mb-3">
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-4 mb-2">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Cari No. Nota, Kode atau Nama Supplier">
+            <form method="GET" action="{{ route('pembelian.nota.list') }}">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <select name="search_by" id="search_by" class="form-control">
+                            <option selected disabled value="">Cari Berdasarkan</option>
+                            <option value="nota" {{ request('search_by') == 'nota' ? 'selected' : '' }}>No. Nota</option>
+                            <option value="kode_supplier" {{ request('search_by') == 'kode_supplier' ? 'selected' : '' }}>Kode Supplier</option>
+                            <option value="nama_supplier" {{ request('search_by') == 'nama_supplier' ? 'selected' : '' }}>Nama Supplier</option>
+                            <option value="cara_bayar" {{ request('search_by') == 'cara_bayar' ? 'selected' : '' }}>Cara Bayar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <input type="text" id="search" name="search" class="form-control" placeholder="Cari..." value="{{ $search ?? '' }}" disabled>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <label for="startDate">Dari Tanggal</label>
+                        <input type="date" id="startDate" name="startDate" class="form-control" value="{{ $startDate ?? '' }}">
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <label for="endDate">Sampai Tanggal</label>
+                        <input type="date" id="endDate" name="endDate" class="form-control" value="{{ $endDate ?? '' }}">
+                    </div>
+                    <div class="col-md-2 mb-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary mr-2">Terapkan</button>
+                        <a href="{{ route('pembelian.nota.list') }}" class="btn btn-secondary">Reset</a>
+                    </div>
                 </div>
-                <div class="col-md-3 mb-2">
-                    <label for="startDate">Dari Tanggal</label>
-                    <input type="date" id="startDate" class="form-control">
-                </div>
-                <div class="col-md-3 mb-2">
-                    <label for="endDate">Sampai Tanggal</label>
-                    <input type="date" id="endDate" class="form-control">
-                </div>
-                <div class="col-md-2 mb-2 d-flex align-items-end">
-                    <button id="applyFilter" class="btn btn-primary mr-2">Terapkan</button>
-                    <button id="resetFilter" class="btn btn-secondary">Reset</button>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 
@@ -242,43 +253,21 @@
         // Initialize tooltips
         $('[data-toggle="tooltip"]').tooltip();
         
-        function checkInDateRange(dateStr, start, end) {
-            if (!start && !end) return true;
-            if (!start && end) return dateStr <= end;
-            if (start && !end) return dateStr >= start;
-            return dateStr >= start && dateStr <= end;
+        // Manage search input state based on dropdown selection
+        const searchBySelect = document.getElementById('search_by');
+        const searchInput = document.getElementById('search');
+
+        function updateSearchInputState() {
+            if (searchBySelect.value !== "" && searchBySelect.selectedIndex !== 0) {
+                searchInput.disabled = false;
+            } else {
+                searchInput.disabled = true;
+                searchInput.value = '';
+            }
         }
 
-        function applyFilters() {
-            const keyword = $('#searchInput').val().toLowerCase();
-            const startDate = $('#startDate').val();
-            const endDate = $('#endDate').val();
-
-            $('#purchaseTable tbody tr').each(function() {
-                const noNota = $(this).find('td:nth-child(1)').text().toLowerCase();
-                const supplierText = $(this).find('td:nth-child(3)').text().toLowerCase();
-                const tanggal = $(this).find('td:nth-child(2)').text();
-
-                const matchKeyword = noNota.includes(keyword) || supplierText.includes(keyword);
-                const matchDate = checkInDateRange(tanggal, startDate, endDate);
-
-                if (matchKeyword && matchDate) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        }
-
-        $('#applyFilter').on('click', applyFilters);
-
-        $('#resetFilter').on('click', function() {
-            $('#searchInput, #startDate, #endDate').val('');
-            $('#purchaseTable tbody tr').show();
-        });
-
-        // Filter saat mengetik
-        $('#searchInput').on('input', applyFilters);
+        updateSearchInputState();
+        searchBySelect.addEventListener('change', updateSearchInputState);
         
         // Cancel Modal handling
         $('.cancel-btn').click(function() {

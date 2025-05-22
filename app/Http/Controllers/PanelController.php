@@ -319,7 +319,7 @@ class PanelController extends Controller
             'cost' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
             'status' => 'required',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:0',
         ], [
             'group_id.required' => 'Item code is required',
             'group_id.string' => 'Item code must be a valid string',
@@ -343,7 +343,7 @@ class PanelController extends Controller
 
             'quantity.required' => 'Quantity is required',
             'quantity.integer' => 'Quantity must be a whole number',
-            'quantity.min' => 'Quantity must be at least 1',
+            'quantity.min' => 'Quantity must be at least 0',
         ]);
 
         $name = $validated['name'];

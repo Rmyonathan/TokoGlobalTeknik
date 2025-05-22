@@ -10,6 +10,17 @@
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
+    
+    <form method="GET" action="{{ route('stok_owner.index') }}" class="mb-3 d-flex">
+        <select name="search_by" id="search_by" class="form-control w-25 mr-2">
+            <option selected disabled value="">Cari Berdasarkan</option>
+            <option value="keterangan" {{ request('search_by') == 'keterangan' ? 'selected' : '' }}>Keterangan</option>
+            <option value="kode_stok_owner" {{ request('search_by') == 'kode_stok_owner' ? 'selected' : '' }}>Kode Sales</option>
+        </select>
+        <input type="text" id="search_input" name="search" class="form-control w-50 mr-2" placeholder="Cari..." value="{{ request('search') }}" disabled>
+        <button type="submit" class="btn btn-primary mr-2">Cari</button>
+        <a href="{{ route('stok_owner.index') }}" class="btn btn-secondary">Reset</a>
+    </form>
 
     <table class="table table-bordered">
         <thead>
@@ -35,6 +46,10 @@
             @endforeach
         </tbody>
     </table>
+    
+    <div class="d-flex justify-content-center">
+        {{ $stokOwners->links() }}
+    </div>
 </section>
 
 <!-- Add Stok Owner Modal -->
@@ -67,4 +82,27 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Ambil elemen select dan input
+    const searchBySelect = document.getElementById('search_by');
+    const searchInput = document.getElementById('search_input');
+
+    // Fungsi untuk mengecek status dropdown dan mengatur disabled state pada input
+    function updateSearchInputState() {
+        if (searchBySelect.value !== "" && searchBySelect.selectedIndex !== 0) {
+            searchInput.disabled = false;
+        } else {
+            searchInput.disabled = true;
+            searchInput.value = '';
+        }
+    }
+
+    updateSearchInputState();
+    searchBySelect.addEventListener('change', updateSearchInputState);
+});
+</script>
 @endsection
