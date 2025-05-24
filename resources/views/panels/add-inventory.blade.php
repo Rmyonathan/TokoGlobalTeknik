@@ -77,7 +77,7 @@
                                 </button>
                             </div>
                             <div class="col-md-6">
-                                <a href="{{ route('panels.inventory') }}" class="btn btn-secondary btn-block">
+                                <a href="{{ route('master.barang') }}" class="btn btn-secondary btn-block">
                                     <i class="fas fa-arrow-left mr-1"></i> Back to Inventory
                                 </a>
                             </div>

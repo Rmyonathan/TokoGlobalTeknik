@@ -36,6 +36,7 @@
                     <td>{{ $stokOwner->kode_stok_owner }}</td>
                     <td>{{ $stokOwner->keterangan }}</td>
                     <td>
+                        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#editSalesModal-{{ $stokOwner->id }}">Edit</button>
                         <form action="{{ route('stok_owner.destroy', $stokOwner) }}" method="POST" style="display:inline;">
                             @csrf
                             @method('DELETE')
@@ -82,6 +83,38 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Sales Modals -->
+@foreach($stokOwners as $stokOwner)
+<div class="modal fade" id="editSalesModal-{{ $stokOwner->id }}" tabindex="-1" aria-labelledby="editSalesModalLabel-{{ $stokOwner->id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ route('stok_owner.update', $stokOwner) }}" method="POST">
+            @csrf
+            @method('PUT')
+            <div class="modal-content" style="border: 3px solid black;">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editSalesModalLabel-{{ $stokOwner->id }}">Edit Sales</h5>
+                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="kode_stok_owner" class="form-label">Kode</label>
+                        <input type="text" name="kode_stok_owner" class="form-control" value="{{ $stokOwner->kode_kode_stok_owner }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="keterangan" class="form-label">Keterangan</label>
+                        <input type="text" name="keterangan" class="form-control" value="{{ $stokOwner->keterangan }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Update</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    </div>
+@endforeach
 @endsection
 
 @section('scripts')

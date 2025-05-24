@@ -49,6 +49,17 @@ class StokOwnerController extends Controller
         return redirect()->route('stok_owner.index')->with('success', 'Stok Owner added successfully.');
     }
 
+    public function update(Request $request, StokOwner $stokOwner)
+    {
+        $validated = $request->validate([
+            'kode_stok_owner' => 'required|unique:stok_owners,kode_stok_owner,' . $stokOwner->id,
+            'keterangan' => 'required',
+        ]);
+
+        $stokOwner->update($validated);
+        return redirect()->route('stok_owner.index')->with('success', 'Sales updated successfully.');
+    }
+
     public function destroy(StokOwner $stokOwner)
     {
         $stokOwner->delete();
