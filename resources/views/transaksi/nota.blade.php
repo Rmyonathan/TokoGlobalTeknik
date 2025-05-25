@@ -147,7 +147,7 @@
 <body>
 
 <div class="top-right-buttons">
-    <a href="{{ route('transaksi.index') }}" class="btn btn-secondary">Kembali</a>
+    <a href="{{ url()->previous() }}" class="btn btn-secondary">Kembali</a>
     <button onclick="window.print()">Print</button>
     @if($transaction->status != 'canceled')
         <a href="{{ route('transaksi.edit', $transaction->id) }}" class="btn btn-warning">Edit</a>
@@ -295,5 +295,14 @@
     @php $pageNum++; @endphp
 @endforeach
 
+
+<script>
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('auto_print') === '1') {
+            window.print();
+        }
+    };
+</script>
 </body>
 </html>

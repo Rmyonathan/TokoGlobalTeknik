@@ -283,6 +283,13 @@
     </div>
     @endif
 </div>
-
+<script>
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('auto_print') === '1') {
+            window.print();
+        }
+    };
+</script>
 </body>
 </html>
