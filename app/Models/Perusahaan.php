@@ -14,12 +14,8 @@ class Perusahaan extends Model
         'kode_pos',
         'telepon',
         'fax',
-        'email',
-        'website',
-        'npwp',
         'catatan_nota',
         'catatan_surat_jalan',
-        'logo',
         'is_active'
     ];
 

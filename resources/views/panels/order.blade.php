@@ -3,14 +3,14 @@
 @section('content')
 <div class="container">
     <div class="title-box">
-        <h2><i class="fas fa-cut mr-2"></i>Order Aluminum Panel</h2>
+        <h2><i class="fas fa-cut mr-2"></i>Potong Aluminum Panel</h2>
     </div>
 
     <div class="row">
         <div class="col-md-7">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">New Panel Order</h5>
+                    <h5 class="mb-0">Potong Panel</h5>
                 </div>
                 <div class="card-body">
                     @if(session('error'))
@@ -21,12 +21,12 @@
 
                     <!-- Penambah Selection (Common for all orders) -->
                     <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0"><i class="fas fa-plus-circle mr-1"></i> Select Penambah Code</h6>
+                        <div class="card-header bg-dark">
+                            <h6 class="mb-0"><i class="fas fa-minus-circle mr-1"></i> Select Pengurang Code</h6>
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="searchPenambah"><i class="fas fa-search mr-1"></i> Penambah Code</label>
+                                <label for="searchPenambah"><i class="fas fa-search mr-1"></i> Pengurang Code</label>
                                 <div class="input-group">
                                     <input type="text" id="searchPenambah" class="form-control" placeholder="Search penambah code...">
                                     <div class="input-group-append">
@@ -40,19 +40,19 @@
                                 </div>
                             </div>
                             <div id="selectedPenambahDisplay" class="alert alert-info d-none">
-                                <i class="fas fa-info-circle mr-1"></i> Selected Penambah: <strong id="selectedPenambahText"></strong>
+                                <i class="fas fa-info-circle mr-1"></i> Selected Pengurang: <strong id="selectedPenambahText"></strong>
                             </div>
                         </div>
                     </div>
 
                     <!-- Pengurang Selection -->
                     <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0"><i class="fas fa-minus-circle mr-1"></i> Add Pengurang Codes</h6>
+                        <div class="card-header bg-dark">
+                            <h6 class="mb-0"><i class="fas fa-plus-circle mr-1"></i> Add Penambah Codes</h6>
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="searchPengurang"><i class="fas fa-search mr-1"></i> Pengurang Code</label>
+                                <label for="searchPengurang"><i class="fas fa-search mr-1"></i> Penambah Code</label>
                                 <div class="input-group">
                                     <input type="text" id="searchPengurang" class="form-control" placeholder="Search pengurang code...">
                                     <div class="input-group-append">
@@ -79,8 +79,8 @@
 
                     <!-- Orders Table -->
                     <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0"><i class="fas fa-table mr-1"></i> Order Items</h6>
+                        <div class="card-header bg-dark">
+                            <h6 class="mb-0"><i class="fas fa-table mr-1"></i> Potong Panel Items</h6>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">

@@ -335,6 +335,7 @@ $(document).ready(function() {
                             </tr>`
                         ;
                         items.push({
+                            transaksi_item_id: item.id,
                             kode_barang: item.kode_barang,
                             nama_barang: item.keterangan,
                             panjang: item.panjang,
@@ -411,8 +412,8 @@ $(document).ready(function() {
 
             const formatteditems = items.map(item => {
                 return {
+                    transaksi_id: item.transaksi_item_id,
                     no_transaksi: $('#no_transaksi').val(),
-                    transaksi_id: selectedtransaksiId,
                     kode_barang: item.kode_barang,
                     nama_barang: item.nama_barang,
                     qty: item.qty

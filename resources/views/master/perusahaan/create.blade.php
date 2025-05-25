@@ -75,38 +75,23 @@
                     
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email') }}">
-                            @error('email')
+                            <label for="catatan_nota" class="form-label">Catatan Nota</label>
+                            <textarea class="form-control @error('catatan_nota') is-invalid @enderror" id="catatan_nota" name="catatan_nota" rows="3">{{ old('catatan_nota') }}</textarea>
+                            <small class="text-muted">Catatan tambahan yang akan muncul di nota.</small>
+                            @error('catatan_nota')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                         
                         <div class="mb-3">
-                            <label for="website" class="form-label">Website</label>
-                            <input type="url" class="form-control @error('website') is-invalid @enderror" id="website" name="website" value="{{ old('website') }}" placeholder="https://">
-                            @error('website')
+                            <label for="catatan_surat_jalan" class="form-label">Catatan Surat Jalan</label>
+                            <textarea class="form-control @error('catatan_surat_jalan') is-invalid @enderror" id="catatan_surat_jalan" name="catatan_surat_jalan" rows="3">{{ old('catatan_surat_jalan') }}</textarea>
+                            <small class="text-muted">Catatan tambahan yang akan muncul di surat jalan.</small>
+                            @error('catatan_surat_jalan')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="npwp" class="form-label">NPWP</label>
-                            <input type="text" class="form-control @error('npwp') is-invalid @enderror" id="npwp" name="npwp" value="{{ old('npwp') }}">
-                            @error('npwp')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="logo" class="form-label">Logo Perusahaan</label>
-                            <input type="file" class="form-control @error('logo') is-invalid @enderror" id="logo" name="logo">
-                            <small class="text-muted">Format: JPG, JPEG, PNG. Maksimal 2MB.</small>
-                            @error('logo')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        
+
                         <div class="mb-3">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active') ? 'checked' : '' }}>
@@ -115,31 +100,14 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="catatan_nota" class="form-label">Catatan Nota</label>
-                        <textarea class="form-control @error('catatan_nota') is-invalid @enderror" id="catatan_nota" name="catatan_nota" rows="3">{{ old('catatan_nota') }}</textarea>
-                        <small class="text-muted">Catatan tambahan yang akan muncul di nota.</small>
-                        @error('catatan_nota')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                        <label for="catatan_surat_jalan" class="form-label">Catatan Surat Jalan</label>
-                        <textarea class="form-control @error('catatan_surat_jalan') is-invalid @enderror" id="catatan_surat_jalan" name="catatan_surat_jalan" rows="3">{{ old('catatan_surat_jalan') }}</textarea>
-                        <small class="text-muted">Catatan tambahan yang akan muncul di surat jalan.</small>
-                        @error('catatan_surat_jalan')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-                
                 <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary mr-2">
                         <i class="fas fa-save mr-1"></i> Simpan
                     </button>
+                    
+                    <a href="{{ route('perusahaan.index') }}" class="btn btn-secondary ml-2">
+                        <i class="fas fa-arrow-left mr-1"></i> Batal
+                    </a>
                 </div>
             </form>
         </div>

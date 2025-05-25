@@ -12,7 +12,7 @@
     @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close"></button>
     </div>
     @endif
 
@@ -27,11 +27,9 @@
                     <thead class="thead-dark">
                         <tr>
                             <th>No</th>
-                            <th>Logo</th>
                             <th>Nama</th>
                             <th>Alamat</th>
                             <th>Telepon</th>
-                            <th>Email</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -40,17 +38,9 @@
                         @foreach($perusahaan as $index => $item)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td>
-                                @if($item->logo)
-                                <img src="{{ $item->logo }}" alt="Logo {{ $item->nama }}" width="50" class="img-thumbnail">
-                                @else
-                                <span class="text-muted">No Logo</span>
-                                @endif
-                            </td>
                             <td>{{ $item->nama }}</td>
                             <td>{{ $item->alamat }}, {{ $item->kota }} {{ $item->kode_pos }}</td>
                             <td>{{ $item->telepon }}</td>
-                            <td>{{ $item->email }}</td>
                             <td>
                                 @if($item->is_active)
                                 <span class="badge bg-success">Aktif</span>
@@ -60,24 +50,24 @@
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a href="{{ route('perusahaan.edit', $item->id) }}" class="btn btn-sm btn-success">
+                                    <a href="{{ route('perusahaan.edit', $item->id) }}" class="btn btn-sm btn-success m-1">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
                                     
                                     @if(!$item->is_default)
                                     <form action="{{ route('perusahaan.set-default', $item->id) }}" method="POST" style="display: inline;">
                                         @csrf
-                                        <button type="submit" class="btn btn-sm btn-primary">
+                                        <button type="submit" class="btn btn-sm btn-primary m-1">
                                             <i class="fas fa-check"></i> Set Default
                                         </button>
                                     </form>
                                     @else
-                                    <button type="button" class="btn btn-sm btn-secondary" disabled>
+                                    <button type="button" class="btn btn-sm btn-secondary m-1" disabled>
                                         <i class="fas fa-star"></i> Default
                                     </button>
                                     @endif
                                     
-                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ $item->id }}">
+                                    <button type="button" class="btn btn-sm btn-danger m-1" data-toggle="modal" data-target="#deleteModal{{ $item->id }}">
                                         <i class="fas fa-trash"></i> Hapus
                                     </button>
                                 </div>
@@ -88,13 +78,13 @@
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <h5 class="modal-title" id="deleteModalLabel{{ $item->id }}">Konfirmasi Hapus</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
                                                 Apakah Anda yakin ingin menghapus perusahaan <strong>{{ $item->nama }}</strong>? Tindakan ini tidak dapat dibatalkan.
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                                                 <form action="{{ route('perusahaan.destroy', $item->id) }}" method="POST">
                                                     @csrf
                                                     @method('DELETE')

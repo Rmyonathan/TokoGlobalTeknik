@@ -72,7 +72,7 @@
 
         /* Compact spacing for specific elements */
         .header strong {
-            font-size: 11px;
+            font-size: 12px;
         }
 
         .header br {
@@ -147,7 +147,7 @@
 <body>
 
 <div class="top-right-buttons">
-    <a href="{{ url()->previous() }}" class="btn btn-secondary">Kembali</a>
+    <a href="{{ route('transaksi.index') }}" class="btn btn-secondary">Kembali</a>
     <button onclick="window.print()">Print</button>
     @if($transaction->status != 'canceled')
         <a href="{{ route('transaksi.edit', $transaction->id) }}" class="btn btn-warning">Edit</a>

@@ -76,47 +76,6 @@
                     
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email', $perusahaan->email) }}">
-                            @error('email')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="website" class="form-label">Website</label>
-                            <input type="url" class="form-control @error('website') is-invalid @enderror" id="website" name="website" value="{{ old('website', $perusahaan->website) }}" placeholder="https://">
-                            @error('website')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="npwp" class="form-label">NPWP</label>
-                            <input type="text" class="form-control @error('npwp') is-invalid @enderror" id="npwp" name="npwp" value="{{ old('npwp', $perusahaan->npwp) }}">
-                            @error('npwp')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="logo" class="form-label">Logo Perusahaan</label>
-                            <input type="file" class="form-control @error('logo') is-invalid @enderror" id="logo" name="logo">
-                            <small class="text-muted">Format: JPG, JPEG, PNG. Maksimal 2MB.</small>
-                            @error('logo')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            
-                            @if($perusahaan->logo)
-                            <div class="mt-2">
-                                <p class="mb-1">Logo Saat Ini:</p>
-                                <img src="{{ $perusahaan->logo }}" alt="Logo {{ $perusahaan->nama }}" class="img-thumbnail" style="max-height: 100px;">
-                                <p class="small text-muted mt-1">Unggah logo baru untuk mengganti</p>
-                            </div>
-                            @endif
-                        </div>
-                        
-                        <div class="mb-3">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', $perusahaan->is_active) ? 'checked' : '' }}>
                                 <label class="form-check-label" for="is_active">Aktif</label>
