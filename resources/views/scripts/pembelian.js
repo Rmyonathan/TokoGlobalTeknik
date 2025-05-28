@@ -66,29 +66,31 @@ $(document).ready(function () {
         }
     });
 
-    // NEW: Search Kode Barang
+    // Enhanced Search Kode Barang - searches both by code and name
     $("#kode_barang").on("input", function () {
         const keyword = $(this).val();
         if (keyword.length > 0) {
             $.ajax({
-                url: window.kodeBarangSearchUrl, // Make sure to define this in your blade template
+                url: window.kodeBarangSearchUrl,
                 method: "GET",
                 data: { keyword },
                 success: function (data) {
                     let dropdown = "";
                     if (data.length > 0) {
                         data.forEach((item) => {
+                            // Highlight the matching parts
+                            let displayText = `${item.kode_barang} - ${item.name} (${item.length} m)`;
+                            
                             dropdown += `<a class="dropdown-item kode-barang-item" 
                                             data-kode="${item.kode_barang}" 
-                                            data-name="${item.attribute}"
+                                            data-name="${item.name}"
                                             data-length="${item.length}"
                                             data-cost="${item.cost}">
-                                        ${item.kode_barang} - ${item.attribute} (${item.length} m)
+                                        ${displayText}
                                         </a>`;
                         });
                     } else {
-                        dropdown =
-                            '<a class="dropdown-item disabled">Kode barang tidak ditemukan! Tambahkan di Master Data.</a>';
+                        dropdown = '<a class="dropdown-item disabled">Kode barang tidak ditemukan! Tambahkan di Master Data.</a>';
                     }
                     $("#kodeBarangDropdown").html(dropdown).show();
                 },
@@ -435,7 +437,7 @@ $(document).ready(function () {
     // Initialize item preview
     updateItemPreview();
 
-    // Kode Barang search modal
+    // Enhanced Kode Barang search modal
     $("#searchKodeBarangBtn").click(function () {
         const keyword = $("#searchKodeBarangInput").val();
         if (keyword.length > 0) {
@@ -449,7 +451,7 @@ $(document).ready(function () {
                         data.forEach((item) => {
                             html += `<tr>
                                 <td>${item.kode_barang}</td>
-                                <td>${item.attribute}</td>
+                                <td>${item.name}</td>
                                 <td>${item.length} m</td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-primary select-kode-barang"
@@ -463,8 +465,7 @@ $(document).ready(function () {
                             </tr>`;
                         });
                     } else {
-                        html =
-                            '<tr><td colspan="4" class="text-center">Tidak ada data ditemukan</td></tr>';
+                        html = '<tr><td colspan="4" class="text-center">Tidak ada data ditemukan</td></tr>';
                     }
                     $("#kodeBarangSearchResults").html(html);
                 },
@@ -472,6 +473,8 @@ $(document).ready(function () {
                     alert("Terjadi kesalahan saat mencari kode barang.");
                 },
             });
+        } else {
+            alert("Masukkan kata kunci pencarian!");
         }
     });
 

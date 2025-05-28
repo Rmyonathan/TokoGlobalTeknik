@@ -1,6 +1,63 @@
 @extends('layout.Nav')
 
 @section('content')
+<style>
+        /* Enhanced search dropdown styles */
+    #kodeBarangDropdown {
+        z-index: 1050;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: 1px solid #ced4da;
+    }
+
+    #kodeBarangDropdown .dropdown-item {
+        padding: 0.5rem 1rem;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+
+    #kodeBarangDropdown .dropdown-item:hover {
+        background-color: #007bff;
+        color: white;
+    }
+
+    #kodeBarangDropdown .dropdown-item.disabled {
+        color: #6c757d;
+        background-color: #f8f9fa;
+    }
+
+    /* Search modal enhancements */
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    .alert-info {
+        border-left: 4px solid #17a2b8;
+    }
+
+    /* Loading state for search */
+    .loading-search {
+        position: relative;
+    }
+
+    .loading-search::after {
+        content: '';
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: translateY(-50%) rotate(0deg); }
+        100% { transform: translateY(-50%) rotate(360deg); }
+    }
+</style>
 <div class="container">
     <div class="title-box">
         <h2><i class="fas fa-shopping-cart mr-2"></i>Transaksi Pembelian</h2>
@@ -229,19 +286,28 @@
                 <form id="addItemForm">
                     <div class="row">
                         <div class="col-md-6">
-                            <!-- Updated kode_barang input group with dropdown and search button -->
+                            <!-- Enhanced Kode Barang input with better search functionality -->
                             <div class="form-group position-relative">
-                                <label for="kode_barang">Kode Barang</label>
+                                <label for="kode_barang">Kode Barang / Nama Barang</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="kode_barang" name="kode_barang" placeholder="Masukkan kode barang" autocomplete="off" required>
+                                    <input type="text" class="form-control" id="kode_barang" name="kode_barang" 
+                                        placeholder="Ketik kode barang atau nama barang..." 
+                                        autocomplete="off" required>
                                     <div class="input-group-append">
-                                        <button class="btn btn-outline-secondary" type="button" id="findItem" data-toggle="modal" data-target="#kodeBarangSearchModal">
+                                        <button class="btn btn-outline-secondary" type="button" id="findItem" 
+                                                data-toggle="modal" data-target="#kodeBarangSearchModal" 
+                                                title="Cari dengan modal">
                                             <i class="fas fa-search"></i>
                                         </button>
                                     </div>
                                 </div>
                                 <!-- Autocomplete dropdown -->
-                                <div class="dropdown-menu" id="kodeBarangDropdown" style="display: none; max-height: 280px; overflow-y: auto; width: 100%;"></div>
+                                <div class="dropdown-menu" id="kodeBarangDropdown" 
+                                    style="display: none; max-height: 280px; overflow-y: auto; width: 100%;"></div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Anda dapat mencari berdasarkan kode barang atau nama barang
+                                </small>
                             </div>
                             
                             <div class="form-group">
@@ -355,47 +421,61 @@
     </div>
 </div>
 
-<!-- Modal for searching Kode Barang -->
-<div class="modal fade" id="kodeBarangSearchModal" tabindex="-1" role="dialog" aria-labelledby="kodeBarangSearchModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="kodeBarangSearchModalLabel">Cari Kode Barang</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group mb-3">
-                    <input type="text" class="form-control" id="searchKodeBarangInput" placeholder="Masukkan kode atau nama barang">
-                    <div class="input-group-append">
-                        <button class="btn btn-primary" type="button" id="searchKodeBarangBtn">
-                            <i class="fas fa-search"></i> Cari
-                        </button>
+    <!-- Enhanced Search Modal -->
+    <div class="modal fade" id="kodeBarangSearchModal" tabindex="-1" role="dialog" aria-labelledby="kodeBarangSearchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="kodeBarangSearchModalLabel">
+                        <i class="fas fa-search"></i> Cari Kode Barang / Nama Barang
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>Tips:</strong> Anda dapat mencari berdasarkan kode barang atau nama barang.
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="searchKodeBarangInput" 
+                            placeholder="Masukkan kode barang atau nama barang untuk mencari...">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="button" id="searchKodeBarangBtn">
+                                <i class="fas fa-search"></i> Cari
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Kode Barang</th>
+                                    <th>Nama Barang</th>
+                                    <th>Panjang</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kodeBarangSearchResults">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        <i class="fas fa-search"></i> 
+                                        Masukkan kata kunci dan klik tombol "Cari" untuk mencari barang
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>Kode Barang</th>
-                                <th>Nama Barang</th>
-                                <th>Panjang</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="kodeBarangSearchResults">
-                            <!-- Search results will be added here by JavaScript -->
-                        </tbody>
-                    </table>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Tutup
+                    </button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
-</div>
 
 @endsection
 

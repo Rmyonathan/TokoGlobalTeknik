@@ -22,11 +22,11 @@
                     <!-- Penambah Selection (Common for all orders) -->
                     <div class="card mb-4">
                         <div class="card-header bg-dark">
-                            <h6 class="mb-0"><i class="fas fa-minus-circle mr-1"></i> Select Pengurang Code</h6>
+                            <h6 class="mb-0"><i class="fas fa-minus-circle mr-1"></i> Select Barang Asal</h6>
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="searchPenambah"><i class="fas fa-search mr-1"></i> Pengurang Code</label>
+                                <label for="searchPenambah"><i class="fas fa-search mr-1"></i> Ukuran Asal</label>
                                 <div class="input-group">
                                     <input type="text" id="searchPenambah" class="form-control" placeholder="Search penambah code...">
                                     <div class="input-group-append">
@@ -40,7 +40,7 @@
                                 </div>
                             </div>
                             <div id="selectedPenambahDisplay" class="alert alert-info d-none">
-                                <i class="fas fa-info-circle mr-1"></i> Selected Pengurang: <strong id="selectedPenambahText"></strong>
+                                <i class="fas fa-info-circle mr-1"></i> Selected Barang Asal: <strong id="selectedPenambahText"></strong>
                             </div>
                         </div>
                     </div>
@@ -48,11 +48,11 @@
                     <!-- Pengurang Selection -->
                     <div class="card mb-4">
                         <div class="card-header bg-dark">
-                            <h6 class="mb-0"><i class="fas fa-plus-circle mr-1"></i> Add Penambah Codes</h6>
+                            <h6 class="mb-0"><i class="fas fa-plus-circle mr-1"></i> Select Barang Jadi</h6>
                         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="searchPengurang"><i class="fas fa-search mr-1"></i> Penambah Code</label>
+                                <label for="searchPengurang"><i class="fas fa-search mr-1"></i> Ukuran Jadi</label>
                                 <div class="input-group">
                                     <input type="text" id="searchPengurang" class="form-control" placeholder="Search pengurang code...">
                                     <div class="input-group-append">
@@ -87,7 +87,7 @@
                                 <table class="table table-striped mb-0">
                                     <thead>
                                         <tr>
-                                            <th>Pengurang Code</th>
+                                            <th>Barang Jadi</th>
                                             <th>Description</th>
                                             <th>Quantity</th>
                                             <th>Action</th>
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
         searchCodes(keyword, 'pengurangSearchResults', 'select-pengurang');
     });
 
-    // Input search handlers
+    // Input search handlers for Penambah
     searchPenambahInput.addEventListener('input', function() {
         const keyword = this.value;
         if (keyword.length >= 2) {
@@ -322,6 +322,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Input search handlers for Pengurang
     searchPengurangInput.addEventListener('input', function() {
         const keyword = this.value;
         if (keyword.length >= 2) {
@@ -331,28 +332,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Function to search codes for modals
+    // Function to search codes for modals (search by both kode_barang and name)
     function searchCodes(keyword, resultsElementId, selectClass) {
         if (keyword.length > 0) {
             // This would normally be an AJAX request to your backend
-            // For demonstration, we'll use the panel data available in the template
-            const panels = @json($panel ?? []);
+            const panels = @json($panel ?? []);  // Panel data passed to JavaScript from Blade
 
             let html = '';
             const matchingPanels = panels.filter(panel =>
-                panel.kode_barang.toLowerCase().includes(keyword.toLowerCase())
+                panel.kode_barang.toLowerCase().includes(keyword.toLowerCase()) ||
+                panel.name.toLowerCase().includes(keyword.toLowerCase()) // Search by name as well
             );
 
             if (matchingPanels.length > 0) {
                 matchingPanels.forEach(panel => {
                     html += `<tr>
                         <td>${panel.kode_barang}</td>
-                        <td>${panel.attribute || 'N/A'}</td>
+                        <td>${panel.name || 'N/A'}</td>
                         <td>${panel.length || 'N/A'} m</td>
                         <td>
                             <button type="button" class="btn btn-sm btn-primary ${selectClass}"
                                 data-kode="${panel.kode_barang}"
-                                data-name="${panel.attribute || ''}"
+                                data-name="${panel.name || ''}"
                                 data-length="${panel.length || 0}">
                                 <i class="fas fa-check"></i> Select
                             </button>
@@ -373,18 +374,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const length = this.getAttribute('data-length');
 
                     if (selectClass === 'select-penambah') {
-                        // Set penambah
-                        selectedPenambah = {
-                            kode: kode,
-                            name: name,
-                            length: length
-                        };
+                        selectedPenambah = { kode: kode, name: name, length: length };
                         searchPenambahInput.value = kode;
                         selectedPenambahDisplay.classList.remove('d-none');
                         selectedPenambahText.textContent = `${kode} - ${name} (${length} m)`;
                         $('#penambahSearchModal').modal('hide');
                     } else {
-                        // Set pengurang
                         searchPengurangInput.value = kode;
                         searchPengurangInput.setAttribute('data-name', name);
                         searchPengurangInput.setAttribute('data-length', length);
@@ -395,13 +390,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to create dropdown results for direct search
+    // Function to create dropdown results for direct search (search by both kode_barang and name)
     function searchCodesDropdown(keyword, type) {
-        // This would normally be an AJAX request
         const panels = @json($panel ?? []);
 
         const matchingPanels = panels.filter(panel =>
-            panel.kode_barang.toLowerCase().includes(keyword.toLowerCase())
+            panel.kode_barang.toLowerCase().includes(keyword.toLowerCase()) ||
+            (panel.name && panel.name.toLowerCase().includes(keyword.toLowerCase())) // Search by name
         );
 
         const dropdownId = `${type}Dropdown`;
@@ -412,9 +407,9 @@ document.addEventListener('DOMContentLoaded', function() {
             matchingPanels.forEach(panel => {
                 html += `<a class="dropdown-item ${type}-dropdown-item"
                             data-kode="${panel.kode_barang}"
-                            data-name="${panel.attribute || ''}"
+                            data-name="${panel.name || ''}"
                             data-length="${panel.length || 0}">
-                        ${panel.kode_barang} - ${panel.attribute || 'N/A'} (${panel.length || 'N/A'} m)
+                        ${panel.kode_barang} - ${panel.name || 'N/A'} (${panel.length || 'N/A'} m)
                         </a>`;
             });
             dropdown.innerHTML = html;
@@ -428,11 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const length = this.getAttribute('data-length');
 
                     if (type === 'penambah') {
-                        selectedPenambah = {
-                            kode: kode,
-                            name: name,
-                            length: length
-                        };
+                        selectedPenambah = { kode: kode, name: name, length: length };
                         searchPenambahInput.value = kode;
                         selectedPenambahDisplay.classList.remove('d-none');
                         selectedPenambahText.textContent = `${kode} - ${name} (${length} m)`;
@@ -571,9 +562,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Set penambah value
             document.getElementById('formPenambah').value = selectedPenambah.kode;
 
-            // const currentFrequency = parseInt(frequencyInput.value);
-            // document.getElementById('formFrequency').value = currentFrequency;
-
             const currentFrequency = document.getElementById('frequencyInput').value;
             document.getElementById('formFrequency').value = currentFrequency;
 
@@ -602,5 +590,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize
     renderOrderItems();
 });
+
 </script>
 @endsection

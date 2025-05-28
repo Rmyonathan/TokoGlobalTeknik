@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\KodeBarang;
 use App\Http\Requests\StoreKodeBarangRequest;
+use Illuminate\Support\Facades\Log;
 use App\Http\Requests\UpdateKodeBarangRequest;
 use Illuminate\Http\Request;
 
@@ -44,37 +45,39 @@ class KodeBarangController extends Controller
             'kode_barang.required' => 'Item code is required',
             'kode_barang.string' => 'Item code must be a valid string',
             'kode_barang.max' => 'Item code may not be greater than 255 characters',
-
             'attribute.required' => 'Panel name is required',
             'attribute.string' => 'Panel name must be a valid string',
             'attribute.max' => 'Panel name may not be greater than 255 characters',
-
             'length.required' => 'Panel length is required',
             'length.numeric' => 'Panel length must be a number',
             'length.min' => 'Panel length must be at least 0.1 meters',
-
             'name.required' => 'Panel name is required',
             'name.string' => 'Panel name must be a valid string',
             'name.max' => 'Panel name may not be greater than 255 characters',
-
             'cost.required' => 'Cost is required',
             'cost.numeric' => 'Cost must be a valid number',
             'cost.min' => 'Cost must be at least 0',
-
             'price.required' => 'Price is required',
             'price.numeric' => 'Price must be a valid number',
             'price.min' => 'Price must be at least 0',
         ]);
 
-        // $attribute = $validated['attribute'];
-        // $length = $validated['length'];
-        // $kode_barang = $validated['kode_barang'];
+        // Check if the kode_barang already exists
+        if (KodeBarang::where('kode_barang', $validated['kode_barang'])->exists()) {
+            // Log the error if kode_barang already exists
+            Log::error('Duplicate kode_barang attempt: ' . $validated['kode_barang']);
+            
+            // Return a response with a custom error message
+            return back()->withErrors(['kode_barang' => 'Kode barang ini sudah digunakan untuk barang lain, Please choose another one']);
+        }
+
         $validated['status'] = 'Active';
 
+        // Create the new KodeBarang
         KodeBarang::create($validated);
 
         return redirect()->route('code.view-code')
-            ->with('success', "Successfully add group code!");
+            ->with('success', "Successfully added group code!");
     }
 
     /**
@@ -158,6 +161,7 @@ class KodeBarangController extends Controller
         $keyword = $request->input('keyword');
 
         $kodeBarang = KodeBarang::where('kode_barang', 'like', "%{$keyword}%")
+            ->orWhere('name', 'like', "%{$keyword}%")
             ->orWhere('attribute', 'like', "%{$keyword}%")
             ->limit(10)
             ->get();
