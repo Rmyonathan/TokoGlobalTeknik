@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Kas extends Model
 {
-    //
-
     protected $fillable = [
         'name',
         'description',

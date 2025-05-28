@@ -555,7 +555,9 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('perusahaan.index')); ?>"><i class="bi bi-building"></i>Perusahaan</a>
                             </li>
-                            
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?php echo e(route('kategori.index')); ?>"><i class="fas fa-bars"></i>Master Kategori</a>
+                            </li>
                             
                         </ul>
                     </div>

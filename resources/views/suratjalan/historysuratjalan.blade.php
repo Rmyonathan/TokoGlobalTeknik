@@ -52,7 +52,9 @@
                         <a href="{{ route('suratjalan.detail', $sj->id) }}" class="btn btn-info btn-sm">
                             <i class="fas fa-eye"></i> Detail
                         </a>
-                        <a href="{{ route('suratjalan.detail', $sj->id) }}" class="btn btn-primary btn-sm" target="_blank">
+                        <a href="{{ route('suratjalan.detail', $sj->id) }}?auto_print=1" 
+                        class="btn btn-primary btn-sm" 
+                        target="_blank">
                             <i class="fas fa-print"></i> Print
                         </a>
                     </td>

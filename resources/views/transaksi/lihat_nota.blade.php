@@ -148,7 +148,10 @@
                                 </button>
                             @endif
                             
-                            <a href="{{ route('transaksi.shownota', $transaction->id) }}" class="btn btn-primary btn-sm" target="_blank" title="Cetak Nota">
+                            <a href="{{ route('transaksi.nota', $transaction->id) }}?auto_print=1"
+                                class="btn btn-primary btn-sm print-nota-btn"
+                                target="_blank"
+                                title="Cetak Nota">
                                 <i class="fas fa-print"></i>
                             </a>
                         </div>

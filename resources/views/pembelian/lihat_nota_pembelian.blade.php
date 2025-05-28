@@ -162,7 +162,10 @@
                                         </button>
                                     @endif
                                     
-                                    <a href="{{ route('pembelian.nota.show', $purchase->id) }}" class="btn btn-sm btn-primary" target="_blank" title="Cetak Nota">
+                                    <a href="{{ route('pembelian.nota.show', $purchase->id) }}?auto-print=1" 
+                                    class="btn btn-sm btn-primary print-nota-btn" 
+                                    target="_blank" 
+                                    title="Cetak Nota">
                                         <i class="fas fa-print"></i>
                                     </a>
                                 </div>

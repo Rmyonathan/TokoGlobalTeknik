@@ -56,7 +56,7 @@
                     <td>{{ $supplier->hp_contact_person }}</td>
                     <td>{{ $supplier->kode_kategori }}</td>
                     <td>
-                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editSupplierModal-{{ $supplier->id }}">Edit</button>
+                        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#editSupplierModal-{{ $supplier->id }}">Edit</button>
                         <form action="{{ route('suppliers.destroy', $supplier) }}" method="POST" style="display:inline;">
                             @csrf
                             @method('DELETE')
@@ -72,7 +72,7 @@
     </div>
 </section>
 
-<!-- Add Customer Modal -->
+<!-- Add Supplier Modal -->
 <div class="modal fade" id="addSupplierModal" tabindex="-1" role="dialog" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -139,16 +139,16 @@
     @endif
 </div>
 
-<!-- Edit Customer Modals -->
+<!-- Edit Supplier Modals -->
 @foreach($suppliers as $supplier)
 <div class="modal fade" id="editSupplierModal-{{ $supplier->id }}" tabindex="-1" aria-labelledby="editSupplierModalLabel-{{ $supplier->id }}" aria-hidden="true">
     <div class="modal-dialog">
         <form action="{{ route('suppliers.update', $supplier) }}" method="POST">
             @csrf
             @method('PUT')
-            <div class="modal-content">
+            <div class="modal-content" style="border: 3px solid black;">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editSupplierModalLabel-{{ $supplier->id }}">Edit Pelanggan</h5>
+                    <h5 class="modal-title" id="editSupplierModalLabel-{{ $supplier->id }}">Edit Supplier</h5>
                     <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">

@@ -6,12 +6,12 @@
     <style>
         @page {
             size: 21.59cm 14cm;
-            margin: 1cm;
+            margin: 8mm;
         }
         body {
             font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.3;
+            font-size: 11px;
+            line-height: 1;
             color: #000;
             margin: 0;
             padding: 0;
@@ -22,7 +22,7 @@
         .row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
         table {
             width: 100%;
@@ -43,8 +43,8 @@
         .center { text-align: center; }
         .no-print {
             position: fixed;
-            top: 18px;
-            right: 30px;
+            top: 8px;
+            right: 20px;
             z-index: 999;
         }
         @media print {
@@ -57,16 +57,16 @@
         $defaultCompany = \App\Models\Perusahaan::where('is_default', true)->first() ?? new \App\Models\Perusahaan();
     @endphp
     
-    <div class="no-print" style="display:flex;gap:10px;">
+    <div class="no-print" style="display:flex;gap:8px;">
         <a href="{{ route('suratjalan.history') }}" 
         style="
                 display:inline-block;
-                padding:6px 18px;
+                padding:5px 12px;
                 background:#6c757d;
                 color:#fff;
                 border-radius:5px;
                 text-decoration:none;
-                font-size:14px;
+                font-size:12px;
                 border:none;
                 transition:background 0.2s;
             "
@@ -76,12 +76,12 @@
         </a>
         <button onclick="window.print()" 
             style="
-                padding:6px 18px;
+                padding:5px 12px;
                 background:#007bff;
                 color:#fff;
                 border-radius:5px;
                 border:none;
-                font-size:14px;
+                font-size:12px;
                 cursor:pointer;
                 transition:background 0.2s;
             "
@@ -169,5 +169,14 @@
             </td>
         </tr>
     </table>
+
+    <script>
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('auto_print') === '1') {
+                window.print();
+            }
+        };
+    </script>
 </body>
 </html>

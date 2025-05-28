@@ -107,7 +107,6 @@
                                     <th></th>
                                     <th></th>
                                     <th></th>
-                                    <th></th>
                                     <th>Total</th>
                                     <th>{{ $inventory['total_panels'] }}</th>
                                     <th>
@@ -119,6 +118,7 @@
                                             echo number_format($totalLength, 2);
                                         @endphp
                                     </th>
+                                    <th></th>
                                     <th></th>
                                 </tr>
                             </tfoot>

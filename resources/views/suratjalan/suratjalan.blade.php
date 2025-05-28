@@ -487,8 +487,8 @@ $(document).ready(function() {
 
             const formattedItems = items.map(item => {
                 return {
+                    transaksi_id: item.transaksi_item_id,
                     no_transaksi: $('#no_transaksi').val(),
-                    transaksi_id: selectedtransaksiId,
                     kode_barang: item.kode_barang,
                     nama_barang: item.nama_barang,
                     qty: item.qty

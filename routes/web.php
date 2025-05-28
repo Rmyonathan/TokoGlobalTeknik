@@ -140,6 +140,11 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/stok_owner', [StokOwnerController::class, 'store'])->name('stok_owner.store');
     });
     
+    // Stok Owner Management routes - Edit
+    Route::group(['middleware' => ['permission:edit customers'], 'prefix' => 'master'], function () {
+        Route::put('/stok_owner/{stokOwner}', [StokOwnerController::class, 'update'])->name('stok_owner.update');
+    });
+
     // Stok Owner Management routes - Delete
     Route::group(['middleware' => ['permission:delete stok owner'], 'prefix' => 'master'], function () {
         Route::delete('/stok_owner/{stokOwner}', [StokOwnerController::class, 'destroy'])->name('stok_owner.destroy');
