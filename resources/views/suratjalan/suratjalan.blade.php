@@ -203,10 +203,42 @@
 $(document).ready(function() {
 
     // Initialize variables
-    // Array to hold items
     let items = [];
     let transaksiGrandTotal = 0;
     let selectedtransaksiId = 0;
+
+    // Helper function to format date for HTML input
+    function formatDateForInput(dateValue) {
+        if (!dateValue) {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        try {
+            let dateObj;
+            
+            // If already in YYYY-MM-DD format
+            if (typeof dateValue === 'string' && dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return dateValue;
+            }
+            
+            // Convert to Date object
+            dateObj = new Date(dateValue);
+            
+            if (isNaN(dateObj.getTime())) {
+                throw new Error('Invalid date');
+            }
+            
+            // Format as YYYY-MM-DD
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            
+            return `${year}-${month}-${day}`;
+        } catch (error) {
+            console.error('Date formatting error:', error);
+            return new Date().toISOString().split('T')[0];
+        }
+    }
 
     // Search customer
     $('#customer').on('input', function() {
@@ -251,32 +283,42 @@ $(document).ready(function() {
         const alamatCustomer = $(this).data('alamat');
         const hpCustomer = $(this).data('hp');
         const telpCustomer = $(this).data('telp');
-        $('#customer').val(`${kodeCustomer} - ${namaCustomer}`); // Tampilkan kode dan nama customer di input utama
-        $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
+        
+        $('#customer').val(`${kodeCustomer} - ${namaCustomer}`);
+        $('#kode_customer').val(kodeCustomer);
         $('#alamatCustomer').val(alamatCustomer);
         $('#hpCustomer').val(`${hpCustomer} / ${telpCustomer}`);
         $('#alamat_suratjalan').val(alamatCustomer);
-
         $('#customerDropdown').hide();
 
-        // Customer has been selected, now get a list of transactions by this customer so we can show it in the dropdown
-        // User can search transactions made by this customer
-        $('#no_faktur').on('input', function() {
+        // Setup transaction search after customer is selected
+        setupTransactionSearch();
+    });
+
+    // Function to setup transaction search
+    function setupTransactionSearch() {
+        // Remove previous event handlers to avoid duplicates
+        $('#no_faktur').off('input.transactionSearch');
+        
+        $('#no_faktur').on('input.transactionSearch', function() {
             const keyword = $(this).val();
-            const kodeCustomer = $('#kode_customer').val(); // Get the selected customer code
+            const kodeCustomer = $('#kode_customer').val();
+            
             if (keyword.length > 0 && kodeCustomer.length > 0) {
                 $.ajax({
                     url: "{{ route('api.faktur.search') }}",
                     method: "GET",
                     data: { keyword, kode_customer: kodeCustomer },
                     success: function (data) {
+                        console.log('Transaction search response:', data); // Debug log
+                        
                         let dropdown = '';
                         if (data.length > 0) {
                             data.forEach(transaksi => {
-                                // Format tanggal ke "Tanggal Bulan Tahun"
                                 const tgl = new Date(transaksi.tanggal);
                                 const bulan = tgl.toLocaleString('id-ID', { month: 'long' });
                                 const tglFormatted = `${tgl.getDate()} ${bulan} ${tgl.getFullYear()}`;
+                                
                                 dropdown += `<a href="#" class="dropdown-item transaksi-item" 
                                     data-transaksi_id="${transaksi.id}"
                                     data-no_transaksi="${transaksi.no_transaksi}" 
@@ -290,68 +332,106 @@ $(document).ready(function() {
                         }
                         $('#notransaksiList').html(dropdown).show();
                     },
-                    error: function () {
+                    error: function (xhr, status, error) {
+                        console.error('Transaction search error:', error);
                         alert('Terjadi kesalahan saat mencari transaksi.');
                     }
                 });
-            } 
-            else {
+            } else {
                 $('#notransaksiList').hide();
             }
         });
-        $('#customerDropdown').hide();
+    }
 
-        // Select transaction from dropdown
-        $(document).on('click', '.transaksi-item', function(e) {
-            e.preventDefault();
-            const noTransaksi = $(this).data('no_transaksi');
-            const transaksiId = $(this).data('transaksi_id');
-            const kodeCustomer = $(this).data('kodecustomer');
-            const tanggalTransaksi = $(this).data('tanggal_transaksi');
-            const grandTotal = $(this).data('grand_total');
-            transaksiGrandTotal = grandTotal;
-            selectedtransaksiId = $(this).data('transaksi_id');
-
-            // Isi input dengan data transaksi yang dipilih
-            $('#no_transaksi').val(noTransaksi);
-            $('#no_faktur').val(noTransaksi);
-            $('#tanggal_transaksi').val(tanggalTransaksi);
-            $('#transaksi_id').val(transaksiId);
-            $('#notransaksiList').hide();
-            // Ambil detail transaksi berdasarkan transaksi yang dipilih
-            $.ajax({
-                url: "{{ url('api/suratjalan/transaksiitem/') }}/" + transaksiId, // Gunakan ID transaksi
-                method: "GET",
-                success: function(response) {
-                    let html = '';
-                    items = [];
-                    response.forEach(function(item, index) {
-                        html += 
-                            `<tr>
-                                <td>${index+1}</td>
-                                <td>${item.kode_barang}</td>
-                                <td class="editable-nama-barang" data-index="${index}">${item.keterangan}</td>
-                                <td>${item.qty}</td>
-                            </tr>`
-                        ;
-                        items.push({
-                            kode_barang: item.kode_barang,
-                            nama_barang: item.keterangan,
-                            panjang: item.panjang,
-                            qty: item.qty,
-                        })
-                    });
-                    $('#itemsList').html(html);
-                },
-            });
+    // Select transaction from dropdown
+    $(document).on('click', '.transaksi-item', function(e) {
+        e.preventDefault();
+        
+        const noTransaksi = $(this).data('no_transaksi');
+        const transaksiId = $(this).data('transaksi_id');
+        const tanggalTransaksi = $(this).data('tanggal_transaksi');
+        const grandTotal = $(this).data('grand_total');
+        
+        // Debug logging
+        console.log('Selected transaction data:', {
+            noTransaksi,
+            transaksiId,
+            tanggalTransaksi,
+            grandTotal
         });
-        $('#customerDropdown').hide();
+
+        // Update global variables
+        transaksiGrandTotal = grandTotal;
+        selectedtransaksiId = transaksiId;
+
+        // Format and set the date
+        const formattedDate = formatDateForInput(tanggalTransaksi);
+        console.log('Formatted date:', formattedDate);
+
+        // Populate form fields
+        $('#no_transaksi').val(noTransaksi);
+        $('#no_faktur').val(noTransaksi);
+        $('#transaksi_id').val(transaksiId);
+        
+        // Set date with enhanced handling
+        const $dateInput = $('#tanggal_transaksi');
+        $dateInput.prop('readonly', false); // Temporarily enable if readonly
+        $dateInput.val(formattedDate);
+        
+        // Verify the date was set
+        console.log('Date input value after setting:', $dateInput.val());
+        
+        // Re-enable readonly if it was originally readonly
+        // $dateInput.prop('readonly', true);
+        
+        $('#notransaksiList').hide();
+
+        // Fetch transaction items
+        fetchTransactionItems(transaksiId);
     });
 
+    // Function to fetch transaction items
+    function fetchTransactionItems(transaksiId) {
+        $.ajax({
+            url: "{{ url('api/suratjalan/transaksiitem/') }}/" + transaksiId,
+            method: "GET",
+            success: function(response) {
+                console.log('Transaction items response:', response);
+                
+                let html = '';
+                items = [];
+                
+                response.forEach(function(item, index) {
+                    html += `<tr>
+                        <td>${index+1}</td>
+                        <td>${item.kode_barang}</td>
+                        <td class="editable-nama-barang" data-index="${index}">${item.keterangan}</td>
+                        <td>${item.qty}</td>
+                    </tr>`;
+                    
+                    items.push({
+                        kode_barang: item.kode_barang,
+                        nama_barang: item.keterangan,
+                        panjang: item.panjang,
+                        qty: item.qty,
+                    });
+                });
+                
+                $('#itemsList').html(html);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching transaction items:', error);
+                alert('Terjadi kesalahan saat mengambil detail transaksi.');
+            }
+        });
+    }
+
+    // Editable nama barang functionality
     $(document).on('dblclick', '.editable-nama-barang', function() {
         const $td = $(this);
         const index = $td.data('index');
         const currentValue = $td.text();
+        
         if ($td.find('input').length > 0) return;
 
         const $input = $('<input type="text" class="form-control form-control-sm" />')
@@ -361,21 +441,17 @@ $(document).ready(function() {
         $td.html($input);
         $input.focus();
 
-        // Handler untuk simpan perubahan
         function saveEdit() {
             const newValue = $input.val();
             $td.text(newValue);
 
-            // Update array items juga!
             if (typeof items[index] !== 'undefined') {
                 items[index].nama_barang = newValue;
             }
 
-            // Hapus event global agar tidak menumpuk
             $(document).off('mousedown.namaBarangEdit');
         }
 
-        // Simpan saat blur atau tekan Enter
         $input.on('blur', saveEdit);
         $input.on('keydown', function(e) {
             if (e.key === 'Enter') {
@@ -383,33 +459,33 @@ $(document).ready(function() {
             }
         });
 
-        // Simpan juga jika klik di luar input
         $(document).on('mousedown.namaBarangEdit', function(event) {
             if (!$input.is(event.target) && $input.has(event.target).length === 0) {
                 $input.blur();
             }
         });
     });
-    // Hapus event handler global setelah selesai edit
+
+    // Cleanup event handler
     $(document).on('blur', '.editable-nama-barang input', function() {
         $(document).off('mousedown.namaBarangEdit');
     });
 
     // Save Surat Jalan
     $('#saveSuratJalan').click(function(){
-        // Apakah anda yakin ingin menyimpan surat jalan ini?
         if (confirm('Apakah anda yakin ingin menyimpan surat jalan ini?')){
-            // Validasi form
+            // Validation
             if(!$('#no_suratjalan').val() || !$('#kode_customer').val() || !$('#no_transaksi').val()) {
                 alert('Silakan lengkapi semua field yang diperlukan.');
                 return;
             }
+            
             if (items.length === 0) {
                 alert('Tidak ada barang dalam transaksi.');
                 return;
             }
 
-            const formatteditems = items.map(item => {
+            const formattedItems = items.map(item => {
                 return {
                     no_transaksi: $('#no_transaksi').val(),
                     transaksi_id: selectedtransaksiId,
@@ -429,15 +505,18 @@ $(document).ready(function() {
                 titipan_uang: $('#titipan_uang').val(),
                 sisa_piutang: $('#sisa_piutang').val(),
                 grand_total: transaksiGrandTotal,
-                items: formatteditems // Kirim data items ke server
+                items: formattedItems
             };
-            // Simpan data ke server
+
+            console.log('Saving surat jalan data:', suratjalanData);
+
             $.ajax({
                 url: "{{ route('suratjalan.store') }}",
                 method: "POST",
                 data: suratjalanData,
                 success: function(response) {
-                    // Tampilkan modal cetakan surat jalan
+                    console.log('Save response:', response);
+                    
                     $('#suratjalanNo').text(response.no_suratjalan);
                     $('#suratjalanNoTransaksi').text(response.no_transaksi);
                     $('#suratjalanTanggal').text(response.tanggal);
@@ -445,32 +524,44 @@ $(document).ready(function() {
                     $('#suratjalanAlamat').text(response.alamat_suratjalan);
                     $('#suratjalanGrandTotal').text(formatCurrency(response.grand_total));
 
-                    let suratJalanId = response.id
+                    let suratJalanId = response.id;
 
                     $('#printInvoiceBtn').off('click').on('click', function() {
                         window.open("{{ url('suratjalan/detail') }}/" + suratJalanId, '_blank');
                     });
 
                     $('#backToFormBtn').off('click').on('click', function(){
-                        window.location.href = "{{ route('suratjalan.create') }}"
+                        window.location.href = "{{ route('suratjalan.create') }}";
                     });
 
-                    // Tampilkan modal
                     $('#printsuratjalanModal').modal('show');
                 },
                 error: function(xhr, status, error) {
-                    alert('Terjadi kesalahan saat menyimpan surat jalan. ' + xhr.responseJSON.message);
+                    console.error('Save error:', xhr.responseJSON);
+                    alert('Terjadi kesalahan saat menyimpan surat jalan. ' + (xhr.responseJSON?.message || error));
                 }
             });
         }
+    });
 
+    // Reset form functionality
+    $('#resetForm').click(function() {
+        if (confirm('Apakah anda yakin ingin mereset form?')) {
+            location.reload();
+        }
     });
     
     function formatCurrency(amount) {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
     }
 
-});
+    // Hide dropdowns when clicking outside
+    $(document).click(function(e) {
+        if (!$(e.target).closest('.position-relative').length) {
+            $('.dropdown-menu').hide();
+        }
+    });
 
+});
 </script>
 @endsection
