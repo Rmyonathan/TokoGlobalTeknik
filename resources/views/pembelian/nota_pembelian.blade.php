@@ -1,3 +1,7 @@
+@php
+use Riskihajar\Terbilang\Facades\Terbilang;
+@endphp
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -255,6 +259,10 @@
             <td class="right"><strong>Rp {{ number_format($purchase->grand_total, 0, ',', '.') }}</strong></td>
         </tr>
     </table>
+
+    <div style="margin-top: 5px; margin-bottom: 10px; margin-right: 5px; font-style: italic; text-align: right;">
+        Terbilang: {{ ucwords(Terbilang::make($purchase->grand_total, ' rupiah')) }}
+    </div>
 
     <div class="signature">
         <div>

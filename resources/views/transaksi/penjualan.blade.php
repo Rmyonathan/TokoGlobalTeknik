@@ -112,7 +112,7 @@
                             <th>Nama Barang</th>
                             <th>Keterangan</th>
                             <th>Harga</th>
-                            <th>Length</th>
+                            <th>Panjang</th>
                             <th>Qty</th>
                             <th>Total</th>
                             <th>Diskon</th>

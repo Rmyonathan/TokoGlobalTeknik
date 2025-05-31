@@ -1,3 +1,7 @@
+@php
+use Riskihajar\Terbilang\Facades\Terbilang;
+@endphp
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -228,7 +232,7 @@
         </div>
 
         <br>
-
+        
         <table>
             <tr>
                 <th style="width: 70%">TOTAL</th>
@@ -246,15 +250,18 @@
                 <th>GRAND TOTAL</th>
                 <td class="right"><strong>Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</strong></td>
             </tr>
-            <tr>
-                <th>TITIPAN UANG</th>
-                <td class="right">Rp {{ number_format($transaction->dp, 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <th>SISA PIUTANG</th>
-                <td class="right">Rp {{ number_format($transaction->grand_total - $transaction->dp, 0, ',', '.') }}</td>
-            </tr>
         </table>
+
+        {{-- Tambahkan Terbilang --}}
+        <div style="margin-top: 5px; margin-bottom: 10px; margin-right: 5px; font-style: italic; text-align: right;">
+            <em>Terbilang: {{ ucwords(Terbilang::make($transaction->grand_total, ' rupiah')) }}</em>
+        </div>
+
+        {{-- Pindahkan informasi Titipan & Sisa Piutang --}}
+        <div style="margin-bottom: 10px;">
+            <div>Titipan Uang: Rp {{ number_format($transaction->dp, 0, ',', '.') }}</div>
+            <div>Sisa Piutang: Rp {{ number_format($transaction->grand_total - $transaction->dp, 0, ',', '.') }}</div>
+        </div>
 
         <div class="signature">
             <div>

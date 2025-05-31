@@ -142,7 +142,6 @@
                             <th>Keterangan</th>
                             <th>Harga</th>
                             <th>Qty</th>
-                            <th>Panjang</th>
                             <th>Total</th>
                             <th>Diskon</th>
                             <th>Aksi</th>

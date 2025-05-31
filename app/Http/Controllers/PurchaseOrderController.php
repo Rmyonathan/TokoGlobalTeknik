@@ -27,49 +27,67 @@ class PurchaseOrderController extends Controller
     {
         $now = now();
         $prefix = 'PO-' . $now->format('my'); // ex: PO-0625
-
-        $latestPO = PurchaseOrder::whereRaw("DATE_FORMAT(tanggal, '%m%y') = ?", [$now->format('my')])
+        
+        // Query yang works di SQLite dan MySQL
+        $latestPO = PurchaseOrder::whereYear('tanggal', $now->year)
+            ->whereMonth('tanggal', $now->month)
             ->orderBy('no_po', 'desc')
             ->first();
 
         $lastNumber = 0;
-
+        
         if ($latestPO) {
             // ambil 5 digit terakhir
             $lastNumber = (int) substr($latestPO->no_po, -5);
         }
 
-        $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT); // padding nol depan
+        $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
         return $prefix . '-' . $newNumber;
     }
 
     public function index(Request $request)
     {
-        $searchBy = $request->input('search_by');
-        $keyword = $request->input('search');
-        $query = PurchaseOrder::with('items');
+        $query = PurchaseOrder::with(['items', 'customer']);
 
-        if ($searchBy && $keyword) {
+        // Search filters
+        if ($request->filled('search_by') && $request->filled('search')) {
+            $searchBy = $request->search_by;
+            $keyword = $request->search;
+
             if ($searchBy === 'no_po') {
                 $query->where('no_po', 'like', "%{$keyword}%");
             } elseif ($searchBy === 'kode_customer') {
-                $query->where('kode_customer', 'like', "%{$keyword}%");
+                $query->whereHas('customer', function($q) use ($keyword) {
+                    $q->where('kode_customer', 'like', "%{$keyword}%")
+                    ->orWhere('nama', 'like', "%{$keyword}%");
+                });
             } elseif ($searchBy === 'sales') {
                 $query->where('sales', 'like', "%{$keyword}%");
-            } elseif ($searchBy === 'status') {
-                $query->where('status', 'like', "%{$keyword}%");
             }
-        } elseif ($keyword) {
-            // Default: cari di no_po dan kode_customer
-            $query->where(function($q) use ($keyword) {
-                $q->where('no_po', 'like', "%{$keyword}%")
-                ->orWhere('kode_customer', 'like', "%{$keyword}%");
-            });
         }
 
-        $purchaseOrders = $query->orderBy('tanggal', 'desc')->paginate(10)->withQueryString();
+        // Date range filter
+        if ($request->filled('date_from')) {
+            $query->whereDate('tanggal', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('tanggal', '<=', $request->date_to);
+        }
 
-        return view('transaksi.purchaseorder', compact('purchaseOrders', 'searchBy', 'keyword'));
+        // Status filter
+        if ($request->filled('status')) {
+            if ($request->status === 'cancelled') {
+                $query->where('status', 'like', 'cancelled%');
+            } else {
+                $query->where('status', $request->status);
+            }
+        }
+
+        $purchaseOrders = $query->orderBy('tanggal', 'desc')
+                            ->paginate(10)
+                            ->withQueryString();
+
+        return view('transaksi.purchaseorder', compact('purchaseOrders'));
     }
 
     public function show($id)

@@ -9,6 +9,7 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
+        "riskihajar/terbilang": "^2.0",
         "spatie/laravel-permission": "^6.18"
     },
     "require-dev": {

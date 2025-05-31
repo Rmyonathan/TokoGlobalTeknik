@@ -80,7 +80,7 @@ $(document).ready(function () {
                         data.forEach((item) => {
                             // Highlight the matching parts
                             let displayText = `${item.kode_barang} - ${item.name} (${item.length} m)`;
-                            
+
                             dropdown += `<a class="dropdown-item kode-barang-item" 
                                             data-kode="${item.kode_barang}" 
                                             data-name="${item.name}"
@@ -90,7 +90,8 @@ $(document).ready(function () {
                                         </a>`;
                         });
                     } else {
-                        dropdown = '<a class="dropdown-item disabled">Kode barang tidak ditemukan! Tambahkan di Master Data.</a>';
+                        dropdown =
+                            '<a class="dropdown-item disabled">Kode barang tidak ditemukan! Tambahkan di Master Data.</a>';
                     }
                     $("#kodeBarangDropdown").html(dropdown).show();
                 },
@@ -105,7 +106,7 @@ $(document).ready(function () {
     });
 
     // Select Kode Barang
-   $(document).on("click", ".kode-barang-item", function () {
+    $(document).on("click", ".kode-barang-item", function () {
         const kodeBarang = $(this).data("kode");
         const namaBarang = $(this).data("name");
         const length = $(this).data("length");
@@ -115,13 +116,13 @@ $(document).ready(function () {
         $("#nama_barang").val(namaBarang);
         $("#panjang").val(length);
         $("#harga").val(cost);
-        
+
         // Get panel name with AJAX request
         $.ajax({
             url: window.getPanelInfoUrl,
             method: "GET",
             data: { kode_barang: kodeBarang },
-            success: function(response) {
+            success: function (response) {
                 if (response.success && response.panel_name) {
                     // Set both Nama Barang and Keterangan to the same Panel name
                     $("#nama_barang").val(response.panel_name); // Update this line
@@ -131,12 +132,12 @@ $(document).ready(function () {
                 }
                 updateItemPreview();
             },
-            error: function() {
+            error: function () {
                 $("#keterangan").val(namaBarang);
                 updateItemPreview();
-            }
+            },
         });
-        
+
         $("#kodeBarangDropdown").hide();
     });
 
@@ -275,9 +276,6 @@ $(document).ready(function () {
                     <td>${item.keterangan || "-"}</td>
                     <td class="text-right">${formatCurrency(item.harga)}</td>
                     <td class="text-center">${item.qty}</td>
-                    <td class="text-center">${
-                        item.panjang > 0 ? item.panjang + " m" : "-"
-                    }</td> <!-- Display with meters unit -->
                     <td class="text-right">${formatCurrency(item.total)}</td>
                     <td class="text-right">${item.diskon}%</td>
                     <td>
@@ -465,7 +463,8 @@ $(document).ready(function () {
                             </tr>`;
                         });
                     } else {
-                        html = '<tr><td colspan="4" class="text-center">Tidak ada data ditemukan</td></tr>';
+                        html =
+                            '<tr><td colspan="4" class="text-center">Tidak ada data ditemukan</td></tr>';
                     }
                     $("#kodeBarangSearchResults").html(html);
                 },
@@ -478,20 +477,16 @@ $(document).ready(function () {
         }
     });
 
-   
-
-
-
-$(document).click(function (e) {
-    if (
-        !$(e.target).closest(
-            "#supplier, #supplierDropdown, #kode_barang, #kodeBarangDropdown, #cabang_display, #cabangDropdown"
-        ).length
-    ) {
-        $("#supplierDropdown").hide();
-        $("#kodeBarangDropdown").hide();
-    }
-});
+    $(document).click(function (e) {
+        if (
+            !$(e.target).closest(
+                "#supplier, #supplierDropdown, #kode_barang, #kodeBarangDropdown, #cabang_display, #cabangDropdown"
+            ).length
+        ) {
+            $("#supplierDropdown").hide();
+            $("#kodeBarangDropdown").hide();
+        }
+    });
     // Select Kode Barang from search modal
     $(document).on("click", ".select-kode-barang", function () {
         const kodeBarang = $(this).data("kode");
@@ -503,13 +498,13 @@ $(document).click(function (e) {
         $("#nama_barang").val(namaBarang);
         $("#panjang").val(length);
         $("#harga").val(cost);
-        
+
         // Get panel name with AJAX request
         $.ajax({
             url: window.getPanelInfoUrl,
             method: "GET",
             data: { kode_barang: kodeBarang },
-            success: function(response) {
+            success: function (response) {
                 if (response.success && response.panel_name) {
                     // Set both Nama Barang and Keterangan to the same Panel name
                     $("#nama_barang").val(response.panel_name); // Update this line
@@ -519,10 +514,10 @@ $(document).click(function (e) {
                 }
                 updateItemPreview();
             },
-            error: function() {
+            error: function () {
                 $("#keterangan").val(namaBarang);
                 updateItemPreview();
-            }
+            },
         });
 
         $("#kodeBarangSearchModal").modal("hide");

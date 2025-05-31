@@ -60,9 +60,9 @@
                                     <th>Group</th>
                                     <th>Harga Beli</th>
                                     <th>Harga Jual</th>
-                                    <th>Length (meters)</th>
+                                    <th>Panjang (meters)</th>
                                     <th>Available Quantity</th>
-                                    <th>Total Length (meters)</th>
+                                    <th>Total Panjang (meters)</th>
                                     <th>Status</th>
                                     <th>Aksi</th>
                                 </tr>

@@ -16,17 +16,17 @@
                     <form action="{{ route('code.store-code') }}" method="POST">
                         @csrf
                         <div class="form-group">
-                            <label for="name"><i class="fas fa-ruler mr-1"></i> Panel Name</label>
+                            <label for="name"><i class="fas fa-ruler mr-1"></i> Nama Barang</label>
                             <input type="text" step="0.01" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required>
                             @error('name')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Enter the name of the aluminum panels.</small>
+                            <small class="form-text text-muted">Masukkan Nama Barang.</small>
                         </div>
                         <div class="form-group">
-                            <label for="searchPenambah"><i class="fas fa-search mr-1"></i> Enter group name:</label>
+                            <label for="searchPenambah"><i class="fas fa-search mr-1"></i> Masukkan Nama Grup Barang:</label>
                             <div class="input-group">
-                                <input type="text" name="attribute" id="searchPenambah" class="form-control" placeholder="Search penambah code...">
+                                <input type="text" name="attribute" id="searchPenambah" class="form-control" placeholder="Cari kode barang...">
                                 <div class="input-group-append">
                                     <button type="button" id="searchPenambahBtn" class="btn btn-primary">
                                         <i class="fas fa-search"></i>
@@ -43,31 +43,31 @@
                             @error('kode_barang')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Enter the name of the group code.</small>
+                            <small class="form-text text-muted">Masukkan Kode Barang.</small>
                         </div>
                         <div class="form-group">
-                            <label for="length"><i class="fas fa-ruler mr-1"></i> Panel Length (meters)</label>
-                            <input type="number" step="0.01" class="form-control @error('length') is-invalid @enderror" id="length" name="length" value="{{ old('length') }}" required>
+                            <label for="length"><i class="fas fa-ruler mr-1"></i> Panjang Barang (meters)</label>
+                            <input type="number" step="0.01" class="form-control @error('panjang') is-invalid @enderror" id="length" name="length" value="{{ old('length') }}" required>
                             @error('length')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Enter the length of the aluminum panels in meters.</small>
+                            <small class="form-text text-muted">Masukkan panjang barang dalam satuan meter.</small>
                         </div>
                         <div class="form-group">
                             <label for="cost"><i class="fas fa-ruler mr-1"></i> Harga Beli (per meters)</label>
-                            <input type="number" step="0.01" class="form-control @error('cost') is-invalid @enderror" id="cost" name="cost" value="{{ old('cost') }}" required>
+                            <input type="number" step="0.01" class="form-control @error('Harga Beli') is-invalid @enderror" id="cost" name="cost" value="{{ old('cost') }}" required>
                             @error('cost')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Enter the price.</small>
+                            <small class="form-text text-muted">Masukkan Harga Beli.</small>
                         </div>
                         <div class="form-group">
                             <label for="price"><i class="fas fa-ruler mr-1"></i> Harga Jual (per meters)</label>
-                            <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ old('price') }}" required>
+                            <input type="number" step="0.01" class="form-control @error('Harga Jual') is-invalid @enderror" id="price" name="price" value="{{ old('price') }}" required>
                             @error('price')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Enter the price.</small>
+                            <small class="form-text text-muted">Masukkan Harga Jual.</small>
                         </div>
                         <div class="form-row">
                             <div class="col-md-6">
@@ -153,10 +153,10 @@ document.addEventListener('DOMContentLoaded', function() {
     searchPenambahInput.addEventListener('input', function () {
         const keyword = this.value.trim(); // Trim whitespace
         
-        if (keyword.length >= 2) {
+        if (keyword.length >= 1) {
             searchCodesDropdown(keyword, 'penambah');
         } else {
-            // Hide dropdown when input is less than 2 characters or empty
+            // Hide dropdown when input is less than 1 characters or empty
             document.getElementById('penambahDropdown').style.display = 'none';
         }
     });
