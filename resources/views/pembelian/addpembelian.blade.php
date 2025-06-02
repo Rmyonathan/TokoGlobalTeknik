@@ -140,7 +140,7 @@
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
                             <th>Keterangan</th>
-                            <th>Harga</th>
+                            <th>Harga Beli</th>
                             <th>Qty</th>
                             <th>Total</th>
                             <th>Diskon</th>
@@ -322,7 +322,7 @@
                         
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="harga">Harga</label>
+                                <label for="harga">Harga Beli</label>
                                 <input type="number" class="form-control" id="harga" name="harga" required>
                             </div>
                             

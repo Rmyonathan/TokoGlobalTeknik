@@ -74,11 +74,11 @@
                                         <td>{{ $item['group_id'] }}</td>
                                         <td>{{ $item['name'] }}</td>
                                         <td>{{ $item['group'] }}</td>
-                                        <td>Rp. {{ number_format($item['cost'], 2) }}</td>
-                                        <td>Rp. {{ number_format($item['price'], 2) }}</td>
-                                        <td>{{ number_format($item['length'], 2) }}</td>
+                                        <td>Rp. {{ number_format($item['cost']) }}</td>
+                                        <td>Rp. {{ number_format($item['price']) }}</td>
+                                        <td>{{ number_format($item['length']) }}</td>
                                         <td>{{ $item['quantity'] }}</td>
-                                        <td>{{ number_format($item['length'] * $item['quantity'], 2) }}</td>
+                                        <td>{{ number_format($item['length'] * $item['quantity']) }}</td>
                                         <td>{{ $item['status'] }}</td>
                                         <td>
                                             <div class="btn-group" role="group">

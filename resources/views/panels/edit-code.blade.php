@@ -42,9 +42,11 @@
                 <div class="form-group row">
                     <label for="length" class="col-sm-3 col-form-label">Panjang (m)</label>
                     <div class="col-sm-9">
-                        <input type="number" class="form-control" id="length" name="length" step="0.01" value="{{ old('length', $code->length) }}" required>
+                        <input type="number" class="form-control" id="length" name="length" step="0.01" 
+                            value="{{ rtrim(rtrim(old('length', $code->length), '0'), '.') }}" required>
                     </div>
                 </div>
+
 
             
 

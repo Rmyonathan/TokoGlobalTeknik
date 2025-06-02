@@ -38,11 +38,17 @@
 
                         <div class="form-group">
                             <label for="customer">Customer</label>
-                            <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan kode atau nama customer">
-                            <input type="hidden" id="kode_customer" name="kode_customer"> <!-- Hanya kode_customer yang dikirim -->
+                            <div class="input-group">
+                                <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan kode atau nama customer">
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addCustomerModal" title="Tambah Customer Baru">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="hidden" id="kode_customer" name="kode_customer">
                             <div id="customerDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
                         </div>
-
                         <div class="form-group">
                             <label for="customer">Alamat Customer</label>
                             <input type="text" id="alamatCustomer" name="customer-alamat" class="form-control" readonly>
@@ -111,8 +117,7 @@
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
                             <th>Keterangan</th>
-                            <th>Harga</th>
-                            <th>Panjang</th>
+                            <th>Harga Jual</th>
                             <th>Qty</th>
                             <th>Total</th>
                             <th>Diskon</th>
@@ -218,29 +223,32 @@
     </div>
 </div>
 
-<!-- Add Customer Modal -->
-<div class="modal fade" id="addCustomerModal" tabindex="-1" role="dialog" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+<!-- Simplified Add Customer Modal -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content" style="border: 3px solid black;">
             <form id="addCustomerForm">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addCustomerModalLabel">Tambah Customer Baru</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
+                    <h5 class="modal-title">Tambah Customer Baru</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Kode customer akan dibuat otomatis
+                    </div>
                     <div class="form-group">
-                        <label for="nama">Nama</label>
+                        <label for="nama">Nama <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="nama" name="nama" required>
                     </div>
                     <div class="form-group">
-                        <label for="alamat">Alamat</label>
-                        <input type="text" class="form-control" id="alamat" name="alamat">
+                        <label for="alamat">Alamat <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="alamat" name="alamat" rows="2" required></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="hp">HP</label>
+                        <label for="hp">HP <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="hp" name="hp" required>
                     </div>
                     <div class="form-group">
@@ -250,12 +258,16 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Simpan Customer
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+
 
 <!-- Add Item Modal -->
 <div class="modal fade" id="addItemModal" tabindex="-1" role="dialog" aria-labelledby="addItemModalLabel" aria-hidden="true">
@@ -451,29 +463,42 @@
         });
 
 
-        // Add new customer
         $('#addCustomerForm').on('submit', function (e) {
             e.preventDefault();
+            
             const formData = $(this).serialize();
+            const submitBtn = $(this).find('button[type="submit"]');
+            const originalText = submitBtn.html();
+            
+            submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...').prop('disabled', true);
+            
             $.ajax({
                 url: "{{ route('customers.store') }}",
                 method: "POST",
                 data: formData,
                 success: function (response) {
                     alert('Customer berhasil ditambahkan!');
+                    
+                    // Auto-populate customer field
+                    const customer = response.customer;
+                    $('#kode_customer').val(customer.kode_customer);
+                    $('#customer').val(`${customer.kode_customer} - ${customer.nama}`);
+                    $('#alamatCustomer').val(customer.alamat);
+                    $('#hpCustomer').val(`${customer.hp}${customer.telepon ? ' / ' + customer.telepon : ''}`);
+                    
                     $('#addCustomerModal').modal('hide');
                     $('#addCustomerForm')[0].reset();
                 },
                 error: function (xhr) {
-                    alert('Terjadi kesalahan: ' + xhr.responseJSON.message);
+                    alert('Terjadi kesalahan saat menyimpan customer.');
+                },
+                complete: function() {
+                    submitBtn.html(originalText).prop('disabled', false);
                 }
             });
         });
 
-        // Show add customer modal
-        $('#findCustomer').click(function () {
-            $('#addCustomerModal').modal('show');
-        });
+
 
         // Toggle discount and DP inputs
         $('#discount_checkbox').change(function() {
@@ -501,55 +526,46 @@
         });
 
         $('#saveItemBtn').click(function() {
-            const kodeBarang = $('#kode_barang').val();
-            const namaBarang = $('#nama_barang').val();
-            const keterangan = $('#keterangan').val();
-            const harga = parseInt($('#harga').val()) || 0;
-            const panjang = parseInt($('#panjang').val()) || 0;
-            const lebar = parseInt($('#lebar').val()) || 0;
-            const qty = parseInt($('#quantity').val()) || 0;
-            const diskon = parseInt($('#diskon').val()) || 0;
+        const kodeBarang = $('#kode_barang').val();
+        const namaBarang = $('#nama_barang').val();
+        const keterangan = $('#keterangan').val();
+        const harga = parseInt($('#harga').val()) || 0;  // Use edited price
+        const panjang = parseInt($('#panjang').val()) || 0;
+        const lebar = parseInt($('#lebar').val()) || 0;
+        const qty = parseInt($('#quantity').val()) || 0;
+        const diskon = parseInt($('#diskon').val()) || 0;
 
-            if (!kodeBarang || !namaBarang || !harga || !qty) {
-                alert('Mohon lengkapi data barang!');
-                return;
-            }
+        if (!kodeBarang || !namaBarang || !harga || !qty) {
+            alert('Mohon lengkapi data barang!');
+            return;
+        }
 
-            $.ajax({
-                url: `/panel/${kodeBarang}`,
-                method: 'GET',
-                success: function(panel) {
-                    const proporsi = (panjang / panel.length);
-                    const price = panel.price * proporsi
-                    const total = price * qty;
+        // Calculate total using the edited harga value
+        const total = harga * qty;
 
-                    const newItem = {
-                        kodeBarang,
-                        namaBarang,
-                        keterangan,
-                        harga: panel.price,
-                        panjang,
-                        lebar,
-                        qty,
-                        diskon,
-                        total
-                    };
+        const newItem = {
+            kodeBarang,
+            namaBarang,
+            keterangan,
+            harga: harga,  // Use the edited harga value
+            panjang,
+            lebar,
+            qty,
+            diskon,
+            total
+        };
 
-                    items.push(newItem);
-                    renderItems();
-                    calculateTotals();
+        items.push(newItem);
+        renderItems();
+        calculateTotals();
 
-                    // Reset form and close modal
-                    $('#addItemForm')[0].reset();
-                    $('#addItemModal').modal('hide');
-                    $('body').removeClass('modal-open');
-                    $('.modal-backdrop').remove();
-                },
-                error: function() {
-                    alert('Gagal mengambil data panel.');
-                }
-            });
-        });
+        // Reset form and close modal
+        $('#addItemForm')[0].reset();
+        $('#addItemModal').modal('hide');
+        $('body').removeClass('modal-open');
+        $('.modal-backdrop').remove();
+    });
+
 
         // Function to render items table
         function renderItems() {
@@ -563,7 +579,6 @@
                         <td>${item.namaBarang}</td>
                         <td>${item.keterangan}</td>
                         <td class="text-right">${formatCurrency(item.harga)}</td>
-                        <td>${item.panjang}</td>
                         <td>${item.qty}</td>
                         <td class="text-right">${formatCurrency(item.total)}</td>
                         <td class="text-right">${item.diskon}%</td>

@@ -34,7 +34,7 @@
                                 <tr>
                                     <td style="border: 1px solid #000;">{{ $code->kode_barang }}</td>
                                     <td style="border: 1px solid #000;">{{ $code->attribute }}</td>
-                                    <td style="border: 1px solid #000;">{{ number_format($code->length, 2) }}</td>
+                                    <td style="border: 1px solid #000;">{{ number_format($code->length) }}</td>
                                     <td style="border: 1px solid #000;">
                                         <div class="btn-group" role="group">
                                             <a href="{{ route('code.edit', $code->id) }}" class="btn btn-sm btn-success">

@@ -51,17 +51,27 @@ class CustomerController extends Controller
             'hp' => 'required',
             'telepon' => 'nullable',
         ]);
-        // Generate kode_customer otomatis
+
+        // Your existing code generation logic
         $lastCustomer = Customer::orderBy('id', 'desc')->first();
         $newKodeCustomer = $lastCustomer ? str_pad($lastCustomer->id + 1, 4, '0', STR_PAD_LEFT) : '0001';
-
-        // Tambahkan kode_customer ke data yang akan disimpan
         $validated['kode_customer'] = $newKodeCustomer;
 
-        Customer::create($validated);
+        $customer = Customer::create($validated);
 
+        // Handle AJAX requests (from modal)
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer berhasil ditambahkan',
+                'customer' => $customer
+            ]);
+        }
+
+        // Regular web requests (from main page)
         return redirect()->route('customers.index')->with('success', 'Customer added successfully.');
     }
+
 
     public function getCustomers(Request $request)
     {

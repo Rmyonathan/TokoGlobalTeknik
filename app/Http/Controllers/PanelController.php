@@ -141,9 +141,8 @@ class PanelController extends Controller
 
     public function searchAvailablePanels(Request $request){
         $keyword = $request->get('keyword');
-        // $so = $request->get('so', 'LAMPUNG'); // default SO, bisa diganti sesuai kebutuhan
 
-        // Cari panel yang cocok dengan keyword
+        // Get unique group_ids from panels first
         $panels = Panel::where(function($q) use ($keyword) {
                 $q->where('name', 'like', "%{$keyword}%")
                 ->orWhere('group_id', 'like', "%{$keyword}%");
@@ -158,15 +157,23 @@ class PanelController extends Controller
             })
             ->values();
 
-        // Filter hanya panel yang stoknya > 0 di tabel stocks
-        $filtered = $panels->filter(function($panel)  {
-            $stock = \App\Models\Stock::where('kode_barang', $panel->group_id)
-                ->first();
+        // Filter and get updated prices from KodeBarang
+        $filtered = $panels->filter(function($panel) {
+            $stock = \App\Models\Stock::where('kode_barang', $panel->group_id)->first();
             return $stock && $stock->good_stock > 0;
+        })->map(function($panel) {
+            // Get updated price from KodeBarang table
+            $kodeBarang = \App\Models\KodeBarang::where('kode_barang', $panel->group_id)->first();
+            if ($kodeBarang) {
+                $panel->price = $kodeBarang->price; // Use KodeBarang price instead of Panel price
+                $panel->cost = $kodeBarang->cost;   // Also update cost if needed
+            }
+            return $panel;
         });
 
         return response()->json($filtered->values());
     }
+
 
     /**
      * Search for panels by name or ID

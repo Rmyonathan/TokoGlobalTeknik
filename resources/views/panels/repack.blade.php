@@ -73,7 +73,7 @@
                                             </td>
                                             <td>{{ $order->name }}</td>
                                             <td>{{ $order->total_quantity }}</td>
-                                            <td>{{ number_format($order->total_length, 2) }}</td>
+                                            <td>{{ number_format($order->total_length) }}</td>
                                             <td>
                                                 <a href="{{ route('panels.print-receipt', $order->id) }}" class="btn btn-sm btn-info">
                                                     <i class="fas fa-print"></i>

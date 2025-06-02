@@ -50,9 +50,9 @@
                                             Unknown
                                         @endif
                                     </td>
-                                    <td>{{ number_format($item->original_panel_length, 2) }} m</td>
+                                    <td>{{ number_format($item->original_panel_length) }} m</td>
                                     <td>{{ $order->name }}</td>
-                                    <td>{{ number_format($item->length, 2) }} m</td>
+                                    <td>{{ number_format($item->length) }} m</td>
                                     <td>
                                         @php
                                             // Calculate how many result panels were created from this source panel

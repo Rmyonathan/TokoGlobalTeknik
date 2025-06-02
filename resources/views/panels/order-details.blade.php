@@ -40,7 +40,7 @@
                                 <p><strong>Result Panel:</strong> {{ $order->name }}</p>
                             @endif
                             <p><strong>Quantity:</strong> {{ $order->total_quantity }}</p>
-                            <p><strong>Total Length:</strong> {{ number_format($order->total_length, 2) }} meters</p>
+                            <p><strong>Total Length:</strong> {{ number_format($order->total_length) }} meters</p>
                         </div>
                     </div>
 
@@ -71,9 +71,9 @@
                                             Unknown
                                         @endif
                                     </td>
-                                    <td>{{ number_format($item->original_panel_length, 2) }} m</td>
-                                    <td>{{ number_format($item->length, 2) }} m</td>
-                                    <td>{{ number_format($item->remaining_length, 2) }} m</td>
+                                    <td>{{ number_format($item->original_panel_length) }} m</td>
+                                    <td>{{ number_format($item->length) }} m</td>
+                                    <td>{{ number_format($item->remaining_length) }} m</td>
                                 </tr>
                                 @endforeach
                             </tbody>

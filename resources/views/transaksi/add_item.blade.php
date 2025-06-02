@@ -36,7 +36,7 @@
 
         <div class="col-md-6">
             <div class="form-group">
-                <label for="harga">Harga</label>
+                <label for="harga">Harga Jual</label>
                 <input type="number" class="form-control" id="harga" name="harga" required>
             </div>
 
@@ -47,12 +47,7 @@
                         <input type="number" class="form-control" id="panjang" name="panjang" value="0" readonly>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="lebar">Lebar (L)</label>
-                        <input type="number" class="form-control" id="lebar" name="lebar" value="0" readonly>
-                    </div>
-                </div>
+               
             </div>
 
             <div class="row">
@@ -92,7 +87,7 @@
                         <tr>
                             <th>Kode</th>
                             <th>Keterangan</th>
-                            <th>Harga</th>
+                            <th>Harga Jual</th>
                             <th>Length</th>
                             <th>Qty</th>
                             <th>Total</th>
