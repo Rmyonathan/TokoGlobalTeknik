@@ -15,6 +15,7 @@ use App\Models\PembelianItem;
 use App\Models\TransaksiItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
@@ -73,176 +74,90 @@ class KasController extends Controller
         $tanggal_awal = $request->input('tanggal_awal');
         $tanggal_akhir = $request->input('tanggal_akhir');
 
+        // --- Ambil semua data dari database (logika ini tetap sama) ---
         $tunaiCaraBayars = CaraBayar::where('metode', 'Tunai')->pluck('nama')->toArray();
-
-        // Get active transactions (not canceled) for initial display
-        $penjualanQuery = Transaksi::whereIn('cara_bayar', $tunaiCaraBayars)
-            ->where('status', '!=', 'canceled')
-            ->get();
-
-        // Get ALL transactions including canceled ones for reference
         $allTransactions = Transaksi::whereIn('cara_bayar', $tunaiCaraBayars)->get();
         
-        // Create a lookup of canceled transactions
-        $canceledTransactions = [];
-        foreach ($allTransactions as $transaction) {
-            if ($transaction->status === 'canceled') {
-                $canceledTransactions[$transaction->no_transaksi] = true;
-            }
+        $array_penjualan = [];
+        foreach ($allTransactions as $penjualan) {
+            $items_list = TransaksiItem::where('no_transaksi', $penjualan->no_transaksi)->get()->map(fn($item) => $item->kode_barang . ' x ' . $item->qty)->implode(', ');
+            $namePrefix = $penjualan->status === 'canceled' ? 'Batal Transaksi: ' : ($penjualan->is_edited ? '[EDITED] ' : '');
+            $array_penjualan[] = [
+                'Name' => $namePrefix . $penjualan->no_transaksi, 'Deskripsi' => $items_list, 'Grand total' => $penjualan->status === 'canceled' ? 0 : $penjualan->grand_total, 'Date' => $penjualan->created_at, 'Type' => $penjualan->status === 'canceled' ? 'Batal' : 'Kredit', 'is_transaction' => true, 'transaction_status' => $penjualan->status, 'is_edited' => $penjualan->is_edited, 'original_amount' => $penjualan->grand_total,
+            ];
         }
 
-        $array_pembelian = [];
-        $array_penjualan = [];
-
-        // Get all kas entries
         $kasQuery = Kas::orderBy('created_at', 'asc')->get();
         $array_kas = [];
-
-        // Handle Penjualan - include both active and canceled transactions but mark canceled ones
-        foreach ($allTransactions as $penjualan) {
-            $items = TransaksiItem::where('no_transaksi', $penjualan->no_transaksi)->get();
-            $items_list = [];
-
-            foreach ($items as $item) {
-                $items_list[] = $item->kode_barang . ' x ' . $item->qty;
-            }
-
-            // Add status indicator
-            $namePrefix = '';
-            if ($penjualan->status === 'canceled') {
-                $namePrefix = 'Batal Transaksi: ';
-            } elseif ($penjualan->is_edited) {
-                $namePrefix = '[EDITED] ';
-            }
-
-            $array_penjualan[] = [
-                'Name' => $namePrefix . $penjualan->no_transaksi,
-                'Deskripsi' => implode(', ', $items_list),
-                'Grand total' => $penjualan->status === 'canceled' ? 0 : $penjualan->grand_total, // Show 0 for canceled
-                'Date' => $penjualan->created_at,
-                'Type' => $penjualan->status === 'canceled' ? 'Batal' : 'Kredit', // Special type for canceled
-                'is_transaction' => true,
-                'transaction_status' => $penjualan->status,
-                'is_edited' => $penjualan->is_edited,
-                'original_amount' => $penjualan->grand_total, // Keep for reference
-            ];
-        }
-        
-        // Handle Kas entries but skip cancellation entries - we'll use the transactions directly
         foreach ($kasQuery as $kas) {
-            // Skip any automatic kas entries created due to cancellations
-            if (!$kas->is_manual && strpos($kas->name, 'Batal Transaksi:') !== false) {
-                continue;
-            }
-            
-            // Skip any differential entries created due to edits
-            if (!$kas->is_manual && strpos($kas->name, 'Edit Transaksi:') !== false) {
-                continue;
-            }
-            
-            // Include other entries
-            $kasType = 'Manual';
+            if (!$kas->is_manual && (strpos($kas->name, 'Batal Transaksi:') !== false || strpos($kas->name, 'Edit Transaksi:') !== false)) continue;
             $isKasCanceled = $kas->is_canceled;
-            
-            if (!$kas->is_manual) {
-                if (strpos($kas->name, 'Edit Transaksi:') !== false) {
-                    $kasType = 'Edit Transaksi';
-                } else {
-                    $kasType = 'Sistem';
-                }
-            }
-
-            // Modify display values for canceled entries
-            $displayName = $kas->name;
-            $displayAmount = $kas->qty;
-            $displayType = $kas->type;
-            
-            if ($isKasCanceled) {
-                $displayName = '[DIBATALKAN] ' . $kas->name;
-                $displayAmount = 0; // Show 0 for canceled entries
-                $displayType = 'Batal';
-            }
-
             $array_kas[] = [
-                'id' => $kas->id,
-                'Name' => $displayName,
-                'Deskripsi' => $kas->description,
-                'Grand total' => $displayAmount,
-                'Date' => $kas->created_at,
-                'Type' => $displayType,
-                'is_manual' => $kas->is_manual,
-                'kas_type' => $kasType,
-                'is_transaction' => false,
-                'is_kas_canceled' => $isKasCanceled,
-                'original_amount' => $kas->qty, // Keep for reference
+                'id' => $kas->id, 'Name' => $isKasCanceled ? '[DIBATALKAN] ' . $kas->name : $kas->name, 'Deskripsi' => $kas->description, 'Grand total' => $isKasCanceled ? 0 : $kas->qty, 'Date' => $kas->created_at, 'Type' => $isKasCanceled ? 'Batal' : $kas->type, 'is_manual' => $kas->is_manual, 'kas_type' => $kas->is_manual ? 'Manual' : 'Sistem', 'is_transaction' => false, 'is_kas_canceled' => $isKasCanceled, 'original_amount' => $kas->qty,
             ];
         }
 
-        // Combine and sort by date
-        $gabungan = array_merge($array_pembelian, $array_penjualan, $array_kas);
-        usort($gabungan, function ($a, $b) {
-            return strtotime($a['Date']) <=> strtotime($b['Date']);
-        });
+        // 1. Gabungkan dan urutkan semua data secara kronologis
+        $gabungan = array_merge($array_penjualan, $array_kas);
+        usort($gabungan, fn($a, $b) => strtotime($a['Date']) <=> strtotime($b['Date']));
 
-        // Calculate running saldo - handle cancellations as zero effect
+        // 2. Hitung saldo berjalan pada seluruh data
         $saldo = 0;
         foreach ($gabungan as $key => $row) {
-            // Skip canceled entries in calculation or count them as zero
             if ($row['Type'] !== 'Batal') {
-                if ($row['Type'] == 'Kredit') {
-                    $saldo += $row['Grand total'];
-                } elseif ($row['Type'] == 'Debit') {
-                    $saldo -= $row['Grand total'];
-                }
+                $saldo += ($row['Type'] == 'Kredit' ? $row['Grand total'] : -$row['Grand total']);
             }
-            
-            // Store the running saldo for this entry
             $gabungan[$key]['Saldo'] = $saldo;
         }
 
-        // Apply filters
-        if ($value) {
-            $gabungan = collect($gabungan)->filter(function ($item) use ($value) {
-                return stripos($item['Name'], $value) !== false;
-            })->values()->all();
-        }
-
-        // Apply date filters if provided
-        $gabungan = collect($gabungan);
-        if ($tanggal_awal) {
-            $gabungan = $gabungan->filter(function ($item) use ($tanggal_awal) {
-                return \Carbon\Carbon::parse($item['Date'])->toDateString() >= $tanggal_awal;
-            });
-        }
-
-        if ($tanggal_akhir) {
-            $gabungan = $gabungan->filter(function ($item) use ($tanggal_akhir) {
-                return \Carbon\Carbon::parse($item['Date'])->toDateString() <= $tanggal_akhir;
-            });
-        }
-
-        $gabungan = $gabungan->values()->all();
-
-        // Calculate summary totals correctly
-        $totalKredit = 0;
-        $totalDebit = 0;
-        $totalTransaksi = count($allTransactions);
+        // 3. Ambil saldo terakhir SEBELUM data difilter
+        $saldoSaatIni = !empty($gabungan) ? end($gabungan)['Saldo'] : 0;
         
-        foreach ($gabungan as $item) {
-            if ($item['Type'] === 'Kredit') {
-                $totalKredit += $item['Grand total'];
-            } elseif ($item['Type'] === 'Debit') {
-                $totalDebit += $item['Grand total'];
-            }
-            // Batal type entries are excluded from totals
-        }
+        // 4. Terapkan filter pada data
+        $filtered_gabungan_collection = collect($gabungan)->when($value, function ($collection, $value) {
+            return $collection->filter(fn($item) => stripos($item['Name'], $value) !== false || stripos($item['Deskripsi'], $value) !== false);
+        })->when($tanggal_awal, function ($collection, $tanggal_awal) {
+            return $collection->filter(fn($item) => \Carbon\Carbon::parse($item['Date'])->toDateString() >= $tanggal_awal);
+        })->when($tanggal_akhir, function ($collection, $tanggal_akhir) {
+            return $collection->filter(fn($item) => \Carbon\Carbon::parse($item['Date'])->toDateString() <= $tanggal_akhir);
+        });
         
-        $saldoSaatIni = $totalKredit - $totalDebit;
+        $filtered_gabungan = $filtered_gabungan_collection->values()->all();
+        
+        // 5. Hitung total berdasarkan data yang SUDAH difilter
+        $totalKredit = $filtered_gabungan_collection->where('Type', 'Kredit')->sum('Grand total');
+        $totalDebit = $filtered_gabungan_collection->where('Type', 'Debit')->sum('Grand total');
+        $totalTransaksi = count($filtered_gabungan);
 
-        return view('viewKas', compact('gabungan', 'value', 'tanggal_awal', 'tanggal_akhir', 
-            'totalKredit', 'totalDebit', 'saldoSaatIni', 'totalTransaksi'));
+        // 6. Balik urutan array agar data terbaru di atas
+        $reversed_gabungan = array_reverse($filtered_gabungan);
+
+        // 7. Buat objek paginator secara manual dari array
+        $perPage = 15;
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $currentPageItems = array_slice($reversed_gabungan, ($currentPage - 1) * $perPage, $perPage);
+
+        $paginated_results = new LengthAwarePaginator(
+            $currentPageItems,
+            count($reversed_gabungan),
+            $perPage,
+            $currentPage,
+            // Penting: tambahkan path agar link paginasi berfungsi dengan benar
+            ['path' => LengthAwarePaginator::resolveCurrentPath()]
+        );
+
+        // 8. Kirim objek paginator ke view
+        return view('viewKas', [
+            'gabungan' => $paginated_results,
+            'saldoSaatIni' => $saldoSaatIni, 
+            'totalKredit' => $totalKredit,
+            'totalDebit' => $totalDebit,
+            'totalTransaksi' => $totalTransaksi,
+            'value' => $value, 
+            'tanggal_awal' => $tanggal_awal, 
+            'tanggal_akhir' => $tanggal_akhir
+        ]);
     }
-
     // DELETE KAS
     public function delete_kas(Request $request)
     {

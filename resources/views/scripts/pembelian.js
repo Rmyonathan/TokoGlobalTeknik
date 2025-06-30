@@ -334,93 +334,96 @@ $(document).ready(function () {
 
     // Save transaction
     $("#saveTransaction").click(function () {
-        if (confirm("Apakah Anda yakin ingin menyimpan?")) {
-            if (!$("#kode_supplier").val()) {
-                alert("Pilih supplier dari daftar yang tersedia!");
-                return;
-            }
-
-            if (items.length === 0) {
-                alert("Tidak ada barang yang ditambahkan!");
-                return;
-            }
-
-            // IMPORTANT: Changed 'supplier' to 'kode_supplier' to match the database column
-            const transactionData = {
-                nota: $("#no_nota").val(),
-                no_surat_jalan: $("#no_surat_jalan").val(),
-                tanggal: $("#tanggal").val(),
-                kode_supplier: $("#kode_supplier").val(), // This field name must match your database column
-                pembayaran: $("#pembayaran").val(),
-                cara_bayar: $("#cara_bayar").val(),
-                items: items,
-                subtotal: parseFloat(
-                    $("#total").val().replace(/\./g, "").replace(/,/g, ".")
-                ),
-                diskon: parseFloat(
-                    $("#discount_amount")
-                        .val()
-                        .replace(/\./g, "")
-                        .replace(/,/g, ".")
-                ),
-                ppn: parseFloat(
-                    $("#ppn_amount").val().replace(/\./g, "").replace(/,/g, ".")
-                ),
-                grand_total: grandTotal,
-            };
-
-            // Send data to backend
-            $.ajax({
-                url: window.storeTransactionUrl,
-                method: "POST",
-                data: transactionData,
-                headers: {
-                    "X-CSRF-TOKEN": window.csrfToken,
-                },
-                success: function (response) {
-                    // Tampilkan modal invoice
-                    $("#invoiceNota").text(response.nota);
-                    $("#invoiceTanggal").text(response.tanggal);
-                    $("#invoiceSupplier").text(
-                        response.supplier_name || response.kode_supplier
-                    );
-                    $("#invoiceGrandTotal").text(
-                        "Rp " +
-                            new Intl.NumberFormat("id-ID").format(
-                                response.grand_total || 0
-                            )
-                    );
-
-                    // Simpan ID transaksi untuk tombol Print
-                    const transactionId = response.id;
-
-                    // Tombol Print
-                    $("#printInvoiceBtn")
-                        .off("click")
-                        .on("click", function () {
-                            window.location.href =
-                                window.printInvoiceUrl + transactionId;
-                        });
-                    // Tombol Kembali
-                    $("#backToFormBtn")
-                        .off("click")
-                        .on("click", function () {
-                            window.location.href = window.backToPembelian;
-                        });
-
-                    $("#invoiceModal").modal("show");
-                },
-                error: function (xhr) {
-                    alert(
-                        "Terjadi kesalahan: " +
-                            (xhr.responseJSON
-                                ? xhr.responseJSON.message
-                                : xhr.statusText)
-                    );
-                },
-            });
+    if (confirm("Apakah Anda yakin ingin menyimpan?")) {
+        if (!$("#kode_supplier").val()) {
+            alert("Pilih supplier dari daftar yang tersedia!");
+            return;
         }
-    });
+
+        if (items.length === 0) {
+            alert("Tidak ada barang yang ditambahkan!");
+            return;
+        }
+
+        // IMPORTANT: Changed 'supplier' to 'kode_supplier' to match the database column
+        const transactionData = {
+            nota: $("#no_nota").val(),
+            no_surat_jalan: $("#no_surat_jalan").val(),
+            tanggal: $("#tanggal").val(),
+            kode_supplier: $("#kode_supplier").val(), // This field name must match your database column
+            pembayaran: $("#pembayaran").val(),
+            cara_bayar: $("#cara_bayar").val(),
+            items: items,
+            subtotal: parseFloat(
+                $("#total").val().replace(/\./g, "").replace(/,/g, ".")
+            ),
+            diskon: parseFloat(
+                $("#discount_amount")
+                    .val()
+                    .replace(/\./g, "")
+                    .replace(/,/g, ".")
+            ),
+            ppn: parseFloat(
+                $("#ppn_amount").val().replace(/\./g, "").replace(/,/g, ".")
+            ),
+            grand_total: grandTotal,
+        };
+
+        // Send data to backend
+        $.ajax({
+            url: window.storeTransactionUrl,
+            method: "POST",
+            data: transactionData,
+            headers: {
+                "X-CSRF-TOKEN": window.csrfToken,
+            },
+            success: function (response) {
+                // Tampilkan modal invoice
+                $("#invoiceNota").text(response.nota);
+                $("#invoiceTanggal").text(response.tanggal);
+                $("#invoiceSupplier").text(
+                    response.supplier_name || response.kode_supplier
+                );
+                $("#invoiceGrandTotal").text(
+                    "Rp " +
+                        new Intl.NumberFormat("id-ID").format(
+                            response.grand_total || 0
+                        )
+                );
+
+                // Simpan ID transaksi untuk tombol Print
+                const transactionId = response.id;
+
+                // --- PERUBAHAN DI SINI ---
+                // Tombol Print
+                $("#printInvoiceBtn")
+                    .off("click")
+                    .on("click", function () {
+                        // Buat URL dengan parameter auto_print=1 dan buka di tab baru
+                        const printUrl = `${window.printInvoiceUrl}${transactionId}?auto_print=1`;
+                        window.open(printUrl, '_blank');
+                    });
+                
+                // Tombol Kembali
+                $("#backToFormBtn")
+                    .off("click")
+                    .on("click", function () {
+                        window.location.href = window.backToPembelian;
+                    });
+
+                $("#invoiceModal").modal("show");
+            },
+            error: function (xhr) {
+                alert(
+                    "Terjadi kesalahan: " +
+                        (xhr.responseJSON
+                            ? xhr.responseJSON.message
+                            : xhr.statusText)
+                );
+            },
+        });
+    }
+});
 
     // Cancel transaction
     $("#cancelTransaction").click(function () {

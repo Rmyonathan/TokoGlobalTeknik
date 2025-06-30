@@ -301,14 +301,12 @@
                 </button>
             </div>
             <div class="modal-body">
-                <!-- Invoice Content -->
                 <div id="invoiceContent">
                     <h4>No Transaksi: <span id="invoiceNoTransaksi"></span></h4>
                     <p>Tanggal: <span id="invoiceTanggal"></span></p>
                     <p>Customer: <span id="invoiceCustomer"></span></p>
                     <p>Grand Total: <span id="invoiceGrandTotal"></span></p>
-                    <!-- Tambahkan detail lainnya jika diperlukan -->
-                </div>
+                    </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" id="printInvoiceBtn">
@@ -647,79 +645,82 @@
 
         // Save transaction
         $('#saveTransaction').click(function() {
-            if (confirm('Apakah Anda Yakin ingin menyimpan?')){
-                if (!$('#kode_customer').val()) {
-                    alert('Pilih customer dari daftar yang tersedia!');
-                    return;
-                }
+    if (confirm('Apakah Anda Yakin ingin menyimpan?')){
+        if (!$('#kode_customer').val()) {
+            alert('Pilih customer dari daftar yang tersedia!');
+            return;
+        }
 
-                if (items.length === 0) {
-                    alert('Tidak ada barang yang ditambahkan!');
-                    return;
-                }
+        if (items.length === 0) {
+            alert('Tidak ada barang yang ditambahkan!');
+            return;
+        }
 
-                const transactionData = {
-                    no_transaksi: $('#no_transaksi').val(),
-                    tanggal: $('#tanggal').val(),
-                    kode_customer: $('#kode_customer').val(),
-                    sales: $('#sales').val(),
-                    pembayaran: $('#metode_pembayaran').val(),
-                    cara_bayar: $('#cara_bayar').val(),
-                    tanggal_jadi: $('#tanggal_jadi').val(),
-                    items: items,
-                    subtotal: $('#total').val().replace(/\./g, ''),
-                    discount: $('#discount_amount').val().replace(/\./g, ''),
-                    disc_rp: $('#disc_rp').val(),
-                    ppn: $('#ppn_amount').val().replace(/\./g, ''),
-                    dp: $('#dp_amount').val(),
-                    grand_total: grandTotal
-                };
+        const transactionData = {
+            no_transaksi: $('#no_transaksi').val(),
+            tanggal: $('#tanggal').val(),
+            kode_customer: $('#kode_customer').val(),
+            sales: $('#sales').val(),
+            pembayaran: $('#metode_pembayaran').val(),
+            cara_bayar: $('#cara_bayar').val(),
+            tanggal_jadi: $('#tanggal_jadi').val(),
+            items: items,
+            subtotal: $('#total').val().replace(/\./g, ''),
+            discount: $('#discount_amount').val().replace(/\./g, ''),
+            disc_rp: $('#disc_rp').val(),
+            ppn: $('#ppn_amount').val().replace(/\./g, ''),
+            dp: $('#dp_amount').val(),
+            grand_total: grandTotal
+        };
 
-                showLoading();
+        showLoading();
 
-                // Simpan transaksi ke backend
-                $.ajax({
-                    url: "{{ route('transaksi.store') }}",
-                    method: "POST",
-                    data: transactionData,
-                    success: function(response) {
-                        hideLoading();
-                        // Tampilkan modal invoice
-                        $('#invoiceNoTransaksi').text(response.no_transaksi);
-                        $('#invoiceTanggal').text(response.tanggal);
-                        $('#invoiceCustomer').text(response.customer);
-                        $('#invoiceGrandTotal').text('Rp ' + new Intl.NumberFormat('id-ID').format(response.grand_total || 0));
+        // Simpan transaksi ke backend
+        $.ajax({
+            url: "{{ route('transaksi.store') }}",
+            method: "POST",
+            data: transactionData,
+            success: function(response) {
+                hideLoading();
+                // Tampilkan modal invoice
+                $('#invoiceNoTransaksi').text(response.no_transaksi);
+                $('#invoiceTanggal').text(response.tanggal);
+                $('#invoiceCustomer').text(response.customer);
+                $('#invoiceGrandTotal').text('Rp ' + new Intl.NumberFormat('id-ID').format(response.grand_total || 0));
 
-                        // Simpan ID transaksi untuk tombol Print
-                        const transactionId = response.id;
+                // Simpan ID transaksi untuk tombol Print
+                const transactionId = response.id;
 
-                        // Tombol Print
-                        $('#printInvoiceBtn').off('click').on('click', function() {
-                            window.location.href = "{{ url('transaksi/lihatnota') }}/" + transactionId;
-                        });
-
-                        $('#invoiceModal').modal('show');
-                    },
-                    error: function(xhr) {
-                        hideLoading();
-                        alert('Terjadi kesalahan: ' + xhr.responseJSON.message);
-                    }
+                // Tombol Print
+                $('#printInvoiceBtn').off('click').on('click', function() {
+                    // --- PERUBAHAN DI SINI ---
+                    // Buka nota di tab baru dengan parameter auto_print=1
+                    const printUrl = `{{ url('transaksi/lihatnota') }}/${transactionId}?auto_print=1`;
+                    window.open(printUrl, '_blank');
                 });
 
-                // Tombol Kembali
-                $('#backToFormBtn').off('click').on('click', function(){
-                    $('#invoiceModal').modal('hide');
-                    $('#transactionForm')[0].reset();
-                    items = [];
-                    renderItems();
-                    calculateTotals();
-                    window.location.href = "{{ route('transaksi.penjualan') }}";
-                });
-
-                // You would typically send this data to your backend using AJAX
-                console.log('Transaction data:', transactionData);
+                $('#invoiceModal').modal('show');
+            },
+            error: function(xhr) {
+                hideLoading();
+                alert('Terjadi kesalahan: ' + xhr.responseJSON.message);
             }
         });
+
+        // Tombol Kembali
+        $('#backToFormBtn').off('click').on('click', function(){
+            $('#invoiceModal').modal('hide');
+            $('#transactionForm')[0].reset();
+            items = [];
+            renderItems();
+            calculateTotals();
+            window.location.href = "{{ route('transaksi.penjualan') }}";
+        });
+
+        // You would typically send this data to your backend using AJAX
+        console.log('Transaction data:', transactionData);
+    }
+});
 
         // Button Buat PO
         $('#buatPOBtn').click(function(){

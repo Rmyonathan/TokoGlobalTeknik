@@ -529,7 +529,8 @@ $(document).ready(function() {
                     let suratJalanId = response.id;
 
                     $('#printInvoiceBtn').off('click').on('click', function() {
-                        window.open("{{ url('suratjalan/detail') }}/" + suratJalanId, '_blank');
+                        const printUrl = `{{ url('suratjalan/detail') }}/${suratJalanId}?auto_print=1`;
+                        window.open(printUrl, '_blank');
                     });
 
                     $('#backToFormBtn').off('click').on('click', function(){
