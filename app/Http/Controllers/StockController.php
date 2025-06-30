@@ -269,6 +269,7 @@ class StockController extends Controller
                 'keterangan' => $keterangan,
                 'created_by' => $created_by
             ]);
+            
 
             DB::commit();
             return true;

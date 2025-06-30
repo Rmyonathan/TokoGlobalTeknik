@@ -36,6 +36,7 @@ class SuratJalanController extends Controller
             'titipan_uang' => 'nullable|numeric',
             'sisa_piutang' => 'nullable|numeric',
             'items' => 'required|array',
+            'items.*.transaksi_id' => 'required|integer',
             'items.*.no_transaksi' => 'required|exists:transaksi,no_transaksi',
         ]);
     
@@ -97,14 +98,18 @@ class SuratJalanController extends Controller
             $query->where('tanggal', '<=', $request->end_date);
         }
 
-        $suratJalan = $query->orderBy('tanggal', 'desc')->paginate(10)->withQueryString();
+        // FIX: Replaced withQueryString() with appends() to avoid linter errors.
+        // This keeps the filter and search parameters in the pagination links.
+        $suratJalan = $query->latest('created_at')->paginate(10)->appends($request->query());
 
         return view('suratjalan.historysuratjalan', compact('suratJalan'));
     }
 
     public function detail($id)
     {
-        $suratJalan = SuratJalan::with('items.transaksiItem', 'customer')->findOrFail($id);
+        // FIX: Added 'transaksi.items' to ensure all data is available for the view,
+        // which prevents potential errors if the view accesses it.
+        $suratJalan = SuratJalan::with(['items', 'customer', 'transaksi.items'])->findOrFail($id);
         return view('suratjalan.detail', compact('suratJalan'));
     }
 }

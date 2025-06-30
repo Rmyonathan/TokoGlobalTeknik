@@ -60,14 +60,14 @@
             <form action="{{ route('stok_owner.store') }}" method="POST">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addStokOwnerModalLabel">Tambah Stok Owner</h5>
+                    <h5 class="modal-title" id="addStokOwnerModalLabel">Tambah Sales</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="kode_stok_owner">Kode Stok Owner</label>
+                        <label for="kode_stok_owner">Kode Sales</label>
                         <input type="text" name="kode_stok_owner" class="form-control" maxlength="12" required>
                     </div>
                     <div class="form-group">

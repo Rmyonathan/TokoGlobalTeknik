@@ -146,7 +146,7 @@ class TransaksiController extends Controller
             // Create transaction
             $transaksi = Transaksi::create([
                 'no_transaksi' => $request->no_transaksi,
-                'tanggal' => $request->tanggal,
+                'tanggal' => now(),
                 'kode_customer' => $request->kode_customer,
                 'sales' => $request->sales,
                 'pembayaran' => $request->pembayaran,
@@ -191,7 +191,7 @@ class TransaksiController extends Controller
                     $item['kodeBarang'],
                     $item['namaBarang'],
                     $noTransaksi,
-                    $request->tanggal,
+                    now(),
                     $request->no_transaksi,
                     $customerName . ' (' . $request->kode_customer . ')',
                     $item['qty'],
@@ -325,7 +325,7 @@ class TransaksiController extends Controller
                     $item->kode_barang,
                     $item->nama_barang,
                     $noTransaksiMutasi,
-                    now(),
+                    $currentDateTime,
                     $noTransaksi . ' (reversal)',
                     $customerName . ' (' . $request->kode_customer . ')',
                     $item->qty,
@@ -355,7 +355,7 @@ class TransaksiController extends Controller
                 'ppn' => $request->ppn ?? 0,
                 'dp' => $request->dp ?? 0,
                 'grand_total' => $request->grand_total,
-                'updated_at' => $currentDateTime, // This helps track when changes occurred
+                'updated_at' => $currentDateTime,
                 'is_edited' => true,
                 'edited_by' => $editor,
                 'edited_at' => $currentDateTime,
@@ -420,7 +420,7 @@ class TransaksiController extends Controller
                         'description' => "Transaksi diubah dari tunai ke {$request->cara_bayar} oleh {$editor}. Alasan: {$request->edit_reason}",
                         'qty' => $originalGrandTotal,
                         'type' => 'Debit',
-                        'saldo' => 0, // Will be calculated by adjustKasSaldo
+                        'saldo' => 0,
                         'is_manual' => false,
                     ]);
                 }
@@ -431,7 +431,7 @@ class TransaksiController extends Controller
                         'description' => "Transaksi diubah dari {$originalCaraBayar} ke tunai oleh {$editor}. Alasan: {$request->edit_reason}",
                         'qty' => $newGrandTotal,
                         'type' => 'Kredit',
-                        'saldo' => 0, // Will be calculated by adjustKasSaldo
+                        'saldo' => 0,
                         'is_manual' => false,
                     ]);
                 }
@@ -444,7 +444,7 @@ class TransaksiController extends Controller
                             'description' => "Transaksi diubah oleh {$editor}. Total: " . number_format($originalGrandTotal, 0, ',', '.') . " → " . number_format($newGrandTotal, 0, ',', '.') . ". Alasan: {$request->edit_reason}",
                             'qty' => abs($difference),
                             'type' => $difference > 0 ? 'Kredit' : 'Debit',
-                            'saldo' => 0, // Will be calculated by adjustKasSaldo
+                            'saldo' => 0,
                             'is_manual' => false,
                         ]);
                     }
@@ -470,25 +470,26 @@ class TransaksiController extends Controller
                     ->with('success', 'Transaksi berhasil diperbarui. Data customer telah diperbarui.');
             }
             
-         // For non-AJAX requests
+            // For non-AJAX requests
             return redirect()->route('transaksi.shownota', $transaksi->id)
                 ->with('success', 'Transaksi berhasil diperbarui.');
                     
-            } catch (\Exception $e) {
-                DB::rollBack();
-                Log::error('Error in transaksi update:', ['exception' => $e->getMessage()]);
-                
-                if ($request->ajax() || $request->wantsJson()) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-                    ], 500);
-                }
-                
-                return redirect()->back()
-                    ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in transaksi update:', ['exception' => $e->getMessage()]);
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ], 500);
             }
+            
+            return redirect()->back()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
+
 
     /**
      * Cancel Transaction Function

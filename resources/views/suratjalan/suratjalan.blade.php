@@ -410,6 +410,7 @@ $(document).ready(function() {
                     </tr>`;
                     
                     items.push({
+                        transaksi_item_id: item.id, // ✅ Add this line!
                         kode_barang: item.kode_barang,
                         nama_barang: item.keterangan,
                         panjang: item.panjang,
@@ -425,6 +426,7 @@ $(document).ready(function() {
             }
         });
     }
+
 
     // Editable nama barang functionality
     $(document).on('dblclick', '.editable-nama-barang', function() {

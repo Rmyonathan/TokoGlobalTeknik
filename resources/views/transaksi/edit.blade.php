@@ -115,7 +115,6 @@
                             <th>Nama Barang</th>
                             <th>Keterangan</th>
                             <th>Harga</th>
-                            <th>Length</th>
                             <th>Qty</th>
                             <th>Total</th>
                             <th>Diskon</th>
@@ -208,7 +207,7 @@
                         <button type="button" class="btn btn-success" id="updateTransaction">
                             <i class="fas fa-save"></i> Simpan Perubahan
                         </button>
-                        <a href="{{ route('transaksi.shownota', $transaction->id) }}" class="btn btn-secondary">
+                        <a href="{{ route('transaksi.listnota') }}" class="btn btn-secondary">
                             <i class="fas fa-times"></i> Batal
                         </a>
                     </div>
@@ -420,56 +419,49 @@
             calculateTotals();
         });
 
-        $('#saveItemBtn').click(function() {
-            const kodeBarang = $('#kode_barang').val();
-            const namaBarang = $('#nama_barang').val();
-            const keterangan = $('#keterangan').val();
-            const harga = parseInt($('#harga').val()) || 0;
-            const panjang = parseInt($('#panjang').val()) || 0;
-            const lebar = parseInt($('#lebar').val()) || 0;
-            const qty = parseInt($('#quantity').val()) || 0;
-            const diskon = parseInt($('#diskon').val()) || 0;
+       $('#saveItemBtn').click(function() {
+        const kodeBarang = $('#kode_barang').val();
+        const namaBarang = $('#nama_barang').val();
+        const keterangan = $('#keterangan').val();
+        const harga = parseInt($('#harga').val()) || 0;  // ✅ Use form input
+        const panjang = parseInt($('#panjang').val()) || 0;
+        const lebar = parseInt($('#lebar').val()) || 0;
+        const qty = parseInt($('#quantity').val()) || 0;
+        const diskon = parseInt($('#diskon').val()) || 0;
 
-            if (!kodeBarang || !namaBarang || !harga || !qty) {
-                alert('Mohon lengkapi data barang!');
-                return;
-            }
+        if (!kodeBarang || !namaBarang || !harga || !qty) {
+            alert('Mohon lengkapi data barang!');
+            return;
+        }
 
-            $.ajax({
-                url: `/panel/${kodeBarang}`,
-                method: 'GET',
-                success: function(panel) {
-                    const proporsi = (panjang / panel.length);
-                    const price = panel.price * proporsi
-                    const total = price * qty;
+        // ✅ Calculate total directly from form inputs
+        const subTotal = harga * qty;
+        const diskonAmount = (diskon / 100) * subTotal;
+        const total = subTotal - diskonAmount;
 
-                    const newItem = {
-                        kodeBarang,
-                        namaBarang,
-                        keterangan,
-                        harga: panel.price,
-                        panjang,
-                        lebar,
-                        qty,
-                        diskon,
-                        total
-                    };
+        const newItem = {
+            kodeBarang,
+            namaBarang,
+            keterangan,
+            harga,      // ✅ Use selling price from form
+            panjang,
+            lebar,
+            qty,
+            diskon,
+            total       // ✅ Use calculated total
+        };
 
-                    items.push(newItem);
-                    renderItems();
-                    calculateTotals();
+        items.push(newItem);
+        renderItems();
+        calculateTotals();
 
-                    // Reset form and close modal
-                    $('#addItemForm')[0].reset();
-                    $('#addItemModal').modal('hide');
-                    $('body').removeClass('modal-open');
-                    $('.modal-backdrop').remove();
-                },
-                error: function() {
-                    alert('Gagal mengambil data panel.');
-                }
-            });
-        });
+        // Reset form and close modal
+        $('#addItemForm')[0].reset();
+        $('#addItemModal').modal('hide');
+        $('body').removeClass('modal-open');
+        $('.modal-backdrop').remove();
+    });
+
 
         // Function to render items table
         function renderItems() {
@@ -483,7 +475,6 @@
                         <td>${item.namaBarang}</td>
                         <td>${item.keterangan}</td>
                         <td class="text-right">${formatCurrency(item.harga)}</td>
-                        <td>${item.panjang}</td>
                         <td>${item.qty}</td>
                         <td class="text-right">${formatCurrency(item.total)}</td>
                         <td class="text-right">${item.diskon}%</td>

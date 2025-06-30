@@ -137,7 +137,7 @@
         .side-navbar .nav-link.active i {
             color: white;
         }
-        
+
         .side-navbar .dropdown-menu {
             background-color: var(--primary-color);
             border: none;
@@ -306,7 +306,7 @@
         }
 
         /* Pagination links */
-        .pagination li a, 
+        .pagination li a,
         .pagination li span {
             display: block;
             padding: 5px 8px; /* Reduced from 6px 10px */
@@ -480,7 +480,7 @@
                 font-size: 0.9rem; /* Reduced from 0.95rem */
                 border-radius: 0;
             }
-            
+
             /* Reduce title box size on mobile */
             .title-box {
                 font-size: 1rem;
@@ -495,7 +495,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-warehouse brand-logo"></i>
-               Atap Management System
+               Program Kas dan Pos
             </a>
             <button class="navbar-toggler" type="button" id="topNavToggle">
                 <span class="navbar-toggler-icon"></span>
@@ -536,7 +536,7 @@
                     <div class="collapse bg-dark border-0" id="masterMenu">
                         <!-- Master menu items -->
                         <ul class="nav flex-column ml-3">
-                            
+
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('master.barang') }}"><i class="fas fa-layer-group"></i> Master Barang</a>
                             </li>
@@ -555,8 +555,8 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('perusahaan.index')); ?>"><i class="bi bi-building"></i> Master Perusahaan</a>
                             </li>
-                            
-                            
+
+
                         </ul>
                     </div>
                 </li>
@@ -584,7 +584,7 @@
                                             <a class="nav-link" href="{{ route('transaksi.penjualancustomer') }}"><i class="fas fa-user-tag mr-2"></i>Data Penjualan Per Customer</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="<?php echo e(route('transaksi.index')); ?>"><i class="fas fa-envelope-open-text"></i> List Nota Penjualan</a>
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-envelope-open-text"></i> List Nota Penjualan</a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('transaksi.purchaseorder')); ?>"><i class="bi bi-cash-stack me-2"></i>Purchase Order</a>
@@ -605,10 +605,10 @@
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-envelope-open-text"></i> List Nota Pembelian</a>
-                                        </li>   
+                                        </li>
                                     </ul>
                                 </div>
-                            </li> 
+                            </li>
                         </ul>
                     </div>
                 </li>
@@ -628,7 +628,7 @@
                             <a class="nav-link" href="{{ route('suratjalan.history') }}"><i class="fas fa-clock-rotate-left"></i> Display Surat Jalan</a>
                             </li>
                         </ul>
-                    </div> 
+                    </div>
                 </li>
                 <li class='nav-item'>
                     <a class="nav-link" data-toggle="collapse" href="#barang" role="button" aria-expanded="false" aria-controls="suratjalan">
@@ -642,13 +642,13 @@
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('stock.mutasi')); ?>"><i class="fas fa-exchange-alt"></i> Mutasi Stok Barang</a>
-                                        </li> 
+                                        </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('stock.adjustment.index')); ?>"><i class="bi bi-arrow-repeat"></i> Stok adjustment</a>
                                         </li>
                                     </ul>
                                 </div>
-                </li>            
+                </li>
 
                 <li class="nav-item">
                     <a class="nav-link" href="/viewKas"><i class="fas fa-money-bill-wave mr-2"></i>Kas</a>
@@ -739,7 +739,7 @@
     </script>
 
     <?php echo $__env->yieldContent('scripts'); ?>
-    
+
 </body>
 </html>
 <?php /**PATH C:\Work\AtapJerri\resources\views/layout/Nav.blade.php ENDPATH**/ ?>

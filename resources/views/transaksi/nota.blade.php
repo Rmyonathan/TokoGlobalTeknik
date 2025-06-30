@@ -7,67 +7,96 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 <head>
     <meta charset="UTF-8">
     <title>Nota Transaksi</title>
-     <script>
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Jika ada query ?print=1, langsung print
+            // If there's a query ?print=1, print immediately
             if (window.location.search.includes('print=1')) {
                 window.print();
             }
         });
     </script>
     <style>
-       @page {
-            size: 21.59cm 14cm;
-            margin: 8mm; /* Reduced margin from default */
+        /* Universal rule for more predictable layouts */
+        * {
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: 21.59cm 13.97cm; /* Exact match with Faktur paper size */
+            /* * IMPORTANT: Set to 0. You MUST also set Margins to "None" or "Minimum"
+             * in your browser's print preview dialog for this to work effectively.
+             */
+            margin: 0mm;
         }
 
         body {
             font-family: 'Courier New', monospace;
-            font-size: 10px; /* Reduced from 12px */
-            line-height: 1.1; /* Reduced from 1.3 */
+            font-size: 9px; /* Further reduced font size */
+            line-height: 1.0; /* Tighter line height */
             margin: 0;
             padding: 0;
+            width: 100%;
+            max-width: none;
+        }
+        
+        .page {
+            width: 100%;
+            max-width: 100%;
+            padding: 3mm; /* Add padding here to create an internal margin */
+            box-sizing: border-box;
         }
 
         .header, .footer {
             text-align: center;
-            margin-bottom: 8px; /* Reduced margin */
+            margin-bottom: 6px; /* Reduced margin */
         }
 
         .row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 3px; /* Reduced from 5px */
+            margin-bottom: 2px; /* Further reduced margin */
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 5px; /* Reduced from 8px */
-            margin-bottom: 5px;
+            margin-top: 3px; /* Reduced margin */
+            margin-bottom: 3px;
+            table-layout: auto;
         }
 
         th, td {
             border: 1px solid black;
-            padding: 2px; /* Reduced from 3.3px */
-            font-size: 9px; /* Smaller font for table */
+            padding: 1.5px; /* Further reduced padding */
+            font-size: 8px; /* Smaller font for table */
+            word-wrap: break-word;
         }
+        
+        /* Optimize column widths for better space utilization */
+        th:nth-child(1), td:nth-child(1) { width: 5%; } /* No. */
+        th:nth-child(2), td:nth-child(2) { width: 12%; } /* Kode Barang */
+        th:nth-child(3), td:nth-child(3) { width: 25%; } /* Nama Barang */
+        th:nth-child(4), td:nth-child(4) { width: 8%; } /* Qty */
+        th:nth-child(5), td:nth-child(5) { width: 15%; } /* Harga Satuan */
+        th:nth-child(6), td:nth-child(6) { width: 8%; } /* Disc % */
+        th:nth-child(7), td:nth-child(7) { width: 12%; } /* Disc Rp */
+        th:nth-child(8), td:nth-child(8) { width: 15%; } /* Sub Total */
 
         .right { text-align: right; }
         .center { text-align: center; }
 
         .note {
-            font-size: 9px; /* Reduced from 11px */
-            margin-top: 8px; /* Reduced from 10px */
-            margin-bottom: 5px;
-            line-height: 1.1;
+            font-size: 8px; /* Further reduced font size */
+            margin-top: 5px; /* Reduced margin */
+            margin-bottom: 3px;
+            line-height: 1.0;
         }
 
         .signature {
-            margin-top: 15px; /* Reduced from 30px */
+            margin-top: 10px; /* Reduced margin for smaller height */
             display: flex;
             justify-content: space-between;
-            font-size: 9px;
+            font-size: 8px;
         }
 
         .page-break {
@@ -76,38 +105,38 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 
         /* Compact spacing for specific elements */
         .header strong {
-            font-size: 12px;
+            font-size: 11px; /* Slightly smaller */
         }
 
         .header br {
-            line-height: 0.8;
+            line-height: 0.7; /* Tighter line spacing */
         }
 
         /* Make the summary table more compact */
         table:last-of-type th,
         table:last-of-type td {
-            padding: 1.5px;
-            font-size: 9px;
+            padding: 1px; /* Minimal padding */
+            font-size: 8px;
         }
 
         /* Reduce spacing in customer info */
         .row div {
-            line-height: 1.1;
+            line-height: 1.0;
         }
 
         /* Status badges - make them smaller */
         .status-badge {
-            font-size: 8px;
-            padding: 2px 4px;
-            margin-top: 3px;
+            font-size: 7px;
+            padding: 1px 3px;
+            margin-top: 2px;
         }
 
         .edit-info-box {
-            font-size: 8px;
-            margin-top: 5px;
-            padding: 3px;
+            font-size: 7px;
+            margin-top: 3px;
+            padding: 2px;
             border: 1px solid #ccc;
-            line-height: 1.1;
+            line-height: 1.0;
         }
 
         /* Tombol di kanan atas, hanya tampil di layar */
@@ -131,19 +160,73 @@ use Riskihajar\Terbilang\Facades\Terbilang;
         .top-right-buttons button:hover, .top-right-buttons a:hover {
             background: #0056b3;
         }
+        
+        /* Terbilang section styling */
+        .terbilang-section {
+            margin-top: 3px; 
+            margin-bottom: 5px; 
+            margin-right: 5px; 
+            font-style: italic; 
+            text-align: right;
+            font-size: 8px;
+        }
+        
+        /* Payment info section */
+        .payment-info {
+            margin-bottom: 5px;
+            font-size: 8px;
+        }
+        
         @media print {
             .top-right-buttons {
                 display: none !important;
             }
             
-            /* Additional print-specific adjustments */
+            /* Force full width utilization in print */
             body {
-                font-size: 9px;
+                font-size: 8px; /* Even smaller for print */
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
             .page {
                 height: auto;
                 overflow: visible;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                /* Padding should be maintained to create space from the physical edge */
+                padding: 3mm !important;
+            }
+            
+            /* Force table to use full available width */
+            table {
+                width: 100% !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+            
+            /* Ensure content spans full width */
+            .header, .row, .note, .signature, .terbilang-section, .payment-info {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            /* Ensure content fits within page boundaries */
+            .signature {
+                margin-top: 8px;
+            }
+            
+            .note {
+                margin-top: 3px;
+                margin-bottom: 2px;
+            }
+            
+            table {
+                margin-top: 2px;
+                margin-bottom: 2px;
             }
         }
     </style>
@@ -151,7 +234,7 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 <body>
 
 <div class="top-right-buttons">
-    <a href="{{ url()->previous() }}" class="btn btn-secondary">Kembali</a>
+    <a href="{{ route('transaksi.listnota') }}" class="btn btn-secondary">Kembali</a>
     <button onclick="window.print()">Print</button>
     @if($transaction->status != 'canceled')
         <a href="{{ route('transaksi.edit', $transaction->id) }}" class="btn btn-warning">Edit</a>
@@ -230,8 +313,6 @@ use Riskihajar\Terbilang\Facades\Terbilang;
             Barang masih titipan dari {{ $defaultCompany->nama ?? 'CV. Alumka Cipta Prima' }}, bila belum dilunasi.<br>
             {{ $defaultCompany->catatan_nota ?? 'Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.' }}
         </div>
-
-        <br>
         
         <table>
             <tr>
@@ -252,24 +333,24 @@ use Riskihajar\Terbilang\Facades\Terbilang;
             </tr>
         </table>
 
-        {{-- Tambahkan Terbilang --}}
-        <div style="margin-top: 5px; margin-bottom: 10px; margin-right: 5px; font-style: italic; text-align: right;">
+        {{-- Terbilang --}}
+        <div class="terbilang-section">
             <em>Terbilang: {{ ucwords(Terbilang::make($transaction->grand_total, ' rupiah')) }}</em>
         </div>
 
-        {{-- Pindahkan informasi Titipan & Sisa Piutang --}}
-        <div style="margin-bottom: 10px;">
+        {{-- Payment Info --}}
+        <div class="payment-info">
             <div>Titipan Uang: Rp {{ number_format($transaction->dp, 0, ',', '.') }}</div>
             <div>Sisa Piutang: Rp {{ number_format($transaction->grand_total - $transaction->dp, 0, ',', '.') }}</div>
         </div>
 
         <div class="signature">
             <div>
-                HORMAT KAMI<br><br><br><br>
+                HORMAT KAMI<br><br><br>
                 (_____________)
             </div>
             <div class="right">
-                PENERIMA<br><br><br><br>
+                PENERIMA<br><br><br>
                 (_____________)
             </div>
         </div>

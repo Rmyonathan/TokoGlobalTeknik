@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\KodeBarang;
 use App\Models\Panel;
+use App\Models\Stock;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Auth\Events\Validated;
@@ -70,6 +71,8 @@ class PanelController extends Controller
             $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->kode_barang;
 
             if (!isset($groupedPanels[$key])) {
+                $stock = Stock::where('kode_barang', $panel->kode_barang)->first();
+                $actualQuantity = $stock ? $stock->good_stock : 0;
                 $groupedPanels[$key] = [
                     'id' => $panel->id,
                     'length' => $panel->length,
@@ -79,8 +82,8 @@ class PanelController extends Controller
                     'group_id' => $panel->kode_barang,
                     'group' => $panel->attribute,
                     'status' => $panel->status,
-                    'quantity' => Panel::where('group_id', $panel->kode_barang)->where('available', True)->count()
-                ];
+                    'quantity' => $actualQuantity
+                    ];
             } else {
                 $groupedPanels[$key]['quantity']++;
             }

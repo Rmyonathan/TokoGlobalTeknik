@@ -277,9 +277,6 @@ $(document).ready(function () {
                     <td>${item.keterangan || "-"}</td>
                     <td class="text-right">${formatCurrency(item.harga)}</td>
                     <td class="text-center">${item.qty}</td>
-                    <td class="text-center">${
-                        item.panjang > 0 ? item.panjang + " m" : "-"
-                    }</td>
                     <td class="text-right">${formatCurrency(item.total)}</td>
                     <td class="text-right">${item.diskon}%</td>
                     <td>

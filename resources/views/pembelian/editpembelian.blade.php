@@ -89,7 +89,6 @@
                             <th>Keterangan</th>
                             <th>Harga</th>
                             <th>Qty</th>
-                            <th>Panjang</th>
                             <th>Total</th>
                             <th>Diskon</th>
                             <th>Aksi</th>
@@ -219,10 +218,6 @@
                                 <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" required>
                             </div>
 
-                            <div class="form-group">
-                                <label for="panjang">Panjang</label>
-                                <input type="number" class="form-control" id="panjang" name="panjang" value="0" min="0" step="0.01">
-                            </div>
                             
                             <div class="form-group">
                                 <label for="diskon">Diskon (%)</label>

@@ -17,111 +17,119 @@ use Riskihajar\Terbilang\Facades\Terbilang;
         });
     </script>
     <style>
+        /* Universal rule for more predictable layouts */
+        * {
+            box-sizing: border-box;
+        }
+
         @page {
-            size: 21.59cm 14cm;
-            margin: 8mm;
+            size: 21.59cm 13.97cm; /* Standardized to match sales nota */
+            /* * IMPORTANT: Set to 0. You MUST also set Margins to "None" or "Minimum"
+             * in your browser's print preview dialog for this to work effectively.
+             */
+            margin: 0mm;
         }
 
         body {
             font-family: 'Courier New', monospace;
-            font-size: 10px;
-            line-height: 1.1;
+            font-size: 9px;
+            line-height: 1.0;
             margin: 0;
             padding: 0;
+            width: 100%;
+            max-width: none;
+        }
+        
+        .page {
+            width: 100%;
+            max-width: 100%;
+            padding: 3mm; /* Add padding here to create an internal margin */
+            box-sizing: border-box;
         }
 
         .header, .footer {
             text-align: center;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 5px;
-            margin-bottom: 5px;
+            margin-top: 3px;
+            margin-bottom: 3px;
+            table-layout: auto;
         }
 
         th, td {
             border: 1px solid black;
-            padding: 2px;
-            font-size: 9px;
+            padding: 1.5px;
+            font-size: 8px;
+            word-wrap: break-word;
         }
-
+        
         .right { text-align: right; }
         .center { text-align: center; }
 
         .note {
-            font-size: 9px;
-            margin-top: 8px;
-            margin-bottom: 5px;
-            line-height: 1.1;
+            font-size: 8px;
+            margin-top: 5px;
+            margin-bottom: 3px;
+            line-height: 1.0;
         }
 
         .signature {
-            margin-top: 15px;
+            margin-top: 10px;
             display: flex;
             justify-content: space-between;
-            font-size: 9px;
+            font-size: 8px;
         }
 
         .page-break {
             page-break-after: always;
         }
 
-        /* Status badges styling */
-        .status-badge {
-            font-size: 8px;
-            padding: 2px 4px;
-            margin-top: 3px;
-            border: 1px solid #000;
-            display: inline-block;
-            margin-bottom: 5px;
-        }
-
-        .status-canceled {
-            background-color: #ffdddd;
-            color: #cc0000;
-        }
-
-        .status-edited {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        /* Header styling to match sales nota */
         .header strong {
             font-size: 11px;
         }
 
         .header br {
-            line-height: 0.8;
+            line-height: 0.7;
         }
 
-        /* Make supplier info section more compact */
-        .row div {
-            line-height: 1.1;
-        }
-
-        /* Make the summary table more compact */
         table:last-of-type th,
         table:last-of-type td {
-            padding: 1.5px;
-            font-size: 9px;
+            padding: 1px;
+            font-size: 8px;
+        }
+
+        .row div {
+            line-height: 1.0;
         }
 
         .edit-info-box {
-            font-size: 8px;
-            margin-top: 5px;
-            padding: 3px;
+            font-size: 7px;
+            margin-top: 3px;
+            padding: 2px;
             border: 1px solid #ccc;
-            line-height: 1.1;
+            line-height: 1.0;
+        }
+
+        .status-badge {
+            font-size: 7px;
+            padding: 1px 3px;
+            margin-top: 2px;
+            border: 1px solid #000;
+            display: inline-block;
+        }
+        .status-canceled {
+            background-color: #ffdddd;
+            color: #cc0000;
         }
 
         /* Tombol di kanan atas, hanya tampil di layar */
@@ -145,20 +153,43 @@ use Riskihajar\Terbilang\Facades\Terbilang;
         .top-right-buttons button:hover, .top-right-buttons a:hover {
             background: #0056b3;
         }
+        
         @media print {
             .top-right-buttons {
                 display: none !important;
             }
             
-            /* Additional print-specific adjustments */
             body {
-                font-size: 9px;
+                font-size: 8px;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
             .page {
                 height: auto;
                 overflow: visible;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 3mm !important;
             }
+            
+            table {
+                width: 100% !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+            
+            .header, .row, .note, .signature, .terbilang-section {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            .signature { margin-top: 8px; }
+            .note { margin-top: 3px; margin-bottom: 2px; }
+            table { margin-top: 2px; margin-bottom: 2px; }
         }
     </style>
 </head>
@@ -184,7 +215,6 @@ use Riskihajar\Terbilang\Facades\Terbilang;
         
         @if($purchase->status == 'canceled')
             <div class="status-badge status-canceled">DIBATALKAN</div>
-        
         @endif
     </div>
 
@@ -239,8 +269,6 @@ use Riskihajar\Terbilang\Facades\Terbilang;
         {{ $defaultCompany->catatan_nota ?? 'Pembayaran dengan Cek, Giro, BG, dan sejenisnya dianggap sah setelah dananya cair.' }}
     </div>
 
-    <br>
-
     <table>
         <tr>
             <th style="width: 70%">TOTAL</th>
@@ -260,17 +288,17 @@ use Riskihajar\Terbilang\Facades\Terbilang;
         </tr>
     </table>
 
-    <div style="margin-top: 5px; margin-bottom: 10px; margin-right: 5px; font-style: italic; text-align: right;">
+    <div class="terbilang-section" style="margin-top: 3px; margin-bottom: 5px; margin-right: 5px; font-style: italic; text-align: right; font-size: 8px;">
         Terbilang: {{ ucwords(Terbilang::make($purchase->grand_total, ' rupiah')) }}
     </div>
 
     <div class="signature">
         <div>
-            HORMAT KAMI<br><br><br><br>
+            HORMAT KAMI<br><br><br>
             (_____________)
         </div>
         <div class="right">
-            PENERIMA<br><br><br><br>
+            PENERIMA<br><br><br>
             (_____________)
         </div>
     </div>
