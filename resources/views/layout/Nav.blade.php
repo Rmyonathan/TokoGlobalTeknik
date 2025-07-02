@@ -742,4 +742,4 @@
 
 </body>
 </html>
-<?php /**PATH C:\Work\AtapJerri\resources\views/layout/Nav.blade.php ENDPATH**/ ?>
+<?php ?>
