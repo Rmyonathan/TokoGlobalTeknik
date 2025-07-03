@@ -301,7 +301,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         // View routes
         Route::get('/lihatnota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.lihatnota');
         Route::get('/shownota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.shownota');
-        Route::get('/nota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.nota');
+        Route::get('/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
         
         // This catch-all route should be LAST
         Route::get('/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');

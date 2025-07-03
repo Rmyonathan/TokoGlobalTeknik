@@ -926,9 +926,17 @@ class TransaksiController extends Controller
         $itemsPerPage = 10;
         $groupedItems = $transaction->items->chunk($itemsPerPage);
 
-        $pdf = Pdf::loadView('transaksi.nota', [
+        // Load the new print-specific view for PDF generation
+        $pdf = Pdf::loadView('transaksi.print_nota', [ // Changed from 'transaksi.nota' to 'transaksi.print_nota'
             'transaction' => $transaction,
             'groupedItems' => $groupedItems
+        ]);
+
+        // Set PDF options for paper size, orientation, and DPI
+        $pdf->setOptions([
+            'defaultPaperSize' => 'statement', // Sets paper size to Statement
+            'defaultPaperOrientation' => 'landscape', // Explicitly sets landscape orientation
+            'dpi' => 240 // Sets DPI to 240 for improved clarity
         ]);
 
         return $pdf->stream('nota.pdf');
