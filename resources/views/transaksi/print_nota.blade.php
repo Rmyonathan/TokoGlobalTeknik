@@ -165,10 +165,13 @@ use Riskihajar\Terbilang\Facades\Terbilang;
             width: 100%;
             display: flex;
             justify-content: space-between;
-            margin-top: 4mm; /* Reduced margin */
-            font-size: 7.5pt; /* Slightly larger font for signatures */
-            padding: 0 5mm;
+            margin-top: 100px;
+            font-size: 9pt;
+            padding-top: 50px;
         }
+        .signature-left { float: left; text-align: center; width: 20%; }
+        .signature-right { float: right; text-align: center; width: 20%; }
+
         .signature-column {
             flex: 1;
             text-align: center;
@@ -234,18 +237,20 @@ use Riskihajar\Terbilang\Facades\Terbilang;
         </div>
 
         {{-- CUSTOMER AND DATE INFORMATION --}}
-        <div class="info-row">
-            <div class="info-left-section">
+        <table style="width: 100%; table-layout: fixed;">
+            <tr>
+                <td style="width: 65%; vertical-align: top;">
                 <strong>Kpd Yth:</strong><br>
                 Nama: {{ $transaction->customer->nama ?? '-' }}<br>
                 Telp: {{ $transaction->customer->telepon ?? '-' }}<br>
                 Alamat: {{ $transaction->customer->alamat ?? '-' }}
-            </div>
-            <div class="info-right-section">
+                </td>
+                <td style="width: 35%; vertical-align: top; text-align: right;">
                 {{ \Carbon\Carbon::parse($transaction->tanggal)->format('d M Y') }}<br>
                 HALAMAN: {{ $pageNum }} / {{ $totalPages }}
-            </div>
-        </div>
+                </td>
+            </tr>
+        </table>
 
         {{-- ITEMS TABLE --}}
         <table class="item-table">
@@ -330,16 +335,19 @@ use Riskihajar\Terbilang\Facades\Terbilang;
                 </tr>
             </table>
 
-            <div class="signature-row">
-                <div class="signature-column">
-                    <div class="signature-label">HORMAT KAMI</div>
-                    <div class="signature-text"></div>
-                </div>
-                <div class="signature-column">
-                    <div class="signature-label">PENERIMA</div>
-                    <div class="signature-text"></div>
-                </div>
-            </div>
+            <table style="width: 100%; margin-top: 20px; font-size: 9pt; table-layout: fixed;">
+                <tr>
+                    <td style="width: 20%; text-align: center;">
+                    HORMAT KAMI<br><br><br>
+                    ( _____________ )
+                    </td>
+                    <td style="width: 60%;"></td>
+                    <td style="width: 20%; text-align: center;">
+                    PENERIMA<br><br><br>
+                    ( _____________ )
+                    </td>
+                </tr>
+            </table>
 
             @if($transaction->is_edited || $transaction->status == 'canceled')
             <div class="edit-info-box">
