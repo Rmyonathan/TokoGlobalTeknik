@@ -15,9 +15,9 @@
             size: 21.59cm 13.97cm;
             margin: 0mm;
         }
-        
+
         body {
-            font-family: 'Courier New', monospace; 
+            font-family: 'Courier New', monospace;
             font-size: 9pt;
             line-height: 1.2;
             color: #000;
@@ -29,7 +29,7 @@
             width: 100%;
             height: 100%;
             /* Memberi sedikit padding agar tidak terlalu mepet ke tepi */
-            padding: 10mm 8mm 5mm 8mm; 
+            padding: 10mm 8mm 5mm 8mm;
         }
 
         /* Sisa dari CSS Anda tidak perlu diubah karena sudah bagus */
@@ -38,7 +38,7 @@
         .header strong { font-size: 10pt; }
         .row { display: flex; justify-content: space-between; margin-bottom: 2px; }
         table.item-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
-        table.item-table th, 
+        table.item-table th,
         table.item-table td { border: 1px solid #000; padding: 2px 3px; font-size: 8pt; vertical-align: top; }
         table.item-table th { font-weight: bold; }
         tr.empty-row td { border-left: 1px solid #000; border-right: 1px solid #000; border-top: 1px solid transparent; border-bottom: 1px solid transparent; }
@@ -61,7 +61,7 @@
     @php
         $defaultCompany = \App\Models\Perusahaan::where('is_default', true)->first() ?? new \App\Models\Perusahaan();
     @endphp
-    
+
     <div class="no-print">
         <a href="{{ route('suratjalan.history') }}">&#8592; Kembali</a>
         <button onclick="window.print()">&#128424; Print</button>
@@ -117,8 +117,8 @@
                 @endforeach
 
                 {{-- Menambahkan baris kosong otomatis --}}
-                @php 
-                    $max_items = 8; 
+                @php
+                    $max_items = 8;
                 @endphp
                 @for ($j = count($suratJalan->transaksi->items); $j < $max_items; $j++)
                     <tr class="empty-row">

@@ -129,29 +129,34 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 
         /* Wrapper for notes and payment details */
         .notes-details-wrapper {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            width: 100%;
-            margin-top: 1.5mm; /* Reduced margin */
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        margin-top: 1.5mm !important;
         }
 
-        /* Notes section styling */
         .notes-section {
-            flex-basis: 60%;
-            padding-right: 2mm; /* Reduced padding */
-            font-size: 7pt; /* Consistent font size */
-            line-height: 1.05;
-            padding: 0.8mm; /* Reduced padding */
+        flex: 1 1 0%;
+        min-width: 55%;
+        padding-right: 2mm !important;
+        font-size: 7pt !important;
+        line-height: 1.05 !important;
+        padding: 0.8mm !important;
         }
 
-        /* Payment details section styling */
         .details-row {
-            flex-basis: 40%;
-            font-size: 7pt; /* Consistent font size */
-            text-align: right;
-            padding-left: 2mm; /* Reduced padding */
+        flex: 0 1 auto;
+        min-width: 40%;
+        display: flex !important;
+        flex-direction: column !important;
+        font-size: 7pt !important;
+        text-align: right !important;
+        padding-left: 2mm !important;
         }
+
+
         .payment-info { margin-bottom: 0.8mm; } /* Reduced margin */
         .terbilang-section { font-style: italic; }
 
@@ -209,7 +214,7 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 
 @php
     $defaultCompany = \App\Models\Perusahaan::where('is_default', true)->first() ?? new \App\Models\Perusahaan();
-    $itemsPerPage = 5; // Number of items per page on the invoice
+    $itemsPerPage = 10; // Number of items per page on the invoice
     $groupedItems = $transaction->items->chunk($itemsPerPage);
     $totalPages = $groupedItems->count();
     $pageNum = 0;
@@ -307,22 +312,23 @@ use Riskihajar\Terbilang\Facades\Terbilang;
                 </tr>
             </table>
 
-            <div class="notes-details-wrapper">
-                <div class="notes-section">
+            <table style="width: 100%; table-layout: fixed;">
+                <tr>
+                    <td style="width: 60%; vertical-align: top; padding-right: 10px;">
                     <strong>PERHATIAN !!!</strong><br>
                     Barang masih titipan dari {{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}, bila belum dilunasi. Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.
-                </div>
-
-                <div class="details-row">
-                    <div class="payment-info">
+                    </td>
+                    <td style="width: 40%; vertical-align: top; text-align: right;">
+                    <div>
                         Titipan Uang: Rp {{ number_format($transaction->dp, 0, ',', '.') }}<br>
                         Sisa Piutang: Rp {{ number_format($transaction->grand_total - $transaction->dp, 0, ',', '.') }}
                     </div>
-                    <div class="terbilang-section">
+                    <div style="font-style: italic; margin-top: 4px;">
                         Terbilang: {{ ucwords(Terbilang::make($transaction->grand_total, ' rupiah')) }}
                     </div>
-                </div>
-            </div>
+                    </td>
+                </tr>
+            </table>
 
             <div class="signature-row">
                 <div class="signature-column">
