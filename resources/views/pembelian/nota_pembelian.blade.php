@@ -30,6 +30,7 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 
         .page {
             width: 95%;
+            margin: 0 auto; /* Center the page */
             padding: 8mm 5mm 5mm 5mm; 
             display: flex;
             flex-direction: column;
@@ -114,7 +115,7 @@ use Riskihajar\Terbilang\Facades\Terbilang;
         .signature-row {
             width: 100%;
             overflow: hidden; /* Clearfix for floats */
-            margin-top: 10px; 
+            margin-top: 35px; 
             font-size: 9pt;
         }
         .signature-left { float: left; text-align: center; }
