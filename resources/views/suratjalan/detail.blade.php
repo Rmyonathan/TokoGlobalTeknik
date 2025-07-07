@@ -41,9 +41,9 @@
         table.item-table th,
         table.item-table td { border: 1px solid #000; padding: 2px 3px; font-size: 8pt; vertical-align: top; }
         table.item-table th { font-weight: bold; }
-        tr.empty-row td { border-left: 1px solid #000; border-right: 1px solid #000; border-top: 1px solid transparent; border-bottom: 1px solid transparent; }
-        .notes-section { font-size: 8pt; line-height: 1.2; padding-top: 5px; }
-        table.signature-table { width: 100%; margin-top: 8px; }
+        tr.empty-row td { border: 1px solid #000; }
+        .notes-section { font-size: 8pt; line-height: 1.2; padding-top: 20px; }
+        table.signature-table { width: 100%; margin-top: 10px; }
         table.signature-table td { border: none; text-align: center; font-size: 9pt; }
         .right { text-align: right; }
         .center { text-align: center; }
@@ -136,9 +136,15 @@
         </div>
         <table class="signature-table">
             <tr>
-                <td>Dibuat Oleh<br><br><br>(_____________)</td>
-                <td>Diantar Oleh<br><br><br>(_____________)</td>
-                <td>Diterima Oleh<br><br><br>(_____________)</td>
+                <td>Dibuat Oleh
+                <div style="height: 10px;"></div>    
+                <br><br><br>(_____________)</td>
+                <td>Diantar Oleh
+                <div style="height: 10px;"></div>
+                <br><br><br>(_____________)</td>
+                <td>Diterima Oleh
+                <div style="height: 10px;"></div>
+                <br><br><br>(_____________)</td>
             </tr>
         </table>
     </div>
