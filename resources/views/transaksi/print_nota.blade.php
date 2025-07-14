@@ -36,14 +36,12 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 
         /* Page container styling, adjusted for the new paper size */
         .page {
-            width: 90%; /* Keeping width at 90% as requested */
-            height: 13.97cm; /* Explicitly set height for landscape Statement */
-            padding: 5mm 8mm 3mm 8mm; /* Reduced top/bottom padding to gain vertical space */
+            width: 90%;
+            padding: 3mm 6mm 1mm 6mm; /* Reduced padding */
+            margin: 1mm auto 0 auto;   /* Reduced margin */
             display: flex;
             flex-direction: column;
-            flex-grow: 1;
             box-sizing: border-box;
-            margin: 3mm auto 0 auto; /* Added 2mm margin to the top, still centers horizontally */
         }
 
         /* Header styling */
