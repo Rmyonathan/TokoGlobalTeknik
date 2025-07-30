@@ -120,25 +120,25 @@
                             <a href="{{ route('transaksi.shownota', $transaction->id) }}" class="btn btn-info btn-sm" title="Lihat Nota">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            
+
                             @if($transaction->status != 'canceled')
                                 <a href="{{ route('transaksi.edit', $transaction->id) }}" class="btn btn-warning btn-sm" title="Edit Transaksi">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                
-                                <button type="button" class="btn btn-danger btn-sm cancel-btn" 
-                                        data-toggle="modal" 
-                                        data-target="#cancelModal" 
+
+                                <button type="button" class="btn btn-danger btn-sm cancel-btn"
+                                        data-toggle="modal"
+                                        data-target="#cancelModal"
                                         data-id="{{ $transaction->id }}"
                                         data-notransaksi="{{ $transaction->no_transaksi }}"
                                         title="Batalkan Transaksi">
                                     <i class="fas fa-ban"></i>
                                 </button>
                             @endif
-                            
+
                             @if($transaction->is_edited)
-                                <button type="button" class="btn btn-info btn-sm edit-history-btn" 
-                                        data-toggle="modal" 
+                                <button type="button" class="btn btn-info btn-sm edit-history-btn"
+                                        data-toggle="modal"
                                         data-target="#editHistoryModal"
                                         data-notransaksi="{{ $transaction->no_transaksi }}"
                                         data-editor="{{ $transaction->edited_by }}"
@@ -147,7 +147,7 @@
                                     <i class="fas fa-history"></i>
                                 </button>
                             @endif
-                            
+
                             <a href="{{ route('transaksi.nota', $transaction->id) }}?auto_print=1"
                                 class="btn btn-primary btn-sm print-nota-btn"
                                 target="_blank"
@@ -177,8 +177,8 @@
             </div>
             <div class="modal-body">
                 <p>Apakah Anda yakin ingin membatalkan transaksi <strong id="cancel-notransaksi-display"></strong>?</p>
-                <p class="text-danger">Perhatian: Tindakan ini akan mengembalikan stok barang dan menandai transaksi sebagai batal!</p>
-                
+                {{-- <p class="text-danger">Perhatian: Tindakan ini akan mengembalikan stok barang dan menandai transaksi sebagai batal!</p> --}}
+
                 <div class="form-group">
                     <label for="cancel_reason">Alasan Pembatalan:</label>
                     <textarea id="cancel_reason" class="form-control" rows="3" required></textarea>
@@ -234,7 +234,7 @@
     $(document).ready(function() {
         // Initialize tooltips
         $('[data-toggle="tooltip"]').tooltip();
-        
+
         // Search input enable/disable
         function updateSearchInputState() {
             if ($("#search_by").val() !== "" && $("#search_by")[0].selectedIndex !== 0) {
@@ -246,29 +246,29 @@
         }
 
         $("#search_by").on('change', updateSearchInputState);
-        
+
         // Cancel Modal handling
         $('.cancel-btn').click(function() {
             const id = $(this).data('id');
             const notransaksi = $(this).data('notransaksi');
-            
+
             $('#cancel-notransaksi-display').text(notransaksi);
             $('#cancelForm').attr('action', `{{ url('/transaksi/cancel') }}/${id}`);
         });
-        
+
         // Edit History Modal handling
         $('.edit-history-btn').click(function() {
             const notransaksi = $(this).data('notransaksi');
             const editor = $(this).data('editor');
             const date = $(this).data('date');
             const reason = $(this).data('reason');
-            
+
             $('#edit-notransaksi-display').text(notransaksi);
             $('#edit-user-display').text(editor);
             $('#edit-date-display').text(date);
             $('#edit-reason-display').text(reason);
         });
-        
+
         // Validate and submit the cancel form
         $('#cancelForm').on('submit', function() {
             const reason = $('#cancel_reason').val().trim();
@@ -276,7 +276,7 @@
                 alert('Alasan pembatalan harus diisi!');
                 return false;
             }
-            
+
             $('#cancel_reason_input').val(reason);
             return true;
         });

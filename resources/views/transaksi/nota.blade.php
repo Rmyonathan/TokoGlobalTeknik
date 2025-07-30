@@ -226,8 +226,8 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 
             <div class="notes-details-wrapper">
                 <div class="notes-section">
-                    <strong>PERHATIAN !!!</strong><br>
-                    Barang masih titipan dari {{ $defaultCompany->nama ?? 'CV. Alumka Cipta Prima' }}, bila belum dilunasi. Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.
+                    {{-- <strong>PERHATIAN !!!</strong><br>
+                    Barang masih titipan dari {{ $defaultCompany->nama ?? 'CV. Alumka Cipta Prima' }}, bila belum dilunasi. Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan. --}}
                 </div>
 
                 <div class="details-row">

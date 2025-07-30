@@ -317,10 +317,10 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 
             <table style="width: 100%; table-layout: fixed;">
                 <tr>
-                    <td style="width: 60%; vertical-align: top; padding-right: 10px;">
+                    {{-- <td style="width: 60%; vertical-align: top; padding-right: 10px;">
                     <strong>PERHATIAN !!!</strong><br>
                     Barang masih titipan dari {{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}, bila belum dilunasi. Pembayaran dengan Cek, Giro, Slip dan lainnya akan dianggap lunas bila dapat diuangkan.
-                    </td>
+                    </td> --}}
                     <td style="width: 40%; vertical-align: top; text-align: right;">
                     <div>
                         Titipan Uang: Rp {{ number_format($transaction->dp, 0, ',', '.') }}<br>
