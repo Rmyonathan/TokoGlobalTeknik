@@ -16,6 +16,13 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Services\FifoService;
+use App\Services\UnitConversionService;
+use App\Models\KodeBarang;
+use App\Models\CustomerItemOngkos;
+use App\Models\SuratJalanItemSumber;
+use App\Models\TransaksiItemSumber;
+use App\Models\StockBatch;
 
 class TransaksiController extends Controller
 {
@@ -133,12 +140,38 @@ class TransaksiController extends Controller
             'subtotal' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'items' => 'required|array',
-            'items.*.kodeBarang' => 'required|exists:panels,group_id', // Validasi kode_barang
+            'items.*.kodeBarang' => 'required|exists:kode_barangs,kode_barang', // Validasi kode_barang ke master KodeBarang
             'items.*.harga' => 'required|numeric',
             'items.*.qty' => 'required|numeric',
         ]);
-
+        // dd($request);
         try {
+            // =========================
+            // Cek batas kredit customer
+            // =========================
+            $customer = Customer::where('kode_customer', $request->kode_customer)->first();
+            $sisaPiutang = $customer->sisa_piutang ?? 0;
+            $batasKredit = $customer->limit_kredit ?? 0;
+            // dd($customer);
+            $user = Auth::user();
+            $isOwner = $user->hasRole('admin');
+            // dd($isOwner);
+
+             // Jika user bukan owner dan melebihi kredit → stop
+            if (!$isOwner && ($sisaPiutang + $request->grand_total) > $batasKredit) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer sudah melewati batas kredit, tidak bisa dibuat transaksi.'
+                ], 403);
+            }
+            
+            // Jika owner tapi melebihi kredit → warning saja
+            if ($isOwner && ($sisaPiutang + $request->grand_total) > $batasKredit) {
+                // dd('Warning');
+                session()->flash('warning', 'Customer sudah melewati batas kredit, tapi transaksi dibuat oleh owner.');
+            }
+
+            // dd($batasKredit);
             DB::beginTransaction();
 
             $ppn = str_replace(',', '.', $request->ppn);
@@ -149,8 +182,8 @@ class TransaksiController extends Controller
                 'tanggal' => now(),
                 'kode_customer' => $request->kode_customer,
                 'sales' => $request->sales,
-                'pembayaran' => $request->pembayaran,
-                'cara_bayar' => $request->cara_bayar,
+                'pembayaran' => $request->pembayaran ?? 'Tunai',
+                'cara_bayar' => $request->cara_bayar ?? 'Tunai',
                 'tanggal_jadi' => $request->tanggal_jadi,
                 'subtotal' => $request->subtotal,
                 'discount' => $request->discount ?? 0,
@@ -170,20 +203,45 @@ class TransaksiController extends Controller
             $creator = Auth::check() ? Auth::user()->name : 'ADMIN';
             $noTransaksi = $request->no_transaksi . " ({$creator})";
 
-            // Create transaction items
+            // Create transaction items dengan sistem FIFO
+            $fifoService = new FifoService();
+            // dd($fifoService);
             foreach ($request->items as $item) {
-                TransaksiItem::create([
+                // Cek stok tersedia terlebih dahulu
+                $kodeBarang = KodeBarang::where('kode_barang', $item['kodeBarang'])->first();
+                if (!$kodeBarang) {
+                    throw new \Exception("Kode barang {$item['kodeBarang']} tidak ditemukan");
+                }
+
+                $stokTersedia = $fifoService->getStokTersedia($kodeBarang->id);
+                if ($stokTersedia < $item['qty']) {
+                    throw new \Exception("Stok tidak mencukupi untuk {$item['namaBarang']}. Tersedia: {$stokTersedia}, Dibutuhkan: {$item['qty']}");
+                }
+
+                // Buat transaksi item
+                $transaksiItem = TransaksiItem::create([
                     'transaksi_id' => $transaksi->id,
                     'no_transaksi' => $request->no_transaksi,
                     'kode_barang' => $item['kodeBarang'],
                     'nama_barang' => $item['namaBarang'],
                     'keterangan' => $item['keterangan'] ?? null,
                     'harga' => $item['harga'],
-                    'panjang' => $item['panjang'] ?? 0,
+                    // 'panjang' => $item['panjang'] ?? 0,
                     'lebar' => $item['lebar'] ?? 0,
                     'qty' => $item['qty'],
                     'diskon' => $item['diskon'] ?? 0,
                     'total' => $item['total'],
+                ]);
+
+                // Alokasi stok menggunakan FIFO
+                $alokasiResult = $fifoService->alokasiStok($kodeBarang->id, $item['qty'], $transaksiItem->id);
+                
+                // Log hasil alokasi untuk debugging
+                Log::info('FIFO Alokasi Result:', [
+                    'transaksi_item_id' => $transaksiItem->id,
+                    'kode_barang' => $item['kodeBarang'],
+                    'qty' => $item['qty'],
+                    'alokasi' => $alokasiResult
                 ]);
 
                 // Record the sale in stock mutation
@@ -319,6 +377,18 @@ class TransaksiController extends Controller
                 foreach ($panels as $panel) {
                     $panelsToRestore[] = $panel->id;
                 }
+
+                // Revert FIFO batch allocations for this transaction item
+                $sumberList = TransaksiItemSumber::where('transaksi_item_id', $item->id)->get();
+                foreach ($sumberList as $sumber) {
+                    $batch = StockBatch::find($sumber->stock_batch_id);
+                    if ($batch) {
+                        $batch->qty_sisa += $sumber->qty_diambil;
+                        $batch->save();
+                    }
+                    // remove the allocation record
+                    $sumber->delete();
+                }
                 
                 // Record purchase to reverse the original sale in stock mutation
                 $this->stockController->recordPurchase(
@@ -366,21 +436,39 @@ class TransaksiController extends Controller
             TransaksiItem::where('transaksi_id', $id)->delete();
             
             // Create new transaction items and update stock
+            $fifoService = new FifoService();
             foreach ($request->items as $item) {
                 // Create transaction item
-                TransaksiItem::create([
+                $transaksiItem = TransaksiItem::create([
                     'transaksi_id' => $transaksi->id,
                     'no_transaksi' => $noTransaksi,
                     'kode_barang' => $item['kodeBarang'],
                     'nama_barang' => $item['namaBarang'],
                     'keterangan' => $item['keterangan'] ?? null,
                     'harga' => $item['harga'],
-                    'panjang' => $item['panjang'] ?? 0,
+                    // 'panjang' => $item['panjang'] ?? 0,
                     'lebar' => $item['lebar'] ?? 0,
                     'qty' => $item['qty'],
                     'diskon' => $item['diskon'] ?? 0,
                     'total' => $item['total'],
                 ]);
+
+                // Allocate stock using FIFO for the new/edited items
+                $kodeBarang = KodeBarang::where('kode_barang', $item['kodeBarang'])->first();
+                if ($kodeBarang) {
+                    // Optional: validate available stock
+                    $stokTersediaBaru = $fifoService->getStokTersedia($kodeBarang->id);
+                    if ($stokTersediaBaru < $item['qty']) {
+                        throw new \Exception("Stok tidak mencukupi untuk {$item['namaBarang']}. Tersedia: {$stokTersediaBaru}, Dibutuhkan: {$item['qty']}");
+                    }
+                    $alokasiResultBaru = $fifoService->alokasiStok($kodeBarang->id, $item['qty'], $transaksiItem->id);
+                    Log::info('FIFO Alokasi (UPDATE) Result:', [
+                        'transaksi_item_id' => $transaksiItem->id,
+                        'kode_barang' => $item['kodeBarang'],
+                        'qty' => $item['qty'],
+                        'alokasi' => $alokasiResultBaru
+                    ]);
+                }
                 
                 // Record new sale in stock mutation
                 $this->stockController->recordSale(
@@ -888,7 +976,7 @@ class TransaksiController extends Controller
                         'kode_barang' => $item->kode_barang,
                         'nama_barang' => $item->nama_barang,
                         'keterangan' => $item->keterangan,
-                        'panjang' => $item->panjang,
+                        // 'panjang' => $item->panjang,
                         'lebar' => $item->lebar,
                         'qty' => $item->qty,
                     ];
@@ -911,7 +999,7 @@ class TransaksiController extends Controller
         // Split items into chunks of 10 per page
         $itemsPerPage = 10;
         $groupedItems = $transaction->items->chunk($itemsPerPage);
-
+        
         return view('transaksi.nota', [
             'transaction' => $transaction,
             'groupedItems' => $groupedItems
@@ -948,6 +1036,186 @@ class TransaksiController extends Controller
         $transactions = Transaksi::with('items')->orderBy('created_at', 'desc')->paginate(10);
 
         return view('transaksi.lihat_nota', compact('transactions'));
+    }
+
+    /**
+     * Get harga dan ongkos kuli untuk customer dan barang tertentu (AJAX)
+     */
+    public function getHargaDanOngkos(Request $request)
+    {
+        $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'kode_barang_id' => 'required|exists:kode_barangs,id',
+            'satuan' => 'required|string',
+        ]);
+
+        try {
+            $customerId = $request->customer_id;
+            $kodeBarangId = $request->kode_barang_id;
+            $satuan = $request->satuan;
+
+            $unitService = new UnitConversionService();
+
+            // 1. Dapatkan harga jual
+            $priceInfo = $unitService->getCustomerPrice($customerId, $kodeBarangId, $satuan);
+            $hargaJual = $priceInfo['harga_jual'];
+
+            // 2. Dapatkan ongkos kuli dengan prioritas:
+            //    a. Cari di customer_item_ongkos untuk ongkos_kuli_khusus
+            //    b. Jika tidak ada, ambil ongkos_kuli_default dari kode_barangs
+            $ongkosKuli = CustomerItemOngkos::getOngkosKuli($customerId, $kodeBarangId);
+            
+            if ($ongkosKuli === null) {
+                // Ambil ongkos kuli default dari kode_barangs
+                $kodeBarang = KodeBarang::find($kodeBarangId);
+                $ongkosKuli = $kodeBarang ? $kodeBarang->ongkos_kuli_default : 0;
+            }
+
+            return response()->json([
+                'success' => true,
+                'harga_jual' => $hargaJual,
+                'ongkos_kuli' => $ongkosKuli,
+                'satuan' => $satuan,
+                'unit_dasar' => $priceInfo['unit_dasar'] ?? 'LBR',
+                'harga_dalam_unit_dasar' => $priceInfo['harga_dalam_unit_dasar'] ?? $hargaJual
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Store faktur dari Surat Jalan dengan integrasi FIFO
+     */
+    public function storeFromSuratJalan(Request $request)
+    {
+        $request->validate([
+            'no_transaksi' => 'required|string|unique:transaksi,no_transaksi',
+            'tanggal' => 'required|date',
+            'kode_customer' => 'required|exists:customers,kode_customer',
+            'sales' => 'required|exists:stok_owners,kode_stok_owner',
+            'subtotal' => 'required|numeric',
+            'grand_total' => 'required|numeric',
+            'surat_jalan_id' => 'required|exists:surat_jalan,id',
+            'items' => 'required|array',
+            'items.*.surat_jalan_item_id' => 'required|exists:surat_jalan_items,id',
+            'items.*.kode_barang' => 'required|string',
+            'items.*.nama_barang' => 'required|string',
+            'items.*.qty' => 'required|numeric|min:0.01',
+            'items.*.satuan' => 'required|string',
+            'items.*.harga' => 'required|numeric|min:0',
+            'items.*.ongkos_kuli' => 'required|numeric|min:0',
+            'items.*.total' => 'required|numeric|min:0',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Create transaction
+            $transaksi = Transaksi::create([
+                'no_transaksi' => $request->no_transaksi,
+                'tanggal' => $request->tanggal,
+                'kode_customer' => $request->kode_customer,
+                'sales' => $request->sales,
+                'pembayaran' => $request->pembayaran ?? 'Tunai',
+                'cara_bayar' => $request->cara_bayar ?? 'Tunai',
+                'tanggal_jadi' => $request->tanggal_jadi,
+                'subtotal' => $request->subtotal,
+                'discount' => $request->discount ?? 0,
+                'disc_rupiah' => $request->disc_rupiah ?? 0,
+                'ppn' => $request->ppn ?? 0,
+                'dp' => $request->dp ?? 0,
+                'grand_total' => $request->grand_total,
+                'status' => 'baru',
+                'is_edited' => false,
+                'keterangan' => $request->keterangan ?? 'Faktur dari Surat Jalan'
+            ]);
+
+            $customer = Customer::where('kode_customer', $request->kode_customer)->first();
+
+            // Create transaction items dan transfer FIFO allocation dari Surat Jalan
+            foreach ($request->items as $item) {
+                // Buat transaksi item
+                $transaksiItem = TransaksiItem::create([
+                    'transaksi_id' => $transaksi->id,
+                    'no_transaksi' => $request->no_transaksi,
+                    'kode_barang' => $item['kode_barang'],
+                    'nama_barang' => $item['nama_barang'],
+                    'keterangan' => $item['keterangan'] ?? null,
+                    'harga' => $item['harga'],
+                    // 'panjang' => $item['panjang'] ?? 0,
+                    'lebar' => $item['lebar'] ?? 0,
+                    'qty' => $item['qty'],
+                    'satuan' => $item['satuan'],
+                    'diskon' => $item['diskon'] ?? 0,
+                    'total' => $item['total'],
+                    'ongkos_kuli' => $item['ongkos_kuli']
+                ]);
+
+                // Transfer FIFO allocation dari Surat Jalan ke Transaksi
+                $suratJalanItemSumber = SuratJalanItemSumber::where('surat_jalan_item_id', $item['surat_jalan_item_id'])->get();
+                
+                foreach ($suratJalanItemSumber as $sumber) {
+                    \App\Models\TransaksiItemSumber::create([
+                        'transaksi_item_id' => $transaksiItem->id,
+                        'stock_batch_id' => $sumber->stock_batch_id,
+                        'qty_diambil' => $sumber->qty_diambil,
+                        'harga_modal' => $sumber->harga_modal
+                    ]);
+                }
+
+                // Update atau create ongkos kuli untuk customer ini
+                if ($item['ongkos_kuli'] > 0) {
+                    $kodeBarang = KodeBarang::where('kode_barang', $item['kode_barang'])->first();
+                    if ($kodeBarang) {
+                        CustomerItemOngkos::updateOrCreateOngkos(
+                            $customer->id,
+                            $kodeBarang->id,
+                            $item['ongkos_kuli'],
+                            'Update dari faktur ' . $request->no_transaksi
+                        );
+                    }
+                }
+            }
+
+            // Handle Kas untuk pembayaran tunai
+            if ($this->isCashPayment($request->cara_bayar)) {
+                Kas::create([
+                    'name' => "Penjualan: {$request->no_transaksi}",
+                    'description' => "Penjualan tunai kepada {$customer->nama}",
+                    'qty' => $request->grand_total,
+                    'type' => 'Kredit',
+                    'saldo' => 0,
+                    'is_manual' => false,
+                ]);
+
+                $this->adjustKasSaldo();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'id' => $transaksi->id,
+                'no_transaksi' => $transaksi->no_transaksi,
+                'tanggal' => $transaksi->tanggal,
+                'customer' => $transaksi->customer->nama ?? 'N/A',
+                'grand_total' => $transaksi->grand_total,
+                'message' => 'Faktur berhasil dibuat dari Surat Jalan'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in storeFromSuratJalan:', ['message' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
 }

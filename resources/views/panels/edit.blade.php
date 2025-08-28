@@ -32,7 +32,7 @@
                             <small class="form-text text-muted">Enter the name of the item code.</small>
                         </div>
                         <div class="form-group">
-                            <label for="cost"><i class="fas fa-ruler mr-1"></i> Cost (per meters)</label>
+                            <label for="cost"><i class="fas fa-ruler mr-1"></i> Cost</label>
                             <input type="number" step="0.01" class="form-control @error('cost') is-invalid @enderror" 
                                 id="cost" name="cost" value="{{ rtrim(rtrim($panel->cost, '0'), '.') }}" required>
                             @error('price')
@@ -42,7 +42,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="price"><i class="fas fa-ruler mr-1"></i> Price (per meters)</label>
+                            <label for="price"><i class="fas fa-ruler mr-1"></i> Price</label>
                             <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" 
                                 id="price" name="price" value="{{ rtrim(rtrim($panel->price, '0'), '.') }}" required>
                             @error('price')
@@ -51,7 +51,7 @@
                             <small class="form-text text-muted">Enter the price.</small>
                         </div>
 
-                        <div class="form-group">
+                        <!-- <div class="form-group">
                             <label for="length"><i class="fas fa-ruler mr-1"></i> Panel Length (meters)</label>
                             <input type="number" step="0.01" class="form-control @error('length') is-invalid @enderror" 
                                 id="length" name="length" value="{{ rtrim(rtrim($panel->length, '0'), '.') }}" required>
@@ -59,7 +59,7 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="form-text text-muted">Enter the length of the aluminum panels in meters.</small>
-                        </div>
+                        </div> -->
 
 
                         <div class="form-group">

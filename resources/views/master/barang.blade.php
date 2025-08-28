@@ -51,22 +51,22 @@
             <div class="card-body">
                 @if(isset($inventory) && count($inventory['inventory_by_length']) > 0)
                     <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Kode Barang</th>
-                                    <th>Name</th>
-                                    <th>Group</th>
-                                    <th>Harga Beli</th>
-                                    <th>Harga Jual</th>
-                                    <th>Panjang (meters)</th>
-                                    <th>Available Quantity</th>
-                                    <th>Total Panjang (meters)</th>
-                                    <th>Status</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
+                        <table class="table table-striped table-bordered">
+                                                            <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Kode Barang</th>
+                                        <th>Nama</th>
+                                        <th>Group</th>
+                                        <th>Harga Beli</th>
+                                        <th>Harga Jual per Satuan Dasar</th>
+                                        <th>Available Quantity</th>
+                                        <th>Satuan Dasar</th>
+                                        <th>Satuan Besar</th>
+                                        <th>Status</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
                             <tbody>
                                 @foreach($inventory['inventory_by_length'] as $item)
                                     <tr>
@@ -75,24 +75,36 @@
                                         <td>{{ $item['name'] }}</td>
                                         <td>{{ $item['group'] }}</td>
                                         <td>Rp. {{ number_format($item['cost']) }}</td>
-                                        <td>Rp. {{ number_format($item['price']) }}</td>
-                                        <td>{{ number_format($item['length']) }}</td>
+                                        <td>
+                                            <strong>Rp. {{ number_format($item['harga_per_satuan_dasar'] ?? $item['price']) }}</strong>
+                                            <br>
+                                            <small class="text-muted">per {{ $item['unit_dasar'] ?? 'PCS' }}</small>
+                                        </td>
                                         <td>{{ $item['quantity'] }}</td>
-                                        <td>{{ number_format($item['length'] * $item['quantity']) }}</td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ $item['unit_dasar'] ?? 'PCS' }}</span>
+                                        </td>
+                                        <td>
+                                            @if(isset($item['satuan_besar']) && count($item['satuan_besar']) > 0)
+                                                @foreach($item['satuan_besar'] as $satuan)
+                                                    <span class="badge bg-success me-1">
+                                                        {{ $satuan['unit'] }} ({{ $satuan['konversi'] }})
+                                                    </span>
+                                                @endforeach
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $item['status'] }}</td>
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <form action="{{ route('panels.edit-inventory', ['id' => $item['group_id']]) }}" method="GET" enctype="multipart/form-data">
+                                                <form action="{{ route('panels.edit-inventory', ['id' => $item['group_id']]) }}" method="GET">
                                                     @csrf
-                                                    <button class="btn btn-sm btn-success">
-                                                        <i class="fas fa-edit"></i> Edit
-                                                    </button>
+                                                    <button class="btn btn-sm btn-success"><i class="fas fa-edit"></i> Edit</button>
                                                 </form>
-                                                <form action="{{ route('panels.delete-inventory', ['id' => $item['group_id']]) }}" method="POST" enctype="multipart/form-data">
+                                                <form action="{{ route('panels.delete-inventory', ['id' => $item['group_id']]) }}" method="POST">
                                                     @csrf
-                                                    <button class="btn btn-sm btn-danger">
-                                                        <i class="fas fa-trash"></i> Hapus
-                                                    </button>
+                                                    <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Hapus</button>
                                                 </form>
                                             </div>
                                         </td>
@@ -100,32 +112,44 @@
                                 @endforeach
                             </tbody>
                             <tfoot>
-                                <tr class="table-primary">
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th>Total</th>
-                                    <th>{{ $inventory['total_panels'] }}</th>
-                                    <th>
-                                        @php
-                                            $totalLength = 0;
-                                            foreach($inventory['inventory_by_length'] as $item) {
-                                                $totalLength += $item['length'] * $item['quantity'];
-                                            }
-                                            echo number_format($totalLength, 2);
-                                        @endphp
-                                    </th>
-                                    <th></th>
-                                    <th></th>
-                                </tr>
+                            <tr class="table-primary">
+                                <th colspan="4" class="text-end">Total</th>
+                                <th>
+                                    @php
+                                        $totalCost = 0;
+                                        foreach($inventory['inventory_by_length'] as $item) {
+                                            $totalCost += $item['cost'] * $item['quantity'];
+                                        }
+                                        echo 'Rp. ' . number_format($totalCost);
+                                    @endphp
+                                </th>
+                                <th>
+                                    @php
+                                        $totalPrice = 0;
+                                        foreach($inventory['inventory_by_length'] as $item) {
+                                            $totalPrice += ($item['harga_per_satuan_dasar'] ?? $item['price']) * $item['quantity'];
+                                        }
+                                        echo 'Rp. ' . number_format($totalPrice);
+                                    @endphp
+                                </th>
+                                <th>
+                                    @php
+                                        $totalQuantity = 0;
+                                        foreach($inventory['inventory_by_length'] as $item) {
+                                            $totalQuantity += $item['quantity'];
+                                        }
+                                        echo $totalQuantity;
+                                    @endphp
+                                </th>
+                                <th></th> <!-- kolom Satuan Dasar -->
+                                <th></th> <!-- kolom Satuan Besar -->
+                                <th colspan="2"></th>
+                            </tr>
                             </tfoot>
                         </table>
                     </div>
-                    
-                    <!-- Pagination Links -->
+
+                    <!-- Pagination -->
                     <div class="d-flex justify-content-center mt-4">
                         {{ $inventory['paginator']->appends(request()->except('page'))->links() }}
                     </div>
@@ -133,7 +157,6 @@
                     <div class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle mr-1"></i> No panels currently in inventory.
                     </div>
-                   
                 @endif
             </div>
         </div>

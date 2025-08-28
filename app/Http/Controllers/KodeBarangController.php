@@ -40,7 +40,10 @@ class KodeBarangController extends Controller
             'price' => 'required|numeric|min:0',
             'attribute' => 'required|string|max:255',
             'kode_barang' => 'required|string|max:255',
-            'length' => 'required|numeric|min:0.1',
+            'unit_dasar' => 'required|string|max:20',
+            'harga_jual' => 'required|numeric|min:0',
+            'ongkos_kuli_default' => 'nullable|numeric|min:0',
+            // 'length' => 'required|numeric|min:0.1',
         ], [
             'kode_barang.required' => 'Item code is required',
             'kode_barang.string' => 'Item code must be a valid string',
@@ -48,9 +51,9 @@ class KodeBarangController extends Controller
             'attribute.required' => 'Panel name is required',
             'attribute.string' => 'Panel name must be a valid string',
             'attribute.max' => 'Panel name may not be greater than 255 characters',
-            'length.required' => 'Panel length is required',
-            'length.numeric' => 'Panel length must be a number',
-            'length.min' => 'Panel length must be at least 0.1 meters',
+            // 'length.required' => 'Panel length is required',
+            // 'length.numeric' => 'Panel length must be a number',
+            // 'length.min' => 'Panel length must be at least 0.1 meters',
             'name.required' => 'Panel name is required',
             'name.string' => 'Panel name must be a valid string',
             'name.max' => 'Panel name may not be greater than 255 characters',
@@ -60,6 +63,13 @@ class KodeBarangController extends Controller
             'price.required' => 'Price is required',
             'price.numeric' => 'Price must be a valid number',
             'price.min' => 'Price must be at least 0',
+            'unit_dasar.required' => 'Satuan dasar harus diisi',
+            'unit_dasar.max' => 'Satuan dasar maksimal 20 karakter',
+            'harga_jual.required' => 'Harga jual harus diisi',
+            'harga_jual.numeric' => 'Harga jual harus berupa angka',
+            'harga_jual.min' => 'Harga jual minimal 0',
+            'ongkos_kuli_default.numeric' => 'Ongkos kuli harus berupa angka',
+            'ongkos_kuli_default.min' => 'Ongkos kuli minimal 0',
         ]);
 
         // Check if the kode_barang already exists
@@ -72,6 +82,11 @@ class KodeBarangController extends Controller
         }
 
         $validated['status'] = 'Active';
+        
+        // Set default values if not provided
+        $validated['unit_dasar'] = $validated['unit_dasar'] ?? 'LBR';
+        $validated['harga_jual'] = $validated['harga_jual'] ?? $validated['price'];
+        $validated['ongkos_kuli_default'] = $validated['ongkos_kuli_default'] ?? 0;
 
         // Create the new KodeBarang
         KodeBarang::create($validated);
@@ -122,7 +137,10 @@ class KodeBarangController extends Controller
         $validated = $request->validate([
             'attribute' => 'required|string|max:255',
             'kode_barang' => 'required|string|max:255',
-            'length' => 'required|numeric|min:0.1',
+            'unit_dasar' => 'required|string|max:20',
+            'harga_jual' => 'required|numeric|min:0',
+            'ongkos_kuli_default' => 'nullable|numeric|min:0',
+            // 'length' => 'required|numeric|min:0.1',
         ], [
             'kode_barang.required' => 'Item code is required',
             'kode_barang.string' => 'Item code must be a valid string',
@@ -131,13 +149,21 @@ class KodeBarangController extends Controller
             'attribute.required' => 'Panel name is required',
             'attribute.string' => 'Panel name must be a valid string',
             'attribute.max' => 'Panel name may not be greater than 255 characters',
+            'unit_dasar.required' => 'Satuan dasar harus diisi',
+            'unit_dasar.max' => 'Satuan dasar maksimal 20 karakter',
+            'harga_jual.required' => 'Harga jual harus diisi',
+            'harga_jual.numeric' => 'Harga jual harus berupa angka',
+            'harga_jual.min' => 'Harga jual minimal 0',
+            'ongkos_kuli_default.numeric' => 'Ongkos kuli harus berupa angka',
+            'ongkos_kuli_default.min' => 'Ongkos kuli minimal 0',
 
-            'length.required' => 'Panel length is required',
-            'length.numeric' => 'Panel length must be a number',
-            'length.min' => 'Panel length must be at least 0.1 meters',
+            // 'length.required' => 'Panel length is required',
+            // 'length.numeric' => 'Panel length must be a number',
+            // 'length.min' => 'Panel length must be at least 0.1 meters',
         ]);
 
         $code = KodeBarang::findOrFail($id);
+        // dd($code);
         $code->update($validated);
 
         return redirect()->route('code.view-code')

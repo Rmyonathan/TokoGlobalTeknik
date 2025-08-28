@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TransaksiItem extends Model
 {
@@ -31,8 +32,18 @@ class TransaksiItem extends Model
         'panjang',
         'lebar',
         'qty',
+        'satuan',
         'diskon',
         'total',
+        'ongkos_kuli',
+    ];
+
+    protected $casts = [
+        'harga' => 'decimal:2',
+        'qty' => 'decimal:2',
+        'diskon' => 'decimal:2',
+        'total' => 'decimal:2',
+        'ongkos_kuli' => 'decimal:2',
     ];
     
     /**
@@ -52,5 +63,12 @@ class TransaksiItem extends Model
         return $this->hasMany(SuratJalanItem::class, 'transaksi_item_id', 'id');
     }
 
+    /**
+     * Relasi ke TransaksiItemSumber untuk tracking FIFO
+     */
+    public function transaksiItemSumber(): HasMany
+    {
+        return $this->hasMany(TransaksiItemSumber::class, 'transaksi_item_id');
+    }
 }
 

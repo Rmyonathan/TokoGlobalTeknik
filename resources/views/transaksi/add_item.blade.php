@@ -40,7 +40,7 @@
                 <input type="number" class="form-control" id="harga" name="harga" required>
             </div>
 
-            <div class="row">
+            <!-- <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="panjang">Panjang (P)</label>
@@ -48,7 +48,7 @@
                     </div>
                 </div>
                
-            </div>
+            </div> -->
 
             <div class="row">
                 <div class="col-md-6">
@@ -67,14 +67,37 @@
             </div>
 
             <div class="form-group">
-                <label for="satuan">Satuan</label>
-                <select class="form-control" id="satuan" name="satuan">
-                    <option value="PCS">PCS</option>
-                    <option value="MTR">MTR</option>
-                    <option value="BTG">BTG</option>
+                <label for="satuanKecil">Satuan Kecil</label>
+                <select class="form-control" id="satuanKecil" name="satuanKecil">
                     <option value="LBR">LBR</option>
+                    <option value="DUS">PCS</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="satuanBesar">Satuan</label>
+                <select class="form-control" id="satuanBesar" name="satuanBesar">
+                    <option value="LBR">LBR</option>
+                    <option value="DUS">DUS</option>
+                    <option value="BOX">BOX</option>
+                    <option value="PCS">PCS</option>
                     <option value="UNIT">UNIT</option>
                 </select>
+            </div>
+
+            <div class="form-group">
+                <label for="ongkos_kuli">Ongkos Kuli</label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Rp</span>
+                    </div>
+                    <input type="number" class="form-control" id="ongkos_kuli" name="ongkos_kuli" value="0" min="0" step="100">
+                    <div class="input-group-append">
+                        <button type="button" class="btn btn-outline-info" id="getOngkosKuliBtn" title="Ambil ongkos kuli otomatis">
+                            <i class="fas fa-magic"></i>
+                        </button>
+                    </div>
+                </div>
+                <small class="form-text text-muted">Klik tombol <i class="fas fa-magic"></i> untuk ambil ongkos kuli otomatis</small>
             </div>
         </div>
     </div>
@@ -91,7 +114,8 @@
                             <th>Length</th>
                             <th>Qty</th>
                             <th>Total</th>
-                            <th>Satuan</th>
+                            <th>Satuan Kecil</th>
+                            <th>Satuan Besar</th>
                             <th>Disc(%)</th>
                             <th>Disc(Rp.)</th>
                             <th>Sub Total</th>
@@ -110,14 +134,15 @@
     // Validasi input quantity barang
     function validateQuantity() {
         const qty = parseInt($('#quantity').val()) || 0;
-        const stok = parseInt($('#stock_tersedia').val()) || 0;
+        const stokRaw = $('#stock_tersedia').val();
+        const stok = stokRaw === '' ? null : (parseInt(stokRaw) || 0);
         let valid = true;
         let msg = '';
 
         if (qty <= 0) {
             valid = false;
             msg = 'Quantity harus lebih dari 0.';
-        } else if (qty > stok) {
+        } else if (stok !== null && stok > 0 && qty > stok) {
             valid = false;
             msg = 'Quantity tidak boleh melebihi stok tersedia.';
         }
@@ -156,14 +181,19 @@
             updatePreview();
         });
 
+        $('#satuanKecil, #satuanBesar').on('change', function() {
+            updatePreview();
+        });
+
         function updatePreview() {
             const kodeBarang = $('#kode_barang').val() || '-';
             const keterangan = $('#keterangan').val() || '-';
             const harga = parseInt($('#harga').val()) || 0;
-            const panjang = parseInt($('#panjang').val()) || 0;
+            // const panjang = parseInt($('#panjang').val()) || 0;
             const lebar = parseInt($('#lebar').val()) || 0;
             const quantity = parseInt($('#quantity').val()) || 0;
-            const satuan = $('#satuan').val();
+            const satuanKecil = $('#satuanKecil').val();
+            const satuanBesar = $('#satuanBesar').val();
             const diskon = parseInt($('#diskon').val()) || 0;
 
             // Calculate values
@@ -176,14 +206,15 @@
             tbody.empty();
 
             tbody.append(`
-                <tr>
+                 <tr>
                     <td>${kodeBarang}</td>
                     <td>${keterangan}</td>
                     <td class="text-right">${formatCurrency(harga)}</td>
-                    <td>${panjang}</td>
+                    <td>-</td> <!-- kolom Length sementara -->
                     <td>${quantity}</td>
-                    <td class="text-right">${formatCurrency(subTotal)}</td>
-                    <td>${satuan}</td>
+                    <td class="text-right">${formatCurrency(total)}</td>
+                    <td>${satuanKecil}</td>
+                    <td>${satuanBesar}</td>
                     <td>${diskon}%</td>
                     <td class="text-right">${formatCurrency(diskonAmount)}</td>
                     <td class="text-right">${formatCurrency(total)}</td>
@@ -196,58 +227,63 @@
             return new Intl.NumberFormat('id-ID').format(amount);
         }
 
-        // Fungsi untuk mengambil stock - FIXED
+        // Fungsi untuk mengambil stock (placeholder)
         function fetchStock(kodeBarang) {
-            // Pastikan kode barang tidak kosong
             if (!kodeBarang) {
                 $('#stock_tersedia').val('');
                 return;
             }
-            
-            console.log(`Fetching stock for: ${kodeBarang}`);
-            
-            // Cari stock dari inventoryByLength
-            const item = inventoryByLength.find(i => i.group_id == kodeBarang);
-            if (item) {
-                $('#stock_tersedia').val(item.quantity);
-                $('#panjang').val(item.length); // jika ingin auto set panjang juga
-            } else {
-                $('#stock_tersedia').val('0');
-            }
+            // Jika ada endpoint stok per kode_barang, panggil di sini. Untuk sekarang dikosongkan.
+            $('#stock_tersedia').val('');
         }
 
-        // Search kode Barang
+        // Search kode Barang (Kode Barang master)
         $('#kode_barang').on('input', function() {
             const keyword = $(this).val();
             if (keyword.length > 0) {
                 $.ajax({
-                    url: "/api/panels/search-available",
+                    url: "{{ route('kodeBarang.search') }}",
                     method: "GET",
                     data: { keyword },
                     success: function(data) {
                         let dropdown = '';
                         if (data.length > 0) {
-                            data.forEach(panel => {
-                                dropdown += `<a class="dropdown-item panel-item" 
-                                data-id="${panel.group_id}" 
-                                data-name="${panel.name}" 
-                                data-price="${panel.price}" 
-                                data-length="${panel.length}">
-                                
-                                ${panel.group_id} - ${panel.name} - ${panel.length} m</a>`;
+                            data.forEach(kb => {
+                                dropdown += `<a class="dropdown-item kodebarang-item" 
+                                data-kode="${kb.kode_barang}" 
+                                data-name="${kb.name}" 
+                                data-id="${kb.id}" 
+                                data-harga="${kb.harga_jual || 0}">
+                                ${kb.kode_barang} - ${kb.name}</a>`;
                             });
                         } else {
-                            dropdown = '<a class="dropdown-item disabled">Tidak ada panel ditemukan</a>';
+                            dropdown = '<a class="dropdown-item disabled">Tidak ada barang ditemukan</a>';
                         }
                         $('#kodeBarangDropdown').html(dropdown).show();
                     },
                     error: function() {
-                        alert('Gagal memuat data panel.');
+                        alert('Gagal memuat data barang.');
                     }
                 });
             } else {
                 $('#kodeBarangDropdown').hide();
             }
+        });
+
+        // Pilih Kode Barang dari dropdown
+        $(document).on('click', '.kodebarang-item', function() {
+            const kode = $(this).data('kode');
+            const nama = $(this).data('name');
+            const harga = $(this).data('harga') || 0;
+
+            $('#kode_barang').val(kode);
+            $('#nama_barang').val(nama);
+            $('#harga').val(harga);
+            $('#keterangan').val(nama);
+
+            fetchStock(kode);
+            updatePreview();
+            $('#kodeBarangDropdown').hide();
         });
 
         // Panggil fetchStock HANYA saat user klik dari dropdown
@@ -260,7 +296,7 @@
             $('#kode_barang').val(panelId);
             $('#nama_barang').val(panelName);
             $('#harga').val(panelPrice);
-            $('#panjang').val(panelLength);
+            // $('#panjang').val(panelLength);
             $('#keterangan').val(panelName);
 
             // Panggil fetchStock di sini saja
@@ -288,7 +324,7 @@
 
             $('#kode_barang').val(panelId);
             $('#nama_barang').val(panelName);
-            $('#panjang').val(panelLength);
+            // $('#panjang').val(panelLength);
             $('#harga').val(panelPrice);
             $('#keterangan').val(panelName);
             // Explicitly fetch stock after selecting from modal

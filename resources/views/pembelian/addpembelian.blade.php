@@ -142,6 +142,8 @@
                             <th>Keterangan</th>
                             <th>Harga Beli</th>
                             <th>Qty</th>
+                            <th>Satuan Kecil</th>
+                            <th>Satuan Besar</th>
                             <th>Total</th>
                             <th>Diskon</th>
                             <th>Aksi</th>
@@ -331,10 +333,10 @@
                                 <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" required>
                             </div>
 
-                            <div class="form-group">
+                            <!-- <div class="form-group">
                                 <label for="panjang">Panjang</label>
                                 <input type="number" class="form-control" id="panjang" name="panjang" value="0" min="0" step="0.01">
-                            </div>
+                            </div> -->
                             
                             <div class="form-group">
                                 <label for="diskon">Diskon (%)</label>
@@ -342,13 +344,18 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="satuan">Satuan</label>
-                                <select class="form-control" id="satuan" name="satuan">
+                                <label for="satuanKecil">Satuan Kecil</label>
+                                <select class="form-control" id="satuanKecil" name="satuanKecil">
                                     <option value="PCS">PCS</option>
-                                    <option value="MTR">MTR</option>
-                                    <option value="BTG">BTG</option>
                                     <option value="LBR">LBR</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="satuanBesar">Satuan Besar</label>
+                                <select class="form-control" id="satuanBesar" name="satuanBesar">
+                                    <option value="BOX">BOX</option>
                                     <option value="UNIT">UNIT</option>
+                                    <option value="DUS">DUS</option>
                                 </select>
                             </div>
                         </div>
@@ -359,16 +366,18 @@
                             <div class="table-responsive">
                                 <table class="table table-sm table-bordered">
                                     <thead class="thead-light">
-                                        <tr>
-                                            <th>Kode</th>
-                                            <th>Keterangan</th>
-                                            <th>Harga</th>
-                                            <th>Qty</th>
-                                            <th>Panjang</th>
-                                            <th>Total</th>
-                                            <th>Satuan</th>
-                                            <th>Disc(%)</th>
-                                            <th>Sub Total</th>
+                                    <tr>
+                                        <th>Kode</th>
+                                        <th>Keterangan</th>
+                                        <th>Harga</th>
+                                        <th>Qty</th>
+                                        <th>Panjang</th>
+                                        <th>Total</th>
+                                        <th>Satuan Kecil</th>   <!-- ✅ Tambah -->
+                                        <th>Satuan Besar</th>   <!-- ✅ Tambah -->
+                                        <th>Disc(%)</th>
+                                        <th>Sub Total</th>
+                                    </tr>
                                         </tr>
                                     </thead>
                                     <tbody id="itemPreview">

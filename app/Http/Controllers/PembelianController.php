@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Panel;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\StockBatch;
 
 
 class PembelianController extends Controller
@@ -107,7 +108,7 @@ class PembelianController extends Controller
             // Create purchase items, update stock mutation, and add inventory
             foreach ($request->items as $item) {
                 // Create purchase item
-                PembelianItem::create([
+                $pembelianItem = PembelianItem::create([
                     'nota' => $request->nota,
                     'kode_barang' => $item['kodeBarang'],
                     'nama_barang' => $item['namaBarang'],
@@ -118,6 +119,33 @@ class PembelianController extends Controller
                     'total' => $item['total'],
                     'created_at' => $currentDateTime,
                 ]);
+
+                // Create StockBatch untuk sistem FIFO
+                $kodeBarang = KodeBarang::where('kode_barang', $item['kodeBarang'])->first();
+                if ($kodeBarang) {
+                     $stockBatch =StockBatch::create([
+                        'kode_barang_id' => $kodeBarang->id,
+                        'pembelian_item_id' => $pembelianItem->id,
+                        'qty_masuk' => $item['qty'],
+                        'qty_sisa' => $item['qty'], // Awalnya sama dengan qty_masuk
+                        'harga_beli' => $item['harga'],
+                        'tanggal_masuk' => $request->tanggal,
+                        'batch_number' => $request->nota . '-' . $item['kodeBarang'],
+                        'keterangan' => 'Pembelian dari ' . $supplierName
+                    ]);
+
+                     Log::info('FIFO - Batch Baru Masuk', [
+                        'nota' => $request->nota,
+                        'kode_barang' => $item['kodeBarang'],
+                        'nama_barang' => $item['namaBarang'],
+                        'batch_id' => $stockBatch->id,
+                        'qty_masuk' => $stockBatch->qty_masuk,
+                        'qty_sisa' => $stockBatch->qty_sisa,
+                        'harga_beli' => $stockBatch->harga_beli,
+                        'tanggal_masuk' => $stockBatch->tanggal_masuk,
+                        'created_by' => $creator,
+                    ]);
+                }
                 
                 // Record purchase in stock mutation (just for reporting)
                 $this->stockController->recordPurchase(
@@ -143,14 +171,14 @@ class PembelianController extends Controller
                     
                     // Default values if no template exists
                     $panelName = $item['namaBarang'];
-                    $length = $kodeBarang->length ?? 0;
+                    // $length = $kodeBarang->length ?? 0;
                     $cost = $item['harga']; // Use purchase price as cost for this purchase only
                     $price = $templatePanel ? $templatePanel->price : ($item['harga'] * 1.2); // 20% markup if no template
                     
                     // If template exists, use its values
                     if ($templatePanel) {
                         $panelName = $templatePanel->name;
-                        $length = $templatePanel->length ?? $length;
+                        // $length = $templatePanel->length ?? $length;
                         $price = $templatePanel->price;
                     }
                     
@@ -163,7 +191,7 @@ class PembelianController extends Controller
                             $panelName, 
                             $cost, 
                             $price, 
-                            $length, 
+                            // $length, 
                             $item['kodeBarang'], 
                             $item['qty']
                         );
@@ -173,7 +201,7 @@ class PembelianController extends Controller
                             $panelName, 
                             $cost, 
                             $price, 
-                            $length, 
+                            // $length, 
                             $item['kodeBarang'], 
                             $item['qty']
                         );
@@ -473,14 +501,14 @@ class PembelianController extends Controller
                     
                     // Default values if no template exists
                     $panelName = $item['namaBarang'];
-                    $length = $kodeBarang->length ?? 0;
+                    // $length = $kodeBarang->length ?? 0;
                     $cost = $item['harga']; // Use purchase price as cost
                     $price = $templatePanel ? $templatePanel->price : ($item['harga'] * 1.2); // 20% markup if no template
                     
                     // If template exists, use its values
                     if ($templatePanel) {
                         $panelName = $templatePanel->name;
-                        $length = $templatePanel->length ?? $length;
+                        // $length = $templatePanel->length ?? $length;
                         $price = $templatePanel->price;
                     }
                     
@@ -493,7 +521,7 @@ class PembelianController extends Controller
                             $panelName, 
                             $cost, 
                             $price, 
-                            $length, 
+                            // $length, 
                             $item['kodeBarang'], 
                             $item['qty']
                         );
@@ -503,7 +531,7 @@ class PembelianController extends Controller
                             $panelName, 
                             $cost, 
                             $price, 
-                            $length, 
+                            // $length, 
                             $item['kodeBarang'], 
                             $item['qty']
                         );
@@ -899,7 +927,7 @@ class PembelianController extends Controller
                             $item['namaBarang'],
                             $item['harga'], // cost
                             $kodeBarang->price,
-                            $kodeBarang->length,
+                            // $kodeBarang->length,
                             $item['kodeBarang'],
                             $item['qty']
                         );

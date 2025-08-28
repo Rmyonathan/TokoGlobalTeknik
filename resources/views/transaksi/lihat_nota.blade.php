@@ -92,7 +92,7 @@
                     <td>{{ date('Y-m-d', strtotime($transaction->tanggal)) }}</td>
                     <td>{{ $transaction->customer->nama ?? 'N/A' }}</td>
                     <td>{{ $transaction->customer->alamat ?? 'N/A' }}</td>
-                    <td>{{ $transaction->sales }}</td>
+                    <td>{{ $transaction->nama_salesman }}</td>
                     <td class="text-right">Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</td>
                     <td>
                         @if($transaction->status == 'canceled')

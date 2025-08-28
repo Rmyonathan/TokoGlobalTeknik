@@ -11,7 +11,11 @@
     <div class="title-box">
         <h2><i class="fas fa-file-invoice mr-2"></i>Transaksi Penjualan</h2>
     </div>
-
+    @if(session('warning'))
+<script>
+    alert("{{ session('warning') }}");
+</script>
+@endif
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">Data Transaksi</h5>
@@ -23,7 +27,8 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="no_transaksi">No. Transaksi</label>
-                            <input type="text" class="form-control" id="no_transaksi" name="no_transaksi" value="{{ $noTransaksi ?? 'KP/WS/0147' }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
+                            <input type="text" class="form-control" id="no_transaksi" name="no_transaksi" value="{{ $noTransaksi ?? '' }}" placeholder="Masukkan nomor transaksi" style="background-color: #fff; color: #000; font-weight: bold;">
+                            <!-- <input type="text" class="form-control" id="no_transaksi" name="no_transaksi" value="{{ $noTransaksi ?? 'KP/WS/0147' }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;"> -->
                         </div>
 
                         <div class="form-group">
@@ -118,8 +123,10 @@
                             <th>Nama Barang</th>
                             <th>Keterangan</th>
                             <th>Harga Jual</th>
-                            <th>Qty</th>
+                            <th>Qty & Satuan</th>
+                            <th>Satuan Besar</th>
                             <th>Total</th>
+                            <th>Ongkos Kuli</th>
                             <th>Diskon</th>
                             <th>Aksi</th>
                         </tr>
@@ -346,11 +353,16 @@
                 method: 'GET',
                 data: { metode: metode },
                 success: function (data) {
-                    let options = '<option value="">-- Pilih Cara Bayar --</option>';
+                    let options = '';
+                    // Preselect first option and reflect to summary selector
                     data.forEach(cb => {
                         options += `<option value="${cb.nama}">${cb.nama}</option>`;
                     });
                     $('#cara_bayar').html(options);
+                    const first = data.length > 0 ? data[0].nama : '';
+                    if (first) {
+                        $('#cara_bayar').val(first).trigger('change');
+                    }
                 },
                 error: function () {
                     $('#cara_bayar').html('<option value="">Gagal load data</option>');
@@ -450,6 +462,109 @@
             $('#salesDropdown').hide();
         });
 
+        // ===== INTEGRASI SISTEM FAKTUR FIFO =====
+        
+        // Auto-populate harga dan ongkos kuli saat barang/satuan kecil dipilih
+        $(document).on('change', '#kode_barang, #satuanKecil', function() {
+            const kodeBarang = $('#kode_barang').val();
+            const satuan = $('#satuanKecil').val();
+            const customerId = $('#kode_customer').val();
+            
+            if (kodeBarang && satuan && customerId) {
+                getHargaDanOngkos(kodeBarang, satuan, customerId);
+            }
+        });
+
+        // Get harga dan ongkos kuli via AJAX
+        function getHargaDanOngkos(kodeBarang, satuan, customerId) {
+            // Cari kode_barang_id dari kode_barang
+            $.ajax({
+                url: "{{ route('kodeBarang.search') }}",
+                method: "GET",
+                data: { keyword: kodeBarang },
+                success: function(data) {
+                    if (data.length > 0) {
+                        const kodeBarangData = data[0];
+                        const kodeBarangId = kodeBarangData.id;
+                        
+                        // Sekarang panggil API getHargaDanOngkos
+                        $.ajax({
+                            url: "{{ route('api.transaksi.harga-ongkos') }}",
+                            method: "GET",
+                            data: {
+                                customer_id: customerId,
+                                kode_barang_id: kodeBarangId,
+                                satuan: satuan
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    // Auto-populate harga dan ongkos kuli
+                                    $('#harga').val(response.harga_jual);
+                                    $('#ongkos_kuli').val(response.ongkos_kuli);
+                                    
+                                    // Update preview jika ada
+                                    updateItemPreview();
+                                }
+                            },
+                            error: function(xhr) {
+                                console.log('Error getting harga dan ongkos kuli:', xhr.responseText);
+                            }
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    console.log('Error searching kode barang:', xhr.responseText);
+                }
+            });
+        }
+
+        // Manual get ongkos kuli button
+        $(document).on('click', '#getOngkosKuliBtn', function() {
+            const kodeBarang = $('#kode_barang').val();
+            const satuan = $('#satuanKecil').val();
+            const customerId = $('#kode_customer').val();
+            
+            if (!kodeBarang || !satuan || !customerId) {
+                alert('Pilih customer, kode barang, dan satuan terlebih dahulu!');
+                return;
+            }
+            
+            getHargaDanOngkos(kodeBarang, satuan, customerId);
+        });
+
+        // Update item preview
+        function updateItemPreview() {
+            const harga = parseInt($('#harga').val()) || 0;
+            const qty = parseInt($('#quantity').val()) || 0;
+            const diskon = parseInt($('#diskon').val()) || 0;
+            const ongkosKuli = parseInt($('#ongkos_kuli').val()) || 0;
+            
+            const subtotal = harga * qty;
+            const diskonAmount = (subtotal * diskon) / 100;
+            const total = subtotal - diskonAmount;
+            
+            // Update preview table
+            $('#itemPreview').html(`
+                <tr>
+                    <td>${$('#kode_barang').val() || '-'}</td>
+                    <td>${$('#nama_barang').val() || '-'}</td>
+                    <td class="text-right">${formatCurrency(harga)}</td>
+                    <td>${$('#panjang').val() || 0}</td>
+                    <td>${qty} ${$('#satuanKecil').val() || 'LBR'}</td>
+                    <td class="text-right">${formatCurrency(total)}</td>
+                    <td>${$('#satuanKecil').val() || 'LBR'}</td>
+                    <td>${diskon}%</td>
+                    <td class="text-right">${formatCurrency(diskonAmount)}</td>
+                    <td class="text-right">${formatCurrency(total)}</td>
+                </tr>
+            `);
+        }
+
+        // Update preview saat input berubah
+        $('#harga, #quantity, #diskon, #ongkos_kuli').on('input', function() {
+            updateItemPreview();
+        });
+
         // Hide dropdown when clicking outside
         $(document).click(function (e) {
             if (!$(e.target).closest('#customer, #customerDropdown').length) {
@@ -531,7 +646,10 @@
         const panjang = parseInt($('#panjang').val()) || 0;
         const lebar = parseInt($('#lebar').val()) || 0;
         const qty = parseInt($('#quantity').val()) || 0;
+        const satuan = $('#satuanKecil').val();
+        const satuanBesar = $('#satuanBesar').val();
         const diskon = parseInt($('#diskon').val()) || 0;
+        const ongkosKuli = parseInt($('#ongkos_kuli').val()) || 0;
 
         if (!kodeBarang || !namaBarang || !harga || !qty) {
             alert('Mohon lengkapi data barang!');
@@ -549,7 +667,10 @@
             panjang,
             lebar,
             qty,
+            satuan,
+            satuanBesar,
             diskon,
+            ongkosKuli,
             total
         };
 
@@ -575,11 +696,13 @@
                     <tr>
                         <td>${item.kodeBarang}</td>
                         <td>${item.namaBarang}</td>
-                        <td>${item.keterangan}</td>
+                        <td>${item.keterangan || '-'}</td>
                         <td class="text-right">${formatCurrency(item.harga)}</td>
-                        <td>${item.qty}</td>
+                        <td>${item.qty} ${item.satuan || 'LBR'}</td>
+                        <td>${item.satuanBesar || 'BOX'}</td>
                         <td class="text-right">${formatCurrency(item.total)}</td>
-                        <td class="text-right">${item.diskon}%</td>
+                        <td class="text-right">${formatCurrency(item.ongkosKuli || 0)}</td>
+                        <td class="text-right">${item.diskon || 0}%</td>
                         <td>
                             <button type="button" class="btn btn-sm btn-danger remove-item" data-index="${index}">
                                 <i class="fas fa-trash"></i>
@@ -662,7 +785,7 @@
             kode_customer: $('#kode_customer').val(),
             sales: $('#sales').val(),
             pembayaran: $('#metode_pembayaran').val(),
-            cara_bayar: $('#cara_bayar').val(),
+            cara_bayar: $('#cara_bayar').val() || $('#cara_bayar_akhir').val() || 'Tunai',
             tanggal_jadi: $('#tanggal_jadi').val(),
             items: items,
             subtotal: $('#total').val().replace(/\./g, ''),

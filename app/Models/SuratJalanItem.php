@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SuratJalanItem extends Model{
     use HasFactory;
@@ -26,5 +27,11 @@ class SuratJalanItem extends Model{
     public function transaksiItem()
     {
         return $this->hasMany(TransaksiItem::class, 'transaksi_id', 'transaksi_id');
+    }
+
+    // Relasi dengan SuratJalanItemSumber untuk tracking FIFO
+    public function suratJalanItemSumber(): HasMany
+    {
+        return $this->hasMany(SuratJalanItemSumber::class, 'surat_jalan_item_id');
     }
 }

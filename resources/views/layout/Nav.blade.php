@@ -555,6 +555,26 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('perusahaan.index')); ?>"><i class="bi bi-building"></i> Master Perusahaan</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?php echo e(route('kategori.index')); ?>"><i class="fas fa-tags"></i> Kategori Barang</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="<?php echo e(route('code.view-code')); ?>"><i class="fas fa-barcode"></i> Kode Barang</a>
+                            </li>
+                            <li class="nav-item">
+                                @if(Route::has('wilayah.index'))
+                                <a class="nav-link" href="{{ route('wilayah.index') }}"><i class="fas fa-map-marker-alt"></i> Wilayah</a>
+                                @else
+                                <a class="nav-link" href="#" title="Belum tersedia"><i class="fas fa-map-marker-alt"></i> Wilayah</a>
+                                @endif
+                            </li>
+                            <li class="nav-item">
+                                @if(Route::has('customer-prices.index'))
+                                <a class="nav-link" href="{{ route('customer-prices.index') }}"><i class="fas fa-tag"></i> Harga Khusus Pelanggan</a>
+                                @else
+                                <a class="nav-link" href="#" title="Belum tersedia"><i class="fas fa-tag"></i> Harga Khusus Pelanggan</a>
+                                @endif
+                            </li>
 
 
                         </ul>
@@ -578,16 +598,16 @@
                                     <ul class="nav flex-column ml-3">
                                         <!-- Add the new Panel Management menu item here -->
                                         <li class="nav-item">
-                                            <a class="nav-link" href="<?php echo e(route('transaksi.penjualan')); ?>"><i class="fas fa-circle-plus"></i> Tambah Penjualan</a>
+                                            <a class="nav-link" href="<?php echo e(route('sales-order.index')); ?>"><i class="fas fa-clipboard-list"></i> Sales Order</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" href="{{ route('transaksi.penjualancustomer') }}"><i class="fas fa-user-tag mr-2"></i>Data Penjualan Per Customer</a>
+                                            <a class="nav-link" href="{{ route('suratjalan.create') }}"><i class="fas fa-truck"></i> Surat Jalan</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.penjualan')); ?>"><i class="fas fa-file-invoice"></i> Faktur Penjualan</a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-envelope-open-text"></i> List Nota Penjualan</a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" href="<?php echo e(route('transaksi.purchaseorder')); ?>"><i class="bi bi-cash-stack me-2"></i>Purchase Order</a>
                                         </li>
                                     </ul>
                                 </div>
@@ -601,6 +621,9 @@
                                 <div class="collapse bg-dark border-0" id="pembelian">
                                     <ul class="nav flex-column ml-3">
                                         <li class="nav-item">
+                                            <a class="nav-link" href="<?php echo e(route('transaksi.purchaseorder')); ?>"><i class="fas fa-clipboard-check"></i> Purchase Order</a>
+                                        </li>
+                                        <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembelian.index') }}"><i class="fas fa-circle-plus"></i> Tambah Pembelian</a>
                                         </li>
                                         <li class="nav-item">
@@ -609,27 +632,31 @@
                                     </ul>
                                 </div>
                             </li>
+                            <!-- Pembayaran Piutang -->
+                            <li class='nav-item'>
+                                <a class="nav-link" data-toggle="collapse" href="#pembayaranPiutang" role="button" aria-expanded="false" aria-controls="pembayaranPiutang">
+                                    <i class="fas fa-money-check-alt"></i> Pembayaran Piutang
+                                    <i class="fas fa-chevron-down ml-auto"></i>
+                                </a>
+                                <div class="collapse bg-dark border-0" id="pembayaranPiutang">
+                                    <ul class="nav flex-column ml-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('pembayaran-piutang.create') }}"><i class="fas fa-circle-plus"></i> Tambah Pembayaran</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('pembayaran-piutang.index') }}"><i class="fas fa-list"></i> Daftar Pembayaran</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('pembayaran-piutang.laporan') }}"><i class="fas fa-chart-line"></i> Laporan Piutang</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
                         </ul>
                     </div>
                 </li>
 
-                <li class='nav-item'>
-                    <a class="nav-link" data-toggle="collapse" href="#suratjalan" role="button" aria-expanded="false" aria-controls="suratjalan">
-                        <i class="fas fa-truck-fast"></i> Surat Jalan
-                        <i class="fas fa-chevron-down ml-auto"></i>
-                    </a>
-                    <div class="collapse bg-dark border-0" id="suratjalan">
-                        <ul class="nav flex-column ml-3">
-                            <!-- Add the new Panel Management menu item here -->
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('suratjalan.create') }}"><i class="fas fa-circle-plus"></i> Tambah Surat Jalan</a>
-                            </li>
-                            <li class="nav-item">
-                            <a class="nav-link" href="{{ route('suratjalan.history') }}"><i class="fas fa-clock-rotate-left"></i> Display Surat Jalan</a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
+
                 <li class='nav-item'>
                     <a class="nav-link" data-toggle="collapse" href="#barang" role="button" aria-expanded="false" aria-controls="suratjalan">
                         <i class="bi bi-boxes"></i> Barang
@@ -652,6 +679,39 @@
 
                 <li class="nav-item">
                     <a class="nav-link" href="/viewKas"><i class="fas fa-money-bill-wave mr-2"></i>Kas</a>
+                </li>
+
+                <!-- Laporan Section -->
+                <li class='nav-item'>
+                    <a class="nav-link" data-toggle="collapse" href="#laporanMenu" role="button" aria-expanded="false" aria-controls="laporanMenu">
+                        <i class="fas fa-chart-bar"></i> Laporan
+                        <i class="fas fa-chevron-down ml-auto"></i>
+                    </a>
+                    <div class="collapse bg-dark border-0" id="laporanMenu">
+                        <ul class="nav flex-column ml-3">
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.laba-per-faktur') }}"><i class="fas fa-file-invoice-dollar"></i> Laporan Laba per Faktur</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.laba-per-barang') }}"><i class="fas fa-boxes"></i> Laporan Laba per Barang</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.ongkos-kuli') }}"><i class="fas fa-people-carry"></i> Laporan Ongkos Kuli</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.komisi-sales') }}"><i class="fas fa-percentage"></i> Laporan Komisi Sales</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.stok') }}"><i class="fas fa-warehouse"></i> Laporan Stok</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.stok') }}?show_batches=1"><i class="fas fa-layer-group"></i> Laporan Stok (per Batch)</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.piutang') }}"><i class="fas fa-credit-card"></i> Laporan Piutang Pelanggan</a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
 
             </ul>

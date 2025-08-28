@@ -68,34 +68,54 @@ class PanelController extends Controller
         // Manually group the panels
         $groupedPanels = [];
         foreach ($panels as $panel) {
-            $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->kode_barang;
+            $stock = Stock::where('kode_barang', $panel->kode_barang)->first();
+            $goodStock = $stock ? $stock->good_stock : 0;
+            $unit = $stock ? $stock->satuan : 'PCS';
+
+            // $pricePerSmallUnit = $panel->price; // jika sudah per PAK
+            // $costPerSmallUnit = $panel->cost;   // jika sudah per PAK
+
+            $costPerUnit = ($panel->konversi && $panel->konversi != 0) ? $panel->cost / $panel->konversi : $panel->cost;
+            $pricePerUnit = ($panel->konversi && $panel->konversi != 0) ? $panel->price / $panel->konversi : $panel->price;
+
+            $key = $panel->name . '-' . $panel->price . '-' . $panel->kode_barang;
 
             if (!isset($groupedPanels[$key])) {
-                $stock = Stock::where('kode_barang', $panel->kode_barang)->first();
-                $actualQuantity = $stock ? $stock->good_stock : 0;
+                // Get unit conversions for this item
+                $unitConversions = \App\Models\UnitConversion::where('kode_barang_id', $panel->id)
+                    ->active()
+                    ->get()
+                    ->map(function($conversion) {
+                        return [
+                            'unit' => $conversion->unit_turunan,
+                            'konversi' => $conversion->nilai_konversi
+                        ];
+                    });
+
                 $groupedPanels[$key] = [
                     'id' => $panel->id,
-                    'length' => $panel->length,
                     'name' => $panel->name,
-                    'cost' => $panel->cost,
-                    'price' => $panel->price,
+                    'cost' => $costPerUnit,
+                    'price' => $pricePerUnit,
+                    'harga_per_satuan_dasar' => $panel->harga_jual ?? $panel->price,
+                    'unit_dasar' => $panel->unit_dasar ?? 'PCS',
                     'group_id' => $panel->kode_barang,
                     'group' => $panel->attribute,
                     'status' => $panel->status,
-                    'quantity' => $actualQuantity
-                    ];
+                    'quantity' => $goodStock,
+                    'unit' => $stock ? $stock->satuan : '-',
+                    'satuan_besar' => $unitConversions,
+                    'total_cost' => $costPerUnit * $goodStock,
+                    'total_price' => $pricePerUnit * $goodStock
+                ];
             } else {
-                $groupedPanels[$key]['quantity']++;
+                $groupedPanels[$key]['quantity'] += $goodStock;
+                $groupedPanels[$key]['total_cost'] += $costPerUnit * $goodStock;
+                $groupedPanels[$key]['total_price'] += $pricePerUnit * $goodStock;
             }
         }
 
-        // Convert to array values
         $inventory = array_values($groupedPanels);
-
-        // Sort by length
-        usort($inventory, function($a, $b) {
-            return $a['length'] <=> $b['length'];
-        });
 
         $inventory = [
             'total_panels' => $panelsPaginator->total(),
@@ -103,9 +123,9 @@ class PanelController extends Controller
             'paginator' => $panelsPaginator // Pass the paginator object for use in the view
         ];
 
-        // Pass search parameters to the view for maintaining selected values
         return view('master.barang', compact('inventory', 'search', 'searchBy', 'statusFilter'));
     }
+
 
     /**
      * Display the repack/potong view with cutting history
@@ -205,16 +225,16 @@ class PanelController extends Controller
         $validated = $request->validate([
             'panels' => 'required|array|min:1',
             'panels.*.name' => 'required|string|max:255',
-            'panels.*.length' => 'required|numeric|min:0.1',
+            // 'panels.*.length' => 'required|numeric|min:0.1',
             'panels.*.quantity' => 'required|integer|min:1',
         ], [
             'panels.required' => 'At least one panel order is required.',
             'panels.*.name.required' => 'Panel name is required',
             'panels.*.name.string' => 'Panel name must be a valid string',
             'panels.*.name.max' => 'Panel name may not be greater than 255 characters',
-            'panels.*.length.required' => 'Panel length is required',
-            'panels.*.length.numeric' => 'Panel length must be a number',
-            'panels.*.length.min' => 'Panel length must be at least 0.1 meters',
+            // 'panels.*.length.required' => 'Panel length is required',
+            // 'panels.*.length.numeric' => 'Panel length must be a number',
+            // 'panels.*.length.min' => 'Panel length must be at least 0.1 meters',
             'panels.*.quantity.required' => 'Quantity is required',
             'panels.*.quantity.integer' => 'Quantity must be a whole number',
             'panels.*.quantity.min' => 'Quantity must be at least 1',
@@ -226,7 +246,7 @@ class PanelController extends Controller
         foreach ($validated['panels'] as $panel) {
             $result = $this->processOrder(
                 $panel['name'],
-                $panel['length'],
+                // $panel['length'],
                 $panel['quantity']
             );
 
@@ -325,7 +345,7 @@ class PanelController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'group_id' => 'required|string|max:255',
-            'length' => 'required|numeric|min:0.1',
+            // 'length' => 'required|numeric|min:0.1',
             'cost' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
             'status' => 'required',
@@ -339,9 +359,9 @@ class PanelController extends Controller
             'name.string' => 'Panel name must be a valid string',
             'name.max' => 'Panel name may not be greater than 255 characters',
 
-            'length.required' => 'Panel length is required',
-            'length.numeric' => 'Panel length must be a number',
-            'length.min' => 'Panel length must be at least 0.1 meters',
+            // 'length.required' => 'Panel length is required',
+            // 'length.numeric' => 'Panel length must be a number',
+            // 'length.min' => 'Panel length must be at least 0.1 meters',
 
             'cost.required' => 'Cost is required',
             'cost.numeric' => 'Cost must be a valid number',
@@ -357,18 +377,18 @@ class PanelController extends Controller
         ]);
 
         $name = $validated['name'];
-        $length = $validated['length'];
+        // $length = $validated['length'];
         $group_id = $validated['group_id'];
         $cost = $validated['cost'];
         $price = $validated['price'];
         $quantity = $validated['quantity'];
         $status = $validated['status'];
-
+        // dd($validated);
         Panel::where('group_id', $group_id)->delete();
 
         $kode = KodeBarang::where('kode_barang', $group_id)->first();
         $kode->name = $name;
-        $kode->length = $length;
+        // $kode->length = $length;
         $kode->cost = $cost;
         $kode->price = $price;
         $kode->status = $status;
@@ -377,7 +397,7 @@ class PanelController extends Controller
         // $parts = explode('-', $group_id);
         // $group_id = $parts[0];
 
-        $result = $this->addPanelsToInventory($name, $cost, $price, $length, $group_id, $quantity);
+        $result = $this->addPanelsToInventory($name, $cost, $price, $group_id, $quantity);
 
         return redirect()->route('master.barang')
             ->with('success', $result['message']);
@@ -692,148 +712,232 @@ class PanelController extends Controller
         return view('panels.order-details', compact('order'));
     }
 
-    private function processOrder(string $requestedName, float $requestedLength, int $requestedQuantity): array
+    // private function processOrder(string $requestedName, float $requestedLength, int $requestedQuantity): array
+    // {
+    //     // Start a database transaction using Eloquent model
+    //     try {
+    //         // Using Laravel's automatic transaction handling with a callback
+    //         $result = $this->executeWithTransaction(function() use ($requestedName, $requestedLength, $requestedQuantity) {
+    //             $remainingQuantity = $requestedQuantity;
+    //             $usedPanels = [];
+
+    //             // First try to use exact-sized panels if available
+    //             $exactPanels = Panel::where('length', $requestedLength)
+    //                 ->where('available', true)
+    //                 ->where('name', $requestedName)
+    //                 ->orderBy('id')
+    //                 ->limit($remainingQuantity)
+    //                 ->get();
+
+    //             // If we still need more panels, look for longer ones to cut
+    //             if ($remainingQuantity > 0) {
+    //                 // Find panels longer than requested size, sorted by length (use smallest suitable panels first)
+    //                 $longerPanels = Panel::where('length', '>', $requestedLength)
+    //                     ->where('name', $requestedName)
+    //                     ->where('available', true)
+    //                     ->orderBy('length')
+    //                     ->get();
+
+    //                 foreach ($longerPanels as $panel) {
+    //                     if ($remainingQuantity <= 0) {
+    //                         break;
+    //                     }
+
+    //                     $originalLength = $panel->length;
+    //                     $remainingLength = $originalLength;
+
+    //                     // Mark the panel as used
+    //                     $panel->available = false;
+    //                     $panel->save();
+
+    //                     // Record stock mutation for the used panel (decrease)
+    //                     $this->stockController->recordSale(
+    //                         $panel->group_id,
+    //                         $panel->name,
+    //                         'CUT-' . date('YmdHis') . '-' . $panel->id,
+    //                         now(),
+    //                         'PANEL-CUT-' . $panel->id,
+    //                         'PANEL CUTTING',
+    //                         1, // Quantity is 1 panel
+    //                         'LBR', // Satuan
+    //                         "Used {$originalLength}m panel for cutting", // Keterangan
+    //                         null, // created_by (optional)
+    //                         'default' // SO now at the end
+    //                     );
+
+    //                     // Cut as many times as possible from this panel
+    //                     while ($remainingLength >= $requestedLength && $remainingQuantity > 0) {
+    //                         $remainingLength -= $requestedLength;
+    //                         $remainingQuantity--;
+
+    //                         $usedPanels[] = [
+    //                             'panel_id' => $panel->id,
+    //                             'name' => $panel->name,
+    //                             'price' => $panel->price,
+    //                             'original_length' => $originalLength,
+    //                             'used_length' => $requestedLength,
+    //                             'remaining_length' => $remainingLength
+    //                         ];
+
+    //                         // Create new panel with requested length
+    //                         $newPanel = $this->createPanel($requestedName, $panel->cost, $panel->price, $requestedLength, true, $panel->id);
+
+    //                         // Record stock mutation for the new requested length panel (increase)
+    //                         $newPanelObj = $newPanel['panels'];
+    //                         $this->stockController->recordPurchase(
+    //                             $newPanelObj->group_id,
+    //                             $newPanelObj->name,
+    //                             'CUT-NEW-' . date('YmdHis') . '-' . $newPanelObj->id,
+    //                             now(),
+    //                             'PANEL-CUT-NEW-' . $newPanelObj->id,
+    //                             'PANEL CUTTING - NEW',
+    //                             1, // Quantity is 1 panel
+    //                             'ALUMKA',
+    //                             'LBR',
+    //                             "Created {$requestedLength}m panel from cutting"
+    //                         );
+    //                     }
+
+    //                     // Create a new panel for leftover length if usable
+    //                     if ($remainingLength >= 0.5) {
+    //                         $remainingPanel = $this->createPanel($requestedName, $panel->cost, $panel->price, $remainingLength, true, $panel->id);
+
+    //                         // Record stock mutation for the remaining length panel (increase)
+    //                         $remainingPanelObj = $remainingPanel['panels'];
+    //                         // Change to:
+    //                         $this->stockController->recordPurchase(
+    //                             $newPanelObj->group_id,
+    //                             $newPanelObj->name,
+    //                             'CUT-NEW-' . date('YmdHis') . '-' . $newPanelObj->id,
+    //                             now(),
+    //                             'PANEL-CUT-NEW-' . $newPanelObj->id,
+    //                             'PANEL CUTTING - NEW',
+    //                             1, // Quantity is 1 panel
+    //                             'LBR', // Satuan
+    //                             "Created {$requestedLength}m panel from cutting", // Keterangan
+    //                             null, // created_by (optional)
+    //                             'default' // SO now at the end
+    //                         );
+    //                     }
+    //                 }
+    //             }
+
+    //             // Check if we fulfilled the entire order
+    //             if ($remainingQuantity > 0) {
+    //                 // Signal that we need to rollback by throwing an exception
+    //                 throw new Exception("Insufficient inventory. Short by {$remainingQuantity} panels of {$requestedLength}m length.");
+    //             }
+
+    //             $selectedPanel = Panel::where('name', $requestedName)->first();
+    //             // Create order record
+    //             $order = Order::create([
+    //                 'total_quantity' => $requestedQuantity,
+    //                 'name' => $requestedName,
+    //                 'transaction' => $selectedPanel->price * $requestedLength * $requestedQuantity,
+    //                 'total_length' => $requestedQuantity * $requestedLength,
+    //                 'status' => 'completed'
+    //             ]);
+
+    //             // Create order items for tracking which panels were used
+    //             foreach ($usedPanels as $usedPanel) {
+    //                 OrderItem::create([
+    //                     'order_id' => $order->id,
+    //                     'panel_id' => $usedPanel['panel_id'],
+    //                     'name' => $requestedName,
+    //                     'length' => $requestedLength,
+    //                     'transaction' => $usedPanel['price'] * $requestedLength * $requestedQuantity,
+    //                     'original_panel_length' => $usedPanel['original_length'],
+    //                     'remaining_length' => $usedPanel['remaining_length']
+    //                 ]);
+    //             }
+
+    //             return [
+    //                 'success' => true,
+    //                 'message' => "Successfully processed order for {$requestedQuantity} panels of {$requestedLength}m length.",
+    //                 'order_id' => $order->id,
+    //                 'used_panels' => $usedPanels
+    //             ];
+    //         });
+
+    //         return $result;
+
+    //     } catch (Exception $e) {
+    //         return [
+    //             'success' => false,
+    //             'message' => $e->getMessage(),
+    //             'fulfilled' => 0
+    //         ];
+    //     }
+    // }
+
+    private function processOrder(string $requestedName, int $requestedQuantity): array
     {
-        // Start a database transaction using Eloquent model
         try {
-            // Using Laravel's automatic transaction handling with a callback
-            $result = $this->executeWithTransaction(function() use ($requestedName, $requestedLength, $requestedQuantity) {
+            $result = $this->executeWithTransaction(function() use ($requestedName, $requestedQuantity) {
                 $remainingQuantity = $requestedQuantity;
                 $usedPanels = [];
 
-                // First try to use exact-sized panels if available
-                $exactPanels = Panel::where('length', $requestedLength)
-                    ->where('available', true)
+                // Ambil panel yang tersedia sesuai jumlah yang diminta
+                $availablePanels = Panel::where('available', true)
                     ->where('name', $requestedName)
                     ->orderBy('id')
                     ->limit($remainingQuantity)
                     ->get();
 
-                // If we still need more panels, look for longer ones to cut
-                if ($remainingQuantity > 0) {
-                    // Find panels longer than requested size, sorted by length (use smallest suitable panels first)
-                    $longerPanels = Panel::where('length', '>', $requestedLength)
-                        ->where('name', $requestedName)
-                        ->where('available', true)
-                        ->orderBy('length')
-                        ->get();
+                foreach ($availablePanels as $panel) {
+                    if ($remainingQuantity <= 0) break;
 
-                    foreach ($longerPanels as $panel) {
-                        if ($remainingQuantity <= 0) {
-                            break;
-                        }
+                    $panel->available = false;
+                    $panel->save();
 
-                        $originalLength = $panel->length;
-                        $remainingLength = $originalLength;
+                    $usedPanels[] = [
+                        'panel_id' => $panel->id,
+                        'name' => $panel->name,
+                        'price' => $panel->price,
+                    ];
 
-                        // Mark the panel as used
-                        $panel->available = false;
-                        $panel->save();
+                    // Record stock mutation
+                    $this->stockController->recordSale(
+                        $panel->group_id,
+                        $panel->name,
+                        'SALE-' . date('YmdHis') . '-' . $panel->id,
+                        now(),
+                        'PANEL-SALE-' . $panel->id,
+                        'PANEL SOLD',
+                        1,
+                        'PCS',
+                        "Sold panel {$panel->name}"
+                    );
 
-                        // Record stock mutation for the used panel (decrease)
-                        $this->stockController->recordSale(
-                            $panel->group_id,
-                            $panel->name,
-                            'CUT-' . date('YmdHis') . '-' . $panel->id,
-                            now(),
-                            'PANEL-CUT-' . $panel->id,
-                            'PANEL CUTTING',
-                            1, // Quantity is 1 panel
-                            'LBR', // Satuan
-                            "Used {$originalLength}m panel for cutting", // Keterangan
-                            null, // created_by (optional)
-                            'default' // SO now at the end
-                        );
-
-                        // Cut as many times as possible from this panel
-                        while ($remainingLength >= $requestedLength && $remainingQuantity > 0) {
-                            $remainingLength -= $requestedLength;
-                            $remainingQuantity--;
-
-                            $usedPanels[] = [
-                                'panel_id' => $panel->id,
-                                'name' => $panel->name,
-                                'price' => $panel->price,
-                                'original_length' => $originalLength,
-                                'used_length' => $requestedLength,
-                                'remaining_length' => $remainingLength
-                            ];
-
-                            // Create new panel with requested length
-                            $newPanel = $this->createPanel($requestedName, $panel->cost, $panel->price, $requestedLength, true, $panel->id);
-
-                            // Record stock mutation for the new requested length panel (increase)
-                            $newPanelObj = $newPanel['panels'];
-                            $this->stockController->recordPurchase(
-                                $newPanelObj->group_id,
-                                $newPanelObj->name,
-                                'CUT-NEW-' . date('YmdHis') . '-' . $newPanelObj->id,
-                                now(),
-                                'PANEL-CUT-NEW-' . $newPanelObj->id,
-                                'PANEL CUTTING - NEW',
-                                1, // Quantity is 1 panel
-                                'ALUMKA',
-                                'LBR',
-                                "Created {$requestedLength}m panel from cutting"
-                            );
-                        }
-
-                        // Create a new panel for leftover length if usable
-                        if ($remainingLength >= 0.5) {
-                            $remainingPanel = $this->createPanel($requestedName, $panel->cost, $panel->price, $remainingLength, true, $panel->id);
-
-                            // Record stock mutation for the remaining length panel (increase)
-                            $remainingPanelObj = $remainingPanel['panels'];
-                            // Change to:
-                            $this->stockController->recordPurchase(
-                                $newPanelObj->group_id,
-                                $newPanelObj->name,
-                                'CUT-NEW-' . date('YmdHis') . '-' . $newPanelObj->id,
-                                now(),
-                                'PANEL-CUT-NEW-' . $newPanelObj->id,
-                                'PANEL CUTTING - NEW',
-                                1, // Quantity is 1 panel
-                                'LBR', // Satuan
-                                "Created {$requestedLength}m panel from cutting", // Keterangan
-                                null, // created_by (optional)
-                                'default' // SO now at the end
-                            );
-                        }
-                    }
+                    $remainingQuantity--;
                 }
 
-                // Check if we fulfilled the entire order
                 if ($remainingQuantity > 0) {
-                    // Signal that we need to rollback by throwing an exception
-                    throw new Exception("Insufficient inventory. Short by {$remainingQuantity} panels of {$requestedLength}m length.");
+                    throw new Exception("Insufficient inventory. Short by {$remainingQuantity} panels of {$requestedName}.");
                 }
 
+                // Buat record order
                 $selectedPanel = Panel::where('name', $requestedName)->first();
-                // Create order record
                 $order = Order::create([
                     'total_quantity' => $requestedQuantity,
                     'name' => $requestedName,
-                    'transaction' => $selectedPanel->price * $requestedLength * $requestedQuantity,
-                    'total_length' => $requestedQuantity * $requestedLength,
+                    'transaction' => $selectedPanel->price * $requestedQuantity,
                     'status' => 'completed'
                 ]);
 
-                // Create order items for tracking which panels were used
+                // Buat order items
                 foreach ($usedPanels as $usedPanel) {
                     OrderItem::create([
                         'order_id' => $order->id,
                         'panel_id' => $usedPanel['panel_id'],
-                        'name' => $requestedName,
-                        'length' => $requestedLength,
-                        'transaction' => $usedPanel['price'] * $requestedLength * $requestedQuantity,
-                        'original_panel_length' => $usedPanel['original_length'],
-                        'remaining_length' => $usedPanel['remaining_length']
+                        'name' => $usedPanel['name'],
+                        'transaction' => $usedPanel['price'],
                     ]);
                 }
 
                 return [
                     'success' => true,
-                    'message' => "Successfully processed order for {$requestedQuantity} panels of {$requestedLength}m length.",
+                    'message' => "Successfully processed order for {$requestedQuantity} panels of {$requestedName}.",
                     'order_id' => $order->id,
                     'used_panels' => $usedPanels
                 ];
@@ -890,7 +994,7 @@ class PanelController extends Controller
             if (!isset($groupedPanels[$key])) {
                 $groupedPanels[$key] = [
                     'id' => $panel->id,
-                    'length' => $panel->length,
+                    // 'length' => $panel->length,
                     'name' => $panel->name,
                     'cost' => $panel->cost,
                     'price' => $panel->price,
@@ -906,9 +1010,9 @@ class PanelController extends Controller
         $inventory = array_values($groupedPanels);
 
         // Sort by length
-        usort($inventory, function($a, $b) {
-            return $a['length'] <=> $b['length'];
-        });
+        // usort($inventory, function($a, $b) {
+        //     return $a['length'] <=> $b['length'];
+        // });
 
         return [
             'total_panels' => count($panels),
@@ -939,12 +1043,12 @@ class PanelController extends Controller
         // Manually group the panels
         $groupedPanels = [];
         foreach ($panels as $panel) {
-            $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->kode_barang;
+            $key = $panel->name . '-' . $panel->price . '-' . $panel->kode_barang;
 
             if (!isset($groupedPanels[$key])) {
                 $groupedPanels[$key] = [
                     'id' => $panel->id,
-                    'length' => $panel->length,
+                    // 'length' => $panel->length,
                     'name' => $panel->name,
                     'cost' => $panel->cost,
                     'price' => $panel->price,
@@ -961,10 +1065,10 @@ class PanelController extends Controller
         // Convert to array values
         $inventory = array_values($groupedPanels);
 
-        // Sort by length
-        usort($inventory, function($a, $b) {
-            return $a['length'] <=> $b['length'];
-        });
+        // // Sort by length
+        // usort($inventory, function($a, $b) {
+        //     return $a['length'] <=> $b['length'];
+        // });
 
         return [
             'total_panels' => $panelsPaginator->total(),
@@ -1000,29 +1104,29 @@ class PanelController extends Controller
      * @param int $quantity Number of panels to add
      * @return array Status of the operation
      */
-    public function addPanelsToInventory(string $name, float $cost, float $price, float $length, string $group_id, int $quantity): array
+    public function addPanelsToInventory(string $name, float $cost, float $price, string $group_id, int $quantity): array
     {
         $panels = [];
 
         for ($i = 0; $i < $quantity; $i++) {
-            $panel = $this->createPanel($name, $cost, $price, $length, true, null, $group_id);
+            $panel = $this->createPanel($name, $cost, $price, true, null, $group_id);
             $panels[] = $panel;
         }
 
         return [
             'success' => true,
-            'message' => "Added {$quantity} panels of {$length}m length to inventory.",
+            'message' => "Added {$quantity} panels",
             'panels' => $panels
         ];
     }
 
-    private function createPanel(string $name, float $cost, float $price, float $length, bool $available = true, ?int $parent_panel_id = NULL, ?string $group_id = NULL): array
+    private function createPanel(string $name, float $cost, float $price, bool $available = true, ?int $parent_panel_id = NULL, ?string $group_id = NULL): array
     {
         $panel = Panel::create([
             'name' => $name,
             'cost' => $cost,
             'price' => $price,
-            'length' => $length,
+            // 'length' => $length,
             'group_id' => $group_id,
             'available' => $available,
             'parent_panel_id' => $parent_panel_id
@@ -1034,12 +1138,11 @@ class PanelController extends Controller
             $getAttribute = KodeBarang::where('kode_barang', $getAttribute)->first();
 
             $getNewName = KodeBarang::where('attribute', $getAttribute->attribute)
-                                 ->where('length', $length)->first();
+                                ->first();
             $getNewName = Panel::where('group_id', $getNewName->kode_barang)->first();
             $new_name = $getNewName->name;
             $getAttribute = $getAttribute->attribute;
             $getCode = KodeBarang::where('attribute', $getAttribute)
-                              ->where('length', $length)
                               ->first();
             $panel->name = $new_name;
             $panel->group_id = $getCode->kode_barang;

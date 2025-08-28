@@ -35,12 +35,39 @@ class CustomerController extends Controller
             });
         }
 
-        $customers = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
+        // Filter by credit status
+        $creditStatus = $request->input('credit_status');
+        if ($creditStatus) {
+            switch ($creditStatus) {
+                case 'tunai':
+                    $query->where('limit_hari_tempo', 0);
+                    break;
+                case 'kredit':
+                    $query->where('limit_hari_tempo', '>', 0);
+                    break;
+            }
+        }
+
+        $customers = $query->with(['wilayah'])->orderBy('id', 'desc')->paginate(10)->withQueryString();
+
+        // Hitung sisa piutang untuk setiap customer
+        $customers->getCollection()->transform(function ($customer) {
+            // Hitung total piutang dari transaksi
+            $totalPiutang = \App\Models\Transaksi::where('kode_customer', $customer->kode_customer)
+                ->whereIn('status_piutang', ['belum_dibayar', 'sebagian'])
+                ->sum('sisa_piutang');
+            
+            $customer->sisa_piutang = $totalPiutang;
+            return $customer;
+        });
 
         $lastCustomer = Customer::orderBy('id', 'desc')->first();
         $newKodeCustomer = $lastCustomer ? str_pad($lastCustomer->id + 1, 4, '0', STR_PAD_LEFT) : '0001';
 
-        return view('master.customers', compact('customers', 'newKodeCustomer', 'keyword', 'searchBy'));
+        // Get wilayah list for forms
+        $wilayahs = \App\Models\Wilayah::active()->orderBy('nama_wilayah')->get();
+
+        return view('master.customers', compact('customers', 'newKodeCustomer', 'keyword', 'searchBy', 'wilayahs'));
     }
 
     public function store(Request $request)
@@ -50,6 +77,9 @@ class CustomerController extends Controller
             'alamat' => 'required',
             'hp' => 'required',
             'telepon' => 'nullable',
+            'limit_kredit' => 'nullable|numeric|min:0',
+            'limit_hari_tempo' => 'nullable|integer|min:0',
+            'wilayah_id' => 'nullable|exists:wilayahs,id',
         ]);
 
         // Your existing code generation logic
@@ -93,6 +123,9 @@ class CustomerController extends Controller
             'alamat' => 'required',
             'hp' => 'required',
             'telepon' => 'nullable',
+            'limit_kredit' => 'nullable|numeric|min:0',
+            'limit_hari_tempo' => 'nullable|integer|min:0',
+            'wilayah_id' => 'nullable|exists:wilayahs,id',
         ]);
 
         $customer->update($validated);

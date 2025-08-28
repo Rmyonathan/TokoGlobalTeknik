@@ -186,13 +186,14 @@ use Riskihajar\Terbilang\Facades\Terbilang;
             <thead>
                 <tr>
                     <th style="width: 5%;">No.</th>
-                    <th style="width: 15%;">Kode Barang</th>
-                    <th style="width: 30%;">Nama Barang</th>
+                    <th style="width: 14%;">Kode Barang</th>
+                    <th style="width: 28%;">Nama Barang</th>
                     <th style="width: 7%;">Qty</th>
-                    <th style="width: 15%;">Harga Satuan</th>
+                    <th style="width: 6%;">Satuan</th>
+                    <th style="width: 14%;">Harga Satuan</th>
                     <th style="width: 8%;">Disc %</th>
-                    <th style="width: 10%;">Disc Rp</th>
-                    <th style="width: 15%;">Sub Total</th>
+                    <th style="width: 9%;">Disc Rp</th>
+                    <th style="width: 9%;">Sub Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -204,6 +205,7 @@ use Riskihajar\Terbilang\Facades\Terbilang;
                         <td>{{ $item->kode_barang }}</td>
                         <td>{{ $item->nama_barang }}</td>
                         <td class="center">{{ $item->qty }}</td>
+                        <td class="center">{{ $item->satuan ?? '-' }}</td>
                         <td class="right">Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
                         <td class="center">{{ $item->diskon ?? 0 }}</td>
                         <td class="right">Rp {{ number_format(($item->harga * $item->qty * ($item->diskon ?? 0) / 100), 0, ',', '.') }}</td>
@@ -216,7 +218,7 @@ use Riskihajar\Terbilang\Facades\Terbilang;
                     @for ($j = $rowCount; $j < $itemsPerPage; $j++)
                         {{-- Add a special class to the very last empty row for the final border --}}
                         <tr class="empty-row {{ ($j == $itemsPerPage - 1) ? 'last-empty-row' : '' }}">
-                            <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                            <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
                             <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
                         </tr>
                     @endfor

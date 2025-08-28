@@ -74,6 +74,10 @@
                         <label for="keterangan">Keterangan</label>
                         <input type="text" name="keterangan" class="form-control" required>
                     </div>
+                    <!-- <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="default" id="default">
+                        <label class="form-check-label" for="default"> Jadikan default</label>
+                    </div> -->
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-success">Simpan</button>
@@ -99,7 +103,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="kode_stok_owner" class="form-label">Kode</label>
-                        <input type="text" name="kode_stok_owner" class="form-control" value="{{ $stokOwner->kode_kode_stok_owner }}" readonly>
+                        <input type="text" name="kode_stok_owner" class="form-control" value="{{ $stokOwner->kode_stok_owner }}" readonly>
                     </div>
                     <div class="mb-3">
                         <label for="keterangan" class="form-label">Keterangan</label>
@@ -120,11 +124,9 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Ambil elemen select dan input
     const searchBySelect = document.getElementById('search_by');
     const searchInput = document.getElementById('search_input');
 
-    // Fungsi untuk mengecek status dropdown dan mengatur disabled state pada input
     function updateSearchInputState() {
         if (searchBySelect.value !== "" && searchBySelect.selectedIndex !== 0) {
             searchInput.disabled = false;

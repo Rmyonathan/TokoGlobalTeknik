@@ -26,6 +26,8 @@ class PermissionSeeder extends Seeder
         $this->createFinancePermissions();
         $this->createInventoryPermissions();
         $this->createReportPermissions();
+        $this->createSalesOrderPermissions();
+
 
         // Create roles and assign permissions
         $this->createRoles();
@@ -92,6 +94,11 @@ class PermissionSeeder extends Seeder
         $this->createPermissionIfNotExists('delete perusahaan');
         $this->createPermissionIfNotExists('manage cara bayar');
         $this->createPermissionIfNotExists('delete cara bayar');
+        // Wilayah permissions
+        $this->createPermissionIfNotExists('view wilayah');
+        $this->createPermissionIfNotExists('manage wilayah');
+        $this->createPermissionIfNotExists('edit wilayah');
+        $this->createPermissionIfNotExists('delete wilayah');
     }
 
     /**
@@ -133,6 +140,10 @@ class PermissionSeeder extends Seeder
         $this->createPermissionIfNotExists('edit hutang');
         $this->createPermissionIfNotExists('cancel hutang');
         $this->createPermissionIfNotExists('delete hutang');
+        // Pembayaran Piutang
+        $this->createPermissionIfNotExists('view pembayaran piutang');
+        $this->createPermissionIfNotExists('edit pembayaran piutang');
+        $this->createPermissionIfNotExists('manage pembayaran piutang');
     }
 
     /**
@@ -156,10 +167,21 @@ class PermissionSeeder extends Seeder
      */
     private function createReportPermissions()
     {
+        // Global laporan gate used by routes
+        $this->createPermissionIfNotExists('view laporan');
         $this->createPermissionIfNotExists('access sales report');
         $this->createPermissionIfNotExists('access purchase report');
         $this->createPermissionIfNotExists('access inventory report');
         $this->createPermissionIfNotExists('access finance report');
+    }
+
+    private function createSalesOrderPermissions()
+    {
+        $this->createPermissionIfNotExists('view sales order');
+        $this->createPermissionIfNotExists('create sales order');
+        $this->createPermissionIfNotExists('edit sales order');
+        $this->createPermissionIfNotExists('manage sales order');
+        $this->createPermissionIfNotExists('delete sales order');
     }
 
     /**
@@ -181,11 +203,20 @@ class PermissionSeeder extends Seeder
             'view transactions',
             'edit penjualan',
             'edit pembelian',
+            'view sales order',
+            'create sales order',
+            'edit sales order',
+            'manage sales order',
             'view kas',
             'edit kas',
             'view hutang',
             'edit hutang',
             'view stock',
+            'view laporan',
+            'view pembayaran piutang',
+            'view wilayah',
+            'manage wilayah',
+            'edit wilayah',
             'access sales report',
             'access purchase report',
             'access inventory report',
@@ -201,7 +232,13 @@ class PermissionSeeder extends Seeder
             'edit penjualan',
             'manage surat jalan',
             'edit surat jalan',
+            'view sales order',
+            'create sales order',
+            'edit sales order',
             'view stock',
+            // Allow viewing AR payment menu
+            'view pembayaran piutang',
+            'view laporan',
             'access sales report'
         ];
         
@@ -218,6 +255,7 @@ class PermissionSeeder extends Seeder
             'edit stock adjustment',
             'manage panels',
             'edit panels',
+            'view laporan',
             'access inventory report'
         ];
         
@@ -233,6 +271,11 @@ class PermissionSeeder extends Seeder
             'manage hutang',
             'edit hutang',
             'cancel hutang',
+            // Pembayaran Piutang
+            'view pembayaran piutang',
+            'edit pembayaran piutang',
+            'manage pembayaran piutang',
+            'view laporan',
             'access finance report'
         ];
         
@@ -249,7 +292,13 @@ class PermissionSeeder extends Seeder
             'manage surat jalan',
             'edit surat jalan',
             'cancel surat jalan',
+            'view sales order',
+            'create sales order',
+            'edit sales order',
+            'manage sales order',
             'view stock',
+            'view pembayaran piutang',
+            'view laporan',
             'access sales report'
         ];
         
@@ -270,6 +319,7 @@ class PermissionSeeder extends Seeder
             'manage panels',
             'edit panels',
             'delete panels',
+            'view laporan',
             'access inventory report'
         ];
         
@@ -290,7 +340,12 @@ class PermissionSeeder extends Seeder
             'edit penjualan',
             'manage customers',
             'edit customers',
-            'view stock'
+            'view stock',
+            'view pembayaran piutang',
+            'view laporan',
+            'view wilayah',
+            'manage wilayah',
+            'edit wilayah'
         ]);
         
         $this->createOrUpdateRole('second', [
@@ -301,7 +356,9 @@ class PermissionSeeder extends Seeder
             'manage barang',
             'edit barang',
             'manage kode barang',
-            'edit kode barang'
+            'edit kode barang',
+            'view laporan',
+            'view wilayah'
         ]);
         
         $this->createOrUpdateRole('third', [
@@ -311,7 +368,8 @@ class PermissionSeeder extends Seeder
             'edit kas',
             'view hutang',
             'manage hutang',
-            'edit hutang'
+            'edit hutang',
+            'view laporan'
         ]);
         
         // Supervisor role with cancel permissions
@@ -328,7 +386,10 @@ class PermissionSeeder extends Seeder
             'cancel kas',
             'view stock',
             'edit stock adjustment',
-            'cancel stock adjustment'
+            'cancel stock adjustment',
+            'view pembayaran piutang',
+            'view laporan',
+            'view wilayah'
         ]);
     }
     

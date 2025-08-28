@@ -23,6 +23,11 @@ use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PerusahaanController;
 use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\KategoriBarangController;
+use App\Http\Controllers\WilayahController;
+use App\Http\Controllers\UnitConversionController;
+use App\Http\Controllers\SalesOrderController;
+use App\Http\Controllers\PembayaranPiutangController;
+use App\Http\Controllers\LaporanController;
 
 use App\Models\StokOwner;
 use App\Models\Supplier;
@@ -141,7 +146,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     });
     
     // Stok Owner Management routes - Edit
-    Route::group(['middleware' => ['permission:edit customers'], 'prefix' => 'master'], function () {
+    Route::group(['middleware' => ['permission:manage stok owner'], 'prefix' => 'master'], function () {
         Route::put('/stok_owner/{stokOwner}', [StokOwnerController::class, 'update'])->name('stok_owner.update');
     });
 
@@ -214,6 +219,41 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Kode Barang Management routes - Delete
     Route::group(['middleware' => ['permission:delete kode barang'], 'prefix' => 'kode_barang'], function () {
         Route::delete('/delete/{id}', [KodeBarangController::class, 'destroy'])->name('code.delete');
+    });
+    
+    // Wilayah Management routes - View and Create
+    Route::group(['middleware' => ['permission:manage wilayah'], 'prefix' => 'wilayah'], function () {
+        Route::get('/', [WilayahController::class, 'index'])->name('wilayah.index');
+        Route::get('/create', [WilayahController::class, 'create'])->name('wilayah.create');
+        Route::post('/', [WilayahController::class, 'store'])->name('wilayah.store');
+    });
+    
+    // Wilayah Management routes - View
+    Route::group(['middleware' => ['permission:view wilayah'], 'prefix' => 'wilayah'], function () {
+        Route::get('/{wilayah}', [WilayahController::class, 'show'])->name('wilayah.show');
+    });
+    
+    // Wilayah Management routes - Edit
+    Route::group(['middleware' => ['permission:edit wilayah'], 'prefix' => 'wilayah'], function () {
+        Route::get('/{wilayah}/edit', [WilayahController::class, 'edit'])->name('wilayah.edit');
+        Route::put('/{wilayah}', [WilayahController::class, 'update'])->name('wilayah.update');
+        Route::patch('/{wilayah}/toggle-status', [WilayahController::class, 'toggleStatus'])->name('wilayah.toggle-status');
+    });
+    
+    // Wilayah Management routes - Delete
+    Route::group(['middleware' => ['permission:delete wilayah'], 'prefix' => 'wilayah'], function () {
+        Route::delete('/{wilayah}', [WilayahController::class, 'destroy'])->name('wilayah.destroy');
+    });
+    
+    // Unit Conversion Management routes
+    Route::group(['middleware' => ['permission:manage kode barang'], 'prefix' => 'unit_conversion'], function () {
+        Route::get('/{kodeBarangId}', [UnitConversionController::class, 'index'])->name('unit_conversion.index');
+        Route::get('/{kodeBarangId}/create', [UnitConversionController::class, 'create'])->name('unit_conversion.create');
+        Route::post('/{kodeBarangId}', [UnitConversionController::class, 'store'])->name('unit_conversion.store');
+        Route::get('/{kodeBarangId}/{id}/edit', [UnitConversionController::class, 'edit'])->name('unit_conversion.edit');
+        Route::put('/{kodeBarangId}/{id}', [UnitConversionController::class, 'update'])->name('unit_conversion.update');
+        Route::patch('/{kodeBarangId}/{id}/toggle', [UnitConversionController::class, 'toggleStatus'])->name('unit_conversion.toggle_status');
+        Route::delete('/{kodeBarangId}/{id}', [UnitConversionController::class, 'destroy'])->name('unit_conversion.destroy');
     });
     
     // ==============================
@@ -362,6 +402,8 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/store', [SuratJalanController::class, 'store'])->name('suratjalan.store');
         Route::get('/history', [SuratJalanController::class, 'history'])->name('suratjalan.history');
         Route::get('/detail/{id}', [SuratJalanController::class, 'detail'])->name('suratjalan.detail');
+        Route::get('/available-stock', [SuratJalanController::class, 'getAvailableStock'])->name('suratjalan.available-stock');
+        Route::get('/fifo-allocation/{suratJalanItemId}', [SuratJalanController::class, 'getFifoAllocation'])->name('suratjalan.fifo-allocation');
     });
     
     // Surat Jalan routes - Edit (if you have edit functionality)
@@ -431,6 +473,74 @@ Route::middleware(['web', 'auth'])->group(function () {
     });
     
     // ==============================
+    // SALES ORDER SECTION
+    // ==============================
+    
+    // Sales Order routes - View and Create
+    Route::group(['middleware' => ['permission:view sales order'], 'prefix' => 'sales-order'], function () {
+        Route::get('/', [SalesOrderController::class, 'index'])->name('sales-order.index');
+        Route::get('/create', [SalesOrderController::class, 'create'])->name('sales-order.create');
+        Route::post('/store', [SalesOrderController::class, 'store'])->name('sales-order.store');
+        Route::get('/{salesOrder}', [SalesOrderController::class, 'show'])->name('sales-order.show');
+        Route::get('/customer-price', [SalesOrderController::class, 'getCustomerPrice'])->name('sales-order.customer-price');
+        Route::get('/available-units/{kodeBarangId}', [SalesOrderController::class, 'getAvailableUnits'])->name('sales-order.available-units');
+    });
+    
+    // Sales Order routes - Edit
+    Route::group(['middleware' => ['permission:edit sales order'], 'prefix' => 'sales-order'], function () {
+        Route::get('/{salesOrder}/edit', [SalesOrderController::class, 'edit'])->name('sales-order.edit');
+        Route::put('/{salesOrder}', [SalesOrderController::class, 'update'])->name('sales-order.update');
+        Route::delete('/{salesOrder}', [SalesOrderController::class, 'destroy'])->name('sales-order.destroy');
+    });
+    
+    // Sales Order routes - Status Management
+    Route::group(['middleware' => ['permission:manage sales order'], 'prefix' => 'sales-order'], function () {
+        Route::post('/{salesOrder}/approve', [SalesOrderController::class, 'approve'])->name('sales-order.approve');
+        Route::post('/{salesOrder}/process', [SalesOrderController::class, 'process'])->name('sales-order.process');
+        Route::post('/{salesOrder}/cancel', [SalesOrderController::class, 'cancel'])->name('sales-order.cancel');
+        Route::post('/sales-order/{salesOrder}/convert', [SalesOrderController::class, 'convertToTransaksi'])
+        ->name('sales-order.convert');
+    });
+
+    // ==============================
+    // PEMBAYARAN PIUTANG SECTION
+    // ==============================
+    
+    // Pembayaran Piutang routes - View and Create
+    Route::group(['middleware' => ['permission:view pembayaran piutang'], 'prefix' => 'pembayaran-piutang'], function () {
+        Route::get('/', [PembayaranPiutangController::class, 'index'])->name('pembayaran-piutang.index');
+        Route::get('/create', [PembayaranPiutangController::class, 'create'])->name('pembayaran-piutang.create');
+        Route::post('/store', [PembayaranPiutangController::class, 'store'])->name('pembayaran-piutang.store');
+        // Place static paths BEFORE wildcard to avoid conflicts
+        Route::get('/laporan', [PembayaranPiutangController::class, 'laporanPiutang'])->name('pembayaran-piutang.laporan');
+        Route::get('/{pembayaran}', [PembayaranPiutangController::class, 'show'])->name('pembayaran-piutang.show');
+    });
+    
+    // Pembayaran Piutang routes - Edit and Manage
+    Route::group(['middleware' => ['permission:edit pembayaran piutang'], 'prefix' => 'pembayaran-piutang'], function () {
+        Route::get('/{pembayaran}/edit', [PembayaranPiutangController::class, 'edit'])->name('pembayaran-piutang.edit');
+        Route::put('/{pembayaran}', [PembayaranPiutangController::class, 'update'])->name('pembayaran-piutang.update');
+        Route::delete('/{pembayaran}', [PembayaranPiutangController::class, 'destroy'])->name('pembayaran-piutang.destroy');
+        Route::post('/{pembayaran}/confirm', [PembayaranPiutangController::class, 'confirm'])->name('pembayaran-piutang.confirm');
+        Route::post('/{pembayaran}/cancel', [PembayaranPiutangController::class, 'cancel'])->name('pembayaran-piutang.cancel');
+    });
+    
+    // ==============================
+    // LAPORAN SECTION
+    // ==============================
+    
+    // Laporan routes - View
+    Route::group(['middleware' => ['permission:view laporan'], 'prefix' => 'laporan'], function () {
+        Route::get('/', [LaporanController::class, 'index'])->name('laporan.index');
+        Route::get('/laba-per-faktur', [LaporanController::class, 'labaPerFaktur'])->name('laporan.laba-per-faktur');
+        Route::get('/laba-per-barang', [LaporanController::class, 'labaPerBarang'])->name('laporan.laba-per-barang');
+        Route::get('/ongkos-kuli', [LaporanController::class, 'ongkosKuli'])->name('laporan.ongkos-kuli');
+        Route::get('/komisi-sales', [LaporanController::class, 'komisiSales'])->name('laporan.komisi-sales');
+        Route::get('/stok', [LaporanController::class, 'laporanStok'])->name('laporan.stok');
+        Route::get('/piutang', [LaporanController::class, 'laporanPiutang'])->name('laporan.piutang');
+    });
+
+    // ==============================
     // API SECTION
     // ==============================
     
@@ -463,6 +573,13 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/searchfaktur', [TransaksiController::class,'getTransaksiByCustomer'])->name('api.faktur.search');
         Route::get('/suratjalan/transaksiitem/{transaksiId}', [TransaksiController::class, 'getRincianTransaksi'])->name('api.rinciantransaksi');
         Route::get('/transaksi/items/{transaksiId}', [TransaksiController::class, 'getTransaksiItems'])->name('api.transaksi.items');
+        Route::get('/transaksi/harga-ongkos', [TransaksiController::class, 'getHargaDanOngkos'])->name('api.transaksi.harga-ongkos');
+        Route::post('/transaksi/store-from-sj', [TransaksiController::class, 'storeFromSuratJalan'])->name('api.transaksi.store-from-sj');
+        
+        // Pembayaran Piutang API routes
+        Route::get('/pembayaran-piutang/customer-invoices', [PembayaranPiutangController::class, 'getCustomerInvoices'])->name('api.pembayaran-piutang.customer-invoices');
+        Route::get('/pembayaran-piutang/payment-suggestion', [PembayaranPiutangController::class, 'getPaymentSuggestion'])->name('api.pembayaran-piutang.payment-suggestion');
+        Route::get('/pembayaran-piutang/statistics', [PembayaranPiutangController::class, 'getPaymentStatistics'])->name('api.pembayaran-piutang.statistics');
         
         // Supplier API routes
         Route::get('/suppliers/search', [SupplierController::class, 'search'])->name('api.suppliers.search');

@@ -167,7 +167,8 @@ $(document).ready(function () {
         const harga = parseInt($("#harga").val()) || 0;
         const quantity = parseInt($("#quantity").val()) || 0;
         const panjang = parseFloat($("#panjang").val()) || 0;
-        const satuan = $("#satuan").val();
+        const satuanKecil = $("#satuanKecil").val();
+        const satuanBesar = $("#satuanBesar").val();
         const diskon = parseInt($("#diskon").val()) || 0;
 
         // Calculate values
@@ -179,6 +180,9 @@ $(document).ready(function () {
         const tbody = $("#itemPreview");
         tbody.empty();
 
+        $('#satuanKecil, #satuanBesar').on('change', function() {
+            updateItemPreview();
+        });
         tbody.append(`
             <tr>
                 <td>${kodeBarang}</td>
@@ -189,7 +193,8 @@ $(document).ready(function () {
                     panjang > 0 ? panjang + " m" : "-"
                 }</td> <!-- Display with meters unit -->
                 <td class="text-right">${formatCurrency(total)}</td>
-                <td>${satuan}</td>
+                <td>${satuanKecil}</td>
+                <td>${satuanBesar}</td>
                 <td>${diskon}%</td>
                 <td class="text-right">${formatCurrency(subTotal)}</td>
             </tr>
@@ -203,6 +208,8 @@ $(document).ready(function () {
         const keterangan = $("#keterangan").val();
         const harga = parseInt($("#harga").val()) || 0;
         const qty = parseInt($("#quantity").val()) || 0;
+        const satuanKecil = $("#satuanKecil").val() || 0;
+        const satuanBesar = $("#satuanBesar").val() || 0;
         const panjang = parseFloat($("#panjang").val()) || 0;
         const diskon = parseInt($("#diskon").val()) || 0;
 
@@ -238,6 +245,8 @@ $(document).ready(function () {
                     keterangan,
                     harga,
                     qty,
+                    satuanKecil,
+                    satuanBesar,
                     panjang,
                     diskon,
                     total,
@@ -276,6 +285,8 @@ $(document).ready(function () {
                     <td>${item.keterangan || "-"}</td>
                     <td class="text-right">${formatCurrency(item.harga)}</td>
                     <td class="text-center">${item.qty}</td>
+                    <td class="text-center">${item.satuanKecil}</td>
+                    <td class="text-center">${item.satuanBesar}</td>
                     <td class="text-right">${formatCurrency(item.total)}</td>
                     <td class="text-right">${item.diskon}%</td>
                     <td>

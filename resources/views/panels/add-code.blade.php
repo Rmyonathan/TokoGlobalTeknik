@@ -45,16 +45,16 @@
                             @enderror
                             <small class="form-text text-muted">Masukkan Kode Barang.</small>
                         </div>
-                        <div class="form-group">
+                        <!-- <div class="form-group">
                             <label for="length"><i class="fas fa-ruler mr-1"></i> Panjang Barang (meters)</label>
                             <input type="number" step="0.01" class="form-control @error('panjang') is-invalid @enderror" id="length" name="length" value="{{ old('length') }}" required>
                             @error('length')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="form-text text-muted">Masukkan panjang barang dalam satuan meter.</small>
-                        </div>
+                        </div> -->
                         <div class="form-group">
-                            <label for="cost"><i class="fas fa-ruler mr-1"></i> Harga Beli (per meters)</label>
+                            <label for="cost"><i class="fas fa-ruler mr-1"></i> Harga Beli</label>
                             <input type="number" step="0.01" class="form-control @error('Harga Beli') is-invalid @enderror" id="cost" name="cost" value="{{ old('cost') }}" required>
                             @error('cost')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -62,12 +62,46 @@
                             <small class="form-text text-muted">Masukkan Harga Beli.</small>
                         </div>
                         <div class="form-group">
-                            <label for="price"><i class="fas fa-ruler mr-1"></i> Harga Jual (per meters)</label>
-                            <input type="number" step="0.01" class="form-control @error('Harga Jual') is-invalid @enderror" id="price" name="price" value="{{ old('price') }}" required>
+                            <label for="unit_dasar"><i class="fas fa-ruler mr-1"></i> Satuan Dasar</label>
+                            <select class="form-control @error('unit_dasar') is-invalid @enderror" id="unit_dasar" name="unit_dasar" required>
+                                <option value="">Pilih Satuan Dasar</option>
+                                <option value="LBR" {{ old('unit_dasar') == 'LBR' ? 'selected' : '' }}>LBR (Lembar)</option>
+                                <option value="KG" {{ old('unit_dasar') == 'KG' ? 'selected' : '' }}>KG (Kilogram)</option>
+                                <option value="M" {{ old('unit_dasar') == 'M' ? 'selected' : '' }}>M (Meter)</option>
+                                <option value="PCS" {{ old('unit_dasar') == 'PCS' ? 'selected' : '' }}>PCS (Pieces)</option>
+                                <option value="PAK" {{ old('unit_dasar') == 'PAK' ? 'selected' : '' }}>PAK (Pack)</option>
+                            </select>
+                            @error('unit_dasar')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Satuan terkecil untuk perhitungan harga.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="harga_jual"><i class="fas fa-tag mr-1"></i> Harga Jual per Satuan Dasar</label>
+                            <input type="number" step="0.01" class="form-control @error('harga_jual') is-invalid @enderror" id="harga_jual" name="harga_jual" value="{{ old('harga_jual') }}" required>
+                            @error('harga_jual')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Harga jual per satuan dasar (misal: per LBR, per KG).</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ongkos_kuli_default"><i class="fas fa-hand-holding-usd mr-1"></i> Ongkos Kuli Default</label>
+                            <input type="number" step="0.01" class="form-control @error('ongkos_kuli_default') is-invalid @enderror" id="ongkos_kuli_default" name="ongkos_kuli_default" value="{{ old('ongkos_kuli_default') }}">
+                            @error('ongkos_kuli_default')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Ongkos kuli default (opsional).</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="price"><i class="fas fa-ruler mr-1"></i> Harga Jual (Legacy)</label>
+                            <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ old('price') }}" required>
                             @error('price')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Masukkan Harga Jual.</small>
+                            <small class="form-text text-muted">Harga jual legacy (akan dihitung otomatis berdasarkan satuan dasar).</small>
                         </div>
                         <div class="form-row">
                             <div class="col-md-6">

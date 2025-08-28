@@ -89,6 +89,8 @@
                             <th>Keterangan</th>
                             <th>Harga</th>
                             <th>Qty</th>
+                            <th>Satuan Kecil</th>
+                            <th>Satuan Besar</th>
                             <th>Total</th>
                             <th>Diskon</th>
                             <th>Aksi</th>
@@ -225,12 +227,17 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="satuan">Satuan</label>
-                                <select class="form-control" id="satuan" name="satuan">
+                                <label for="satuanKecil">Satuan Kecil</label>
+                                <select class="form-control" id="satuanKecil" name="satuanKecil">
                                     <option value="PCS">PCS</option>
-                                    <option value="MTR">MTR</option>
-                                    <option value="BTG">BTG</option>
                                     <option value="LBR">LBR</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="satuanBesar">Satuan Besar</label>
+                                <select class="form-control" id="satuanBesar" name="satuanBesar">
+                                    <option value="BOX">BOX</option>
+                                    <option value="DUS">DUS</option>
                                     <option value="UNIT">UNIT</option>
                                 </select>
                             </div>
@@ -249,7 +256,8 @@
                                             <th>Qty</th>
                                             <th>Panjang</th>
                                             <th>Total</th>
-                                            <th>Satuan</th>
+                                            <th>Satuan Kecil</th>
+                                            <th>Satuan Besar</th>
                                             <th>Disc(%)</th>
                                             <th>Sub Total</th>
                                         </tr>
