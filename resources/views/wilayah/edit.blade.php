@@ -64,10 +64,12 @@
                                 <div class="form-group">
                                     <label for="is_active" class="font-weight-bold">Status</label>
                                     <div class="custom-control custom-switch">
+                                        <input type="hidden" name="is_active" value="0">
                                         <input type="checkbox" 
                                                class="custom-control-input" 
                                                id="is_active" 
                                                name="is_active" 
+                                               value="1"
                                                {{ old('is_active', $wilayah->is_active) ? 'checked' : '' }}>
                                         <label class="custom-control-label" for="is_active">
                                             Aktif
@@ -160,6 +162,28 @@ $(document).ready(function() {
     
     // Trigger on page load
     $('#keterangan').trigger('input');
+    
+    // Form validation
+    $('form').on('submit', function(e) {
+        var namaWilayah = $('#nama_wilayah').val().trim();
+        
+        if (namaWilayah === '') {
+            alert('Nama wilayah harus diisi!');
+            $('#nama_wilayah').focus();
+            e.preventDefault();
+            return false;
+        }
+        
+        // Show loading state
+        $('button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
+    });
+    
+    // Reset form confirmation
+    $('button[type="reset"]').on('click', function(e) {
+        if (!confirm('Apakah Anda yakin ingin mereset form? Semua data yang sudah diisi akan hilang.')) {
+            e.preventDefault();
+        }
+    });
 });
 </script>
 @endpush

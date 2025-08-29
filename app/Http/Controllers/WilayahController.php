@@ -33,7 +33,7 @@ class WilayahController extends Controller
         $validator = Validator::make($request->all(), [
             'nama_wilayah' => 'required|string|max:100|unique:wilayahs,nama_wilayah',
             'keterangan' => 'nullable|string|max:255',
-            'is_active' => 'boolean'
+            'is_active' => 'nullable|boolean'
         ]);
 
         if ($validator->fails()) {
@@ -45,7 +45,7 @@ class WilayahController extends Controller
         Wilayah::create([
             'nama_wilayah' => $request->nama_wilayah,
             'keterangan' => $request->keterangan,
-            'is_active' => $request->has('is_active')
+            'is_active' => $request->boolean('is_active')
         ]);
 
         return redirect()->route('wilayah.index')
@@ -76,7 +76,7 @@ class WilayahController extends Controller
         $validator = Validator::make($request->all(), [
             'nama_wilayah' => 'required|string|max:100|unique:wilayahs,nama_wilayah,' . $wilayah->id,
             'keterangan' => 'nullable|string|max:255',
-            'is_active' => 'boolean'
+            'is_active' => 'nullable|boolean'
         ]);
 
         if ($validator->fails()) {
@@ -88,7 +88,7 @@ class WilayahController extends Controller
         $wilayah->update([
             'nama_wilayah' => $request->nama_wilayah,
             'keterangan' => $request->keterangan,
-            'is_active' => $request->has('is_active')
+            'is_active' => $request->boolean('is_active')
         ]);
 
         return redirect()->route('wilayah.index')
