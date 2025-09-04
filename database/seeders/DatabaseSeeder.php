@@ -15,10 +15,13 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Run permissions and roles seeder
-        $this->call(ImprovedPermissionSeeder::class);
+        // $this->call(ImprovedPermissionSeeder::class);
+        $this->call(PermissionSeeder::class);
+        $this->call(WilayahSeeder::class);
+        $this->call(RoleGroupSeeder::class);
         
         // Run user seeder
-        // $this->call(UserSeeder::class);
+        $this->call(UserSeeder::class);
         
         // Run grup barang seeder
         $this->call(GrupBarangSeeder::class);
