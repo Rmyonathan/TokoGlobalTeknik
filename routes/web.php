@@ -481,9 +481,10 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/', [SalesOrderController::class, 'index'])->name('sales-order.index');
         Route::get('/create', [SalesOrderController::class, 'create'])->name('sales-order.create');
         Route::post('/store', [SalesOrderController::class, 'store'])->name('sales-order.store');
-        Route::get('/{salesOrder}', [SalesOrderController::class, 'show'])->name('sales-order.show');
+        // Place static paths BEFORE wildcard to avoid conflicts
         Route::get('/customer-price', [SalesOrderController::class, 'getCustomerPrice'])->name('sales-order.customer-price');
         Route::get('/available-units/{kodeBarangId}', [SalesOrderController::class, 'getAvailableUnits'])->name('sales-order.available-units');
+        Route::get('/{salesOrder}', [SalesOrderController::class, 'show'])->name('sales-order.show');
     });
     
     // Sales Order routes - Edit

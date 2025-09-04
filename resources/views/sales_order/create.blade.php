@@ -219,7 +219,12 @@
 <script>
 $(document).ready(function() {
     let itemIndex = 0;
-
+    
+    console.log('Sales Order form initialized');
+    
+    // Initialize the first item row
+    $('.item-row').first().find('.remove-item').hide();
+    
     // Handle cara bayar change
     $('#cara_bayar').change(function() {
         if ($(this).val() === 'Kredit') {
@@ -250,19 +255,47 @@ $(document).ready(function() {
         const unitDasar = selectedOption.data('unit-dasar') || 'LBR';
         
         row.find('.item-harga').val(harga);
-        row.find('.item-satuan').val(unitDasar);
         
         // Get available units for this product
         const kodeBarangId = $(this).val();
         if (kodeBarangId) {
-            $.get(`/sales-order/available-units/${kodeBarangId}`, function(units) {
-                const satuanSelect = row.find('.item-satuan');
-                satuanSelect.empty();
-                units.forEach(function(unit) {
-                    satuanSelect.append(`<option value="${unit}">${unit}</option>`);
-                });
-                satuanSelect.val(unitDasar);
+            // Fetch available units from server
+            $.ajax({
+                url: `{{ route('sales-order.available-units', '') }}/${kodeBarangId}`,
+                method: 'GET',
+                success: function(units) {
+                    const satuanSelect = row.find('.item-satuan');
+                    satuanSelect.empty();
+                    
+                    if (Array.isArray(units) && units.length > 0) {
+                        // Add unit dasar first (small unit)
+                        satuanSelect.append(`<option value="${unitDasar}">${unitDasar} (Satuan Kecil)</option>`);
+                        
+                        // Add large units from unit conversion
+                        units.forEach(function(unit) {
+                            if (unit !== unitDasar) {
+                                satuanSelect.append(`<option value="${unit}">${unit} (Satuan Besar)</option>`);
+                            }
+                        });
+                    } else {
+                        // Fallback to default units
+                        satuanSelect.html(`<option value="${unitDasar}">${unitDasar} (Satuan Kecil)</option>`);
+                    }
+                    
+                    // Set default to unit dasar
+                    satuanSelect.val(unitDasar);
+                    calculateItemTotal(row);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error fetching units:', error);
+                    // Fallback to default units
+                    const satuanSelect = row.find('.item-satuan');
+                    satuanSelect.html(`<option value="${unitDasar}">${unitDasar} (Satuan Kecil)</option>`);
+                }
             });
+        } else {
+            // If no product selected, reset to default
+            row.find('.item-satuan').html('<option value="LBR">LBR (Satuan Kecil)</option>');
         }
         
         calculateItemTotal(row);
@@ -286,43 +319,79 @@ $(document).ready(function() {
         const satuan = $(this).val();
         
         if (customerId && kodeBarangId && satuan) {
-            $.get('/sales-order/customer-price', {
-                customer_id: customerId,
-                kode_barang_id: kodeBarangId,
-                unit: satuan
-            }, function(priceInfo) {
-                row.find('.item-harga').val(priceInfo.harga_jual);
-                calculateItemTotal(row);
+            $.ajax({
+                url: '{{ route("sales-order.customer-price") }}',
+                method: 'GET',
+                data: {
+                    customer_id: customerId,
+                    kode_barang_id: kodeBarangId,
+                    unit: satuan
+                },
+                success: function(priceInfo) {
+                    row.find('.item-harga').val(priceInfo.harga_jual);
+                    calculateItemTotal(row);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error fetching customer price:', error);
+                }
             });
         }
     });
 
     // Add new item
-    $('#add-item').click(function() {
+    $('#add-item').on('click', function() {
+        console.log('Add item button clicked');
+        
         itemIndex++;
+        console.log('Creating new item row with index:', itemIndex);
+        
         const newRow = $('.item-row').first().clone();
+        console.log('Cloned row:', newRow.length);
         
         // Update names and IDs
         newRow.attr('data-index', itemIndex);
         newRow.find('select, input').each(function() {
             const name = $(this).attr('name');
             if (name) {
-                $(this).attr('name', name.replace('[0]', `[${itemIndex}]`));
+                const newName = name.replace('[0]', `[${itemIndex}]`);
+                $(this).attr('name', newName);
+                console.log('Updated name:', name, '->', newName);
             }
         });
         
         // Clear values
-        newRow.find('input, select').val('');
-        newRow.find('.item-satuan').html('<option value="LBR">LBR</option>');
+        newRow.find('input').val('');
+        newRow.find('select').val('');
+        newRow.find('.item-satuan').html('<option value="LBR">LBR (Satuan Kecil)</option>');
+        newRow.find('.item-total').val('0');
         newRow.find('.remove-item').show();
         
+        // Re-enable all form elements
+        newRow.find('input, select').prop('disabled', false);
+        
         $('#items-container').append(newRow);
+        
+        // Scroll to the new row
+        $('html, body').animate({
+            scrollTop: newRow.offset().top - 100
+        }, 500);
+        
+        console.log('Added new item row with index:', itemIndex);
     });
 
     // Remove item
     $(document).on('click', '.remove-item', function() {
-        $(this).closest('.item-row').remove();
+        const row = $(this).closest('.item-row');
+        const index = row.attr('data-index');
+        console.log('Removing item row with index:', index);
+        
+        row.remove();
         calculateTotals();
+        
+        // If no items left, show the first remove button
+        if ($('.item-row').length === 1) {
+            $('.remove-item').hide();
+        }
     });
 
     // Calculate item total

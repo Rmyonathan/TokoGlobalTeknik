@@ -382,14 +382,10 @@ class SalesOrderController extends Controller
     /**
      * Get available units for product
      */
-    public function getAvailableUnits(Request $request)
+    public function getAvailableUnits($kodeBarangId)
     {
-        $request->validate([
-            'kode_barang_id' => 'required|exists:kode_barangs,id',
-        ]);
-
         try {
-            $units = $this->unitService->getAvailableUnits($request->kode_barang_id);
+            $units = $this->unitService->getAvailableUnits($kodeBarangId);
             return response()->json($units);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);
