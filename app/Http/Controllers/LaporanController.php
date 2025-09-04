@@ -937,6 +937,14 @@ class LaporanController extends Controller
                     }
                 }
 
+                // Tentukan status piutang untuk tampilan berdasarkan aturan terbaru:
+                // - lunas jika sisa setelah retur <= 0
+                // - sebagian jika ada pembayaran (total_dibayar > 0)
+                // - belum_dibayar jika belum ada pembayaran sama sekali
+                $statusPiutangDisplay = $sisaPiutangSetelahRetur <= 0
+                    ? 'lunas'
+                    : ($t->total_dibayar > 0 ? 'sebagian' : 'belum_dibayar');
+
                 return [
                     'no_transaksi' => $t->no_transaksi,
                     'tanggal' => optional($t->tanggal)->format('d/m/Y'),
@@ -948,7 +956,7 @@ class LaporanController extends Controller
                     'total_retur' => $totalReturApproved,
                     'sisa_piutang' => $sisaPiutangSetelahRetur,
                     'sisa_piutang_original' => $t->sisa_piutang,
-                    'status_piutang' => $t->status_piutang,
+                    'status_piutang' => $statusPiutangDisplay,
                     'is_jatuh_tempo' => $isOverdue,
                     'hari_keterlambatan' => $hariKeterlambatan,
                     'status_warna' => $statusWarna,
@@ -1375,10 +1383,81 @@ class LaporanController extends Controller
                 $stokKeluar = $stokKeluarQuery->orderBy('tanggal', 'desc')->get();
             }
 
-            // Format data untuk display
+            // Jika tidak ada data mutasi di tabel stock_mutations, fallback dari sumber lain
+            if ($stokMasuk->isEmpty() && $stokKeluar->isEmpty()) {
+                try {
+                    // Fallback MASUK dari stock_batches
+                    $batches = \App\Models\StockBatch::where('kode_barang_id', $barang->id)
+                        ->whereBetween(\DB::raw('DATE(tanggal_masuk)'), [$startDate, $endDate])
+                        ->orderBy('tanggal_masuk', 'desc')
+                        ->get();
+                    foreach ($batches as $b) {
+                        $stokMasuk->push(new \App\Models\StockMutation([
+                            'kode_barang' => $kodeBarang,
+                            'nama_barang' => $barang->name,
+                            'no_transaksi' => $b->batch_number ?? '-',
+                            'tanggal' => \Carbon\Carbon::parse($b->tanggal_masuk),
+                            'no_nota' => $b->batch_number ?? '-',
+                            'supplier_customer' => '-',
+                            'plus' => $b->qty_masuk,
+                            'minus' => 0,
+                            'total' => 0,
+                            'so' => 'default',
+                            'satuan' => $barang->unit_dasar ?? 'LBR',
+                            'keterangan' => 'Fallback dari batch',
+                            'created_by' => 'SYSTEM'
+                        ]));
+                    }
+
+                    // Fallback KELUAR dari transaksi_items + transaksi
+                    $txItems = \App\Models\TransaksiItem::where('kode_barang', $kodeBarang)
+                        ->whereHas('transaksi', function($q) use ($startDate, $endDate) {
+                            $q->whereBetween('tanggal', [$startDate, $endDate])
+                              ->where('status', '!=', 'canceled');
+                        })
+                        ->with('transaksi')
+                        ->orderByDesc('id')
+                        ->get();
+                    foreach ($txItems as $ti) {
+                        $stokKeluar->push(new \App\Models\StockMutation([
+                            'kode_barang' => $kodeBarang,
+                            'nama_barang' => $ti->nama_barang,
+                            'no_transaksi' => $ti->transaksi->no_transaksi ?? '-',
+                            'tanggal' => \Carbon\Carbon::parse($ti->transaksi->tanggal ?? now()),
+                            'no_nota' => $ti->transaksi->no_transaksi ?? '-',
+                            'supplier_customer' => $ti->transaksi->customer->nama ?? '-',
+                            'plus' => 0,
+                            'minus' => $ti->qty,
+                            'total' => 0,
+                            'so' => $ti->transaksi->sales ?? 'default',
+                            'satuan' => $ti->satuan ?? ($barang->unit_dasar ?? 'LBR'),
+                            'keterangan' => 'Fallback dari transaksi',
+                            'created_by' => $ti->transaksi->edited_by ?? 'SYSTEM'
+                        ]));
+                    }
+                } catch (\Exception $e) {
+                    // ignore fallback errors
+                }
+            }
+
+            // Format data untuk display (tambahkan informasi harga beli/jual bila tersedia)
             $pergerakanData = collect([]);
 
             foreach ($stokMasuk as $mutation) {
+                // Coba temukan harga beli terkait (pakai batch terakhir sebelum/di tanggal tersebut)
+                $hargaBeli = null;
+                try {
+                    $batch = \App\Models\StockBatch::where('kode_barang_id', $barang->id)
+                        ->whereDate('tanggal_masuk', '<=', $mutation->tanggal->format('Y-m-d'))
+                        ->orderBy('tanggal_masuk', 'desc')
+                        ->first();
+                    if ($batch) {
+                        $hargaBeli = $batch->harga_beli;
+                    }
+                } catch (\Exception $e) {
+                    // ignore
+                }
+
                 $pergerakanData->push([
                     'tanggal' => $mutation->tanggal->format('d/m/Y'),
                     'waktu' => $mutation->tanggal->format('H:i:s'),
@@ -1390,11 +1469,29 @@ class LaporanController extends Controller
                     'qty_keluar' => 0,
                     'satuan' => $mutation->satuan,
                     'keterangan' => $mutation->keterangan,
-                    'created_by' => $mutation->created_by
+                    'created_by' => $mutation->created_by,
+                    'harga' => $hargaBeli,
+                    'tipe_harga' => $hargaBeli !== null ? 'Beli' : null
                 ]);
             }
 
             foreach ($stokKeluar as $mutation) {
+                // Coba temukan harga jual terkait dari transaksi item
+                $hargaJual = null;
+                try {
+                    $transaksi = \App\Models\Transaksi::where('no_transaksi', $mutation->no_nota)->first();
+                    if ($transaksi) {
+                        $item = \App\Models\TransaksiItem::where('transaksi_id', $transaksi->id)
+                            ->where('kode_barang', $kodeBarang)
+                            ->first();
+                        if ($item) {
+                            $hargaJual = $item->harga;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // ignore
+                }
+
                 $pergerakanData->push([
                     'tanggal' => $mutation->tanggal->format('d/m/Y'),
                     'waktu' => $mutation->tanggal->format('H:i:s'),
@@ -1406,7 +1503,9 @@ class LaporanController extends Controller
                     'qty_keluar' => $mutation->minus,
                     'satuan' => $mutation->satuan,
                     'keterangan' => $mutation->keterangan,
-                    'created_by' => $mutation->created_by
+                    'created_by' => $mutation->created_by,
+                    'harga' => $hargaJual,
+                    'tipe_harga' => $hargaJual !== null ? 'Jual' : null
                 ]);
             }
 

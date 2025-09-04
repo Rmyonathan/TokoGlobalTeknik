@@ -43,7 +43,7 @@
                         <div class="form-group">
                             <label for="customer">Customer</label>
                             <div class="input-group">
-                                <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan kode atau nama customer">
+                                <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan nama customer">
                                 <div class="input-group-append">
                                     <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addCustomerModal" title="Tambah Customer Baru">
                                         <i class="fas fa-plus"></i>
@@ -170,9 +170,9 @@
                             <div class="form-group">
                                 <label>Satuan Kecil</label>
                                 <select class="form-control item-satuan-kecil" id="satuanKecil">
-                                    <option value="LBR">LBR</option>
+                                    <option value=""></option>
                                 </select>
-                                <input type="hidden" class="item-satuan" id="satuan" value="LBR">
+                                <input type="hidden" class="item-satuan" id="satuan" value="">
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -503,7 +503,7 @@
                 .val(selected);
         });
 
-        // Search customers
+        // Search customers (show name only in dropdown)
         $('#customer').on('input', function () {
             const keyword = $(this).val();
             if (keyword.length > 0) {
@@ -520,7 +520,9 @@
                                     data-name="${customer.nama}"
                                     data-alamat="${customer.alamat}"
                                     data-hp="${customer.hp}"
-                                    data-telp="${customer.telepon}">
+                                    data-telp="${customer.telepon}"
+                                    data-limit-kredit="${customer.limit_kredit || 0}"
+                                    data-hari-tempo="${customer.limit_hari_tempo || 0}">
                                 ${customer.kode_customer} - ${customer.nama} - ${customer.alamat} - ${customer.hp}</a>`;
                             });
                         } else {
@@ -544,11 +546,39 @@
             const alamatCustomer = $(this).data('alamat');
             const hpCustomer = $(this).data('hp');
             const telpCustomer = $(this).data('telp');
+            const limitKredit = parseFloat($(this).data('limit-kredit')) || 0;
+            const hariTempo = parseInt($(this).data('hari-tempo') || '0', 10);
             $('#kode_customer').val(kodeCustomer); // Isi input hidden dengan kode customer
             $('#customer').val(`${kodeCustomer} - ${namaCustomer}`); // Tampilkan kode dan nama customer di input utama
             $('#alamatCustomer').val(alamatCustomer);
             $('#hpCustomer').val(`${hpCustomer} / ${telpCustomer}`);
             $('#customerDropdown').hide();
+
+            // Auto apply credit terms when adding manual invoice
+            if (limitKredit > 0) {
+                $('#metode_pembayaran').val('Non Tunai');
+                $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+                $('#hariTempoGroup').show();
+                $('#jatuhTempoGroup').show();
+                $('#hari_tempo').val(hariTempo);
+                // recalc jatuh tempo
+                const base = $('#tanggal').val();
+                if (base) {
+                    const d = new Date(base);
+                    d.setDate(d.getDate()+hariTempo);
+                    const yyyy = d.getFullYear();
+                    const mm = String(d.getMonth()+1).padStart(2,'0');
+                    const dd = String(d.getDate()).padStart(2,'0');
+                    $('#tanggal_jatuh_tempo').val(`${yyyy}-${mm}-${dd}`);
+                }
+            } else {
+                // If no credit limit, default to Tunai-style UI
+                $('#cara_bayar').html('<option value="Tunai">Tunai</option>').val('Tunai');
+                $('#hariTempoGroup').hide();
+                $('#jatuhTempoGroup').hide();
+                $('#hari_tempo').val(0);
+                $('#tanggal_jatuh_tempo').val('');
+            }
         });
 
         // Search Sales Order
@@ -938,60 +968,49 @@
             calculateTotals();
         });
 
-        // Handle barang change (seperti di Sales Order)
+        // Handle barang change (samakan seperti Sales Order)
         $(document).on('change', '.item-barang', function() {
             const row = $(this).closest('.item-row');
             const selectedOption = $(this).find('option:selected');
             const harga = selectedOption.data('harga') || 0;
-            const kodeBarangStr = selectedOption.data('kode');
-            const namaBarang = selectedOption.data('nama');
+            const unitDasarFromOption = selectedOption.data('unit-dasar') || 'LBR';
             
             row.find('.item-harga').val(harga);
             
-            // Get available units for this product
+            // Set small unit from selected item's unit_dasar and populate big units via available-units
+            const kecilSelect = row.find('.item-satuan-kecil');
+            const besarSelect = row.find('.item-satuan-besar');
+            kecilSelect.empty();
+            besarSelect.empty();
+            kecilSelect.append('<option value="'+unitDasarFromOption+'">'+unitDasarFromOption+'</option>');
+            row.find('.item-satuan').val(unitDasarFromOption);
+
             const kodeBarangId = $(this).val();
             if (kodeBarangId) {
-                // Fetch base unit from stocks by kode_barang string, then populate units
                 $.ajax({
-                    url: '{{ route('stock.get') }}',
+                    url: `{{ route('sales-order.available-units', '') }}/${kodeBarangId}`,
                     method: 'GET',
-                    data: { kode_barang: kodeBarangStr },
-                    success: function(resp) {
-                        const kecilSelect = row.find('.item-satuan-kecil');
-                        const besarSelect = row.find('.item-satuan-besar');
-                        kecilSelect.empty();
-                        besarSelect.empty();
-                        const unitDasar = resp && resp.success && resp.data && resp.data.satuan ? resp.data.satuan : 'LBR';
-                        
-                        // Set small unit from stocks
-                        kecilSelect.append('<option value="'+unitDasar+'">'+unitDasar+'</option>');
-                        row.find('.item-satuan').val(unitDasar);
-                        
-                        // Then fetch available units to fill big units
-                        $.ajax({
-                            url: `{{ route('sales-order.available-units', '') }}/${kodeBarangId}`,
-                            method: 'GET',
-                            success: function(units) {
-                                if (units && units.length > 0) {
-                                    units.forEach(unit => {
-                                        if (unit !== unitDasar) {
-                                            besarSelect.append('<option value="'+unit+'">'+unit+'</option>');
-                                        }
-                                    });
+                    success: function(units) {
+                        if (Array.isArray(units) && units.length > 0) {
+                            units.forEach(function(unit) {
+                                if (unit !== unitDasarFromOption) {
+                                    besarSelect.append('<option value="'+unit+'">'+unit+'</option>');
                                 }
-                            },
-                            error: function() {
-                                console.log('Error fetching available units');
-                            }
-                        });
+                            });
+                        }
+                        calculateItemTotal(row);
                     },
                     error: function() {
-                        console.log('Error fetching stock data');
+                        calculateItemTotal(row);
                     }
                 });
+            } else {
+                // reset to empty if no product
+                row.find('.item-satuan-kecil').html('<option value=""></option>');
+                row.find('.item-satuan-besar').html('');
+                row.find('.item-satuan').val('');
+                calculateItemTotal(row);
             }
-            
-            calculateItemTotal(row);
         });
 
         // Handle qty change
@@ -1004,19 +1023,19 @@
             calculateItemTotal($(this).closest('.item-row'));
         });
 
-        // Handle satuan kecil change
+        // Handle satuan kecil change (samakan dengan Sales Order: clear big selection)
         $(document).on('change', '.item-satuan-kecil', function() {
             const row = $(this).closest('.item-row');
             const unit = $(this).val();
             row.find('.item-satuan').val(unit);
+            row.find('.item-satuan-besar').prop('selectedIndex', -1);
             calculateItemTotal(row);
         });
 
-        // Handle satuan besar change
+        // Handle satuan besar change (do not overwrite small unit)
         $(document).on('change', '.item-satuan-besar', function() {
             const row = $(this).closest('.item-row');
-            const unit = $(this).val();
-            row.find('.item-satuan').val(unit);
+            // Keep hidden .item-satuan as small unit; big unit is only for display/grouping
             calculateItemTotal(row);
         });
 
@@ -1040,7 +1059,7 @@
             const keterangan = row.find('#keterangan').val();
             const harga = parseFloat(row.find('.item-harga').val()) || 0;
             const qty = parseFloat(row.find('.item-qty').val()) || 0;
-            const satuan = row.find('.item-satuan').val();
+            const satuan = row.find('.item-satuan-kecil').val();
             const satuanBesar = row.find('.item-satuan-besar').val();
             const diskon = parseFloat(row.find('#diskon').val()) || 0;
             const ongkosKuli = parseFloat(row.find('#ongkos_kuli').val()) || 0;
@@ -1087,9 +1106,9 @@
 
             // Reset form
             row.find('select, input').val('');
-            row.find('.item-satuan-kecil').html('<option value="LBR">LBR</option>');
+            row.find('.item-satuan-kecil').html('<option value=""></option>');
             row.find('.item-satuan-besar').empty();
-            row.find('.item-satuan').val('LBR');
+            row.find('.item-satuan').val('');
         });
 
 
@@ -1105,8 +1124,8 @@
                         <td>${item.namaBarang}</td>
                         <td>${item.keterangan || '-'}</td>
                         <td class="text-right">${formatCurrency(item.harga)}</td>
-                        <td>${item.qty} ${item.satuan || 'LBR'}</td>
-                        <td>${item.satuanBesar || 'BOX'}</td>
+                        <td>${item.qty} ${item.satuan || ''}</td>
+                        <td>${item.satuanBesar || ''}</td>
                         <td class="text-right">${formatCurrency(item.total)}</td>
                         <td class="text-right">${formatCurrency(item.ongkosKuli || 0)}</td>
                         <td class="text-right">${item.diskon || 0}%</td>

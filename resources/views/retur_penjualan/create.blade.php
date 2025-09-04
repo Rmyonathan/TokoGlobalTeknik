@@ -45,7 +45,7 @@
                                         @foreach($customers as $customer)
                                             <option value="{{ $customer->kode_customer }}" 
                                                     {{ old('kode_customer') == $customer->kode_customer ? 'selected' : '' }}>
-                                                {{ $customer->nama_customer }} ({{ $customer->kode_customer }})
+                                                {{ $customer->nama }}
                                             </option>
                                         @endforeach
                                     </select>

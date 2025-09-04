@@ -67,8 +67,7 @@
                                 <div class="form-group">
                                     <label for="cara_bayar">Cara Bayar</label>
                                     <select class="form-control" id="cara_bayar" name="cara_bayar" required>
-                                        <option value="Tunai">Tunai</option>
-                                        <option value="Kredit">Kredit</option>
+                                        <option value="Kredit" selected>Kredit</option>
                                     </select>
                                 </div>
                             </div>
@@ -263,6 +262,17 @@ $(document).ready(function() {
             $('#tanggal_jatuh_tempo').val('');
         }
     });
+
+    // Initialize visibility on load (default Kredit)
+    if ($('#cara_bayar').val() === 'Kredit') {
+        $('#hari_tempo_group').show();
+        $('#hari_tempo').prop('required', true);
+        $('#jatuh_tempo_group').show();
+    } else {
+        $('#hari_tempo_group').hide();
+        $('#hari_tempo').prop('required', false);
+        $('#jatuh_tempo_group').hide();
+    }
 
     function recalcSoJatuhTempo(){
         const base = $('#tanggal').val();

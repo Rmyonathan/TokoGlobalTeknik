@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('nota_kredit', function (Blueprint $table) {
-            $table->decimal('sisa_kredit', 15, 2)->default(0)->after('total_kredit');
-        });
+        if (!Schema::hasColumn('nota_kredit', 'sisa_kredit')) {
+            Schema::table('nota_kredit', function (Blueprint $table) {
+                $table->decimal('sisa_kredit', 15, 2)->default(0)->after('total_kredit');
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('nota_kredit', function (Blueprint $table) {
-            $table->dropColumn('sisa_kredit');
-        });
+        if (Schema::hasColumn('nota_kredit', 'sisa_kredit')) {
+            Schema::table('nota_kredit', function (Blueprint $table) {
+                $table->dropColumn('sisa_kredit');
+            });
+        }
     }
 };

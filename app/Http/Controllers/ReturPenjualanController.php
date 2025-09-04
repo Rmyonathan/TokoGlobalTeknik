@@ -317,7 +317,6 @@ class ReturPenjualanController extends Controller
                 'kode_customer' => $returPenjualan->kode_customer,
                 'retur_penjualan_id' => $returPenjualan->id,
                 'total_kredit' => $returPenjualan->total_retur,
-                'sisa_kredit' => $returPenjualan->total_retur, // Initialize sisa_kredit
                 'keterangan' => "Nota kredit untuk retur penjualan {$returPenjualan->no_retur}",
                 'status' => 'approved',
                 'created_by' => Auth::id(),
@@ -329,17 +328,6 @@ class ReturPenjualanController extends Controller
             $customer = Customer::where('kode_customer', $returPenjualan->kode_customer)->first();
             if ($customer) {
                 $customer->decrement('total_piutang', $returPenjualan->total_retur);
-            }
-
-            // Update the original transaction's sisa_piutang to reflect the retur
-            $transaksi = Transaksi::find($returPenjualan->transaksi_id);
-            if ($transaksi) {
-                // Reduce sisa_piutang by the retur amount
-                $newSisaPiutang = max(0, $transaksi->sisa_piutang - $returPenjualan->total_retur);
-                $transaksi->update([
-                    'sisa_piutang' => $newSisaPiutang,
-                    'status_piutang' => $newSisaPiutang <= 0 ? 'lunas' : ($transaksi->total_dibayar > 0 ? 'sebagian' : 'belum_dibayar')
-                ]);
             }
 
             DB::commit();

@@ -59,8 +59,7 @@
 								<div class="form-group">
 									<label for="cara_bayar">Cara Bayar</label>
 									<select class="form-control" id="cara_bayar" name="cara_bayar" required>
-										<option value="Tunai" {{ $salesOrder->cara_bayar == 'Tunai' ? 'selected' : '' }}>Tunai</option>
-										<option value="Kredit" {{ $salesOrder->cara_bayar == 'Kredit' ? 'selected' : '' }}>Kredit</option>
+										<option value="Kredit" selected>Kredit</option>
 									</select>
 								</div>
 							</div>

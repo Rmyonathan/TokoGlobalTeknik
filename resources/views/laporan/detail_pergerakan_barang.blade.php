@@ -146,6 +146,8 @@
 						<th class="text-right">Qty Masuk</th>
 						<th class="text-right">Qty Keluar</th>
 						<th>Satuan</th>
+						<th class="text-right">Harga</th>
+						<th>Tipe Harga</th>
 						<th>Keterangan</th>
 						<th>Created By</th>
 					</tr>
@@ -180,6 +182,14 @@
 								@endif
 							</td>
 							<td>{{ $row['satuan'] ?? '-' }}</td>
+							<td class="text-right">
+								@if(isset($row['harga']) && $row['harga'] !== null)
+									{{ number_format($row['harga'], 0, ',', '.') }}
+								@else
+									-
+								@endif
+							</td>
+							<td>{{ $row['tipe_harga'] ?? '-' }}</td>
 							<td>{{ $row['keterangan'] ?? '-' }}</td>
 							<td>{{ $row['created_by'] ?? '-' }}</td>
 						</tr>

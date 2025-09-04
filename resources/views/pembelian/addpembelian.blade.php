@@ -20,9 +20,9 @@
                             <input type="text" class="form-control" id="no_nota" name="nota" value="{{ $nota }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
                         </div>
                         <div class="form-group">
-                            <label for="no_surat_jalan">No. Surat Jalan</label>
-                            <input type="text" class="form-control" id="no_surat_jalan" name="no_surat_jalan" placeholder="Masukkan nomor surat jalan supplier">
-                            <small class="form-text text-muted">Masukkan nomor surat jalan yang tertera pada dokumen pengiriman dari supplier</small>
+                            <label for="no_surat_jalan">No. Referensi</label>
+                            <input type="text" class="form-control" id="no_surat_jalan" name="no_surat_jalan" placeholder="Masukkan nomor referensi">
+                            <small class="form-text text-muted">Masukkan nomor referensi</small>
                         </div>
                         
                         <div class="form-group">
