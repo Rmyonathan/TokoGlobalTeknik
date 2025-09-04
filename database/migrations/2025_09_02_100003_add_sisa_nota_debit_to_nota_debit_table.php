@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('kategori_barang', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->text('description')->nullable();
-            $table->enum('status', ['Active', 'Inactive'])->default('Active');
-            $table->timestamps();
+        Schema::table('nota_debit', function (Blueprint $table) {
+            $table->decimal('sisa_nota_debit', 15, 2)->default(0)->after('total_debit');
         });
     }
 
@@ -25,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('kategori_barang');
+        Schema::table('nota_debit', function (Blueprint $table) {
+            $table->dropColumn('sisa_nota_debit');
+        });
     }
 };

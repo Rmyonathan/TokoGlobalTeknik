@@ -1,4 +1,4 @@
-// Purchase Transaction JavaScript
+// Purchase Transaction JavaScript - New Version with Inline Form
 $(document).ready(function () {
     // Initialize variables
     let items = [];
@@ -66,81 +66,6 @@ $(document).ready(function () {
         }
     });
 
-    // Enhanced Search Kode Barang - searches both by code and name
-    $("#kode_barang").on("input", function () {
-        const keyword = $(this).val();
-        if (keyword.length > 0) {
-            $.ajax({
-                url: window.kodeBarangSearchUrl,
-                method: "GET",
-                data: { keyword },
-                success: function (data) {
-                    let dropdown = "";
-                    if (data.length > 0) {
-                        data.forEach((item) => {
-                            // Highlight the matching parts
-                            let displayText = `${item.kode_barang} - ${item.name} (${item.length} m)`;
-
-                            dropdown += `<a class="dropdown-item kode-barang-item" 
-                                            data-kode="${item.kode_barang}" 
-                                            data-name="${item.name}"
-                                            data-length="${item.length}"
-                                            data-cost="${item.cost}">
-                                        ${displayText}
-                                        </a>`;
-                        });
-                    } else {
-                        dropdown =
-                            '<a class="dropdown-item disabled">Kode barang tidak ditemukan! Tambahkan di Master Data.</a>';
-                    }
-                    $("#kodeBarangDropdown").html(dropdown).show();
-                },
-                error: function (xhr, status, error) {
-                    console.error("Error searching kode barang:", error);
-                    alert("Terjadi kesalahan saat mencari kode barang.");
-                },
-            });
-        } else {
-            $("#kodeBarangDropdown").hide();
-        }
-    });
-
-    // Select Kode Barang
-    $(document).on("click", ".kode-barang-item", function () {
-        const kodeBarang = $(this).data("kode");
-        const namaBarang = $(this).data("name");
-        const length = $(this).data("length");
-        const cost = $(this).data("cost");
-
-        $("#kode_barang").val(kodeBarang);
-        $("#nama_barang").val(namaBarang);
-        $("#panjang").val(length);
-        $("#harga").val(cost);
-
-        // Get panel name with AJAX request
-        $.ajax({
-            url: window.getPanelInfoUrl,
-            method: "GET",
-            data: { kode_barang: kodeBarang },
-            success: function (response) {
-                if (response.success && response.panel_name) {
-                    // Set both Nama Barang and Keterangan to the same Panel name
-                    $("#nama_barang").val(response.panel_name); // Update this line
-                    $("#keterangan").val(response.panel_name);
-                } else {
-                    $("#keterangan").val(namaBarang);
-                }
-                updateItemPreview();
-            },
-            error: function () {
-                $("#keterangan").val(namaBarang);
-                updateItemPreview();
-            },
-        });
-
-        $("#kodeBarangDropdown").hide();
-    });
-
     // Toggle discount inputs
     $("#discount_checkbox").change(function () {
         $("#discount_percent").prop("disabled", !this.checked);
@@ -156,125 +81,142 @@ $(document).ready(function () {
         calculateTotals();
     });
 
-    // Preview item in modal
-    $("#harga, #quantity, #panjang, #diskon").on("input", function () {
-        updateItemPreview();
+    // Handle item-barang change (like sales order)
+    $(document).on('change', '.item-barang', function() {
+        const row = $(this).closest('.item-row');
+        const selectedOption = $(this).find('option:selected');
+        const kodeBarangId = $(this).val();
+        
+        if (kodeBarangId) {
+            // Get data from selected option
+            const harga = selectedOption.data('harga') || 0;
+            const unitDasar = selectedOption.data('unit-dasar') || 'LBR';
+            const kodeBarang = selectedOption.data('kode') || '';
+            const namaBarang = selectedOption.data('nama') || '';
+            
+            // Set harga
+            row.find('.item-harga').val(harga);
+            
+            // Set satuan kecil
+            const satuanKecilSelect = row.find('.item-satuan-kecil');
+            satuanKecilSelect.empty();
+            satuanKecilSelect.append(`<option value="${unitDasar}">${unitDasar}</option>`);
+            row.find('.item-satuan').val(unitDasar);
+            
+            // Get available units for satuan besar
+            $.ajax({
+                url: `${window.availableUnitsUrl}/${kodeBarangId}`,
+                method: 'GET',
+                success: function (units) {
+                    const satuanBesarSelect = row.find('.item-satuan-besar');
+                    satuanBesarSelect.empty();
+                    // satuanBesarSelect.append('<option value="">Pilih Satuan Besar</option>');
+                    
+                    if (units && units.length > 0) {
+                        units.forEach(unit => {
+                            if (unit !== unitDasar) {
+                                satuanBesarSelect.append(`<option value="${unit}">${unit}</option>`);
+                            }
+                        });
+                    }
+                },
+                error: function () {
+                    console.log('Error fetching available units');
+                }
+            });
+            
+            // Calculate total
+            calculateItemTotal(row);
+        }
     });
 
-    function updateItemPreview() {
-        const kodeBarang = $("#kode_barang").val() || "-";
-        const keterangan = $("#keterangan").val() || "-";
-        const harga = parseInt($("#harga").val()) || 0;
-        const quantity = parseInt($("#quantity").val()) || 0;
-        const panjang = parseFloat($("#panjang").val()) || 0;
-        const satuanKecil = $("#satuanKecil").val();
-        const satuanBesar = $("#satuanBesar").val();
-        const diskon = parseInt($("#diskon").val()) || 0;
+    // Handle qty, harga, satuan changes
+    $(document).on('input', '.item-qty', function() {
+        const row = $(this).closest('.item-row');
+        calculateItemTotal(row);
+    });
 
-        // Calculate values
-        const total = harga * quantity;
-        const diskonAmount = (total * diskon) / 100;
-        const subTotal = total - diskonAmount;
+    $(document).on('input', '.item-harga', function() {
+        const row = $(this).closest('.item-row');
+        calculateItemTotal(row);
+    });
 
-        // Update preview
-        const tbody = $("#itemPreview");
-        tbody.empty();
+    $(document).on('change', '.item-satuan-kecil', function() {
+        const row = $(this).closest('.item-row');
+        const unit = $(this).val();
+        row.find('.item-satuan').val(unit);
+        calculateItemTotal(row);
+    });
 
-        $('#satuanKecil, #satuanBesar').on('change', function() {
-            updateItemPreview();
-        });
-        tbody.append(`
-            <tr>
-                <td>${kodeBarang}</td>
-                <td>${keterangan}</td>
-                <td class="text-right">${formatCurrency(harga)}</td>
-                <td>${quantity}</td>
-                <td>${
-                    panjang > 0 ? panjang + " m" : "-"
-                }</td> <!-- Display with meters unit -->
-                <td class="text-right">${formatCurrency(total)}</td>
-                <td>${satuanKecil}</td>
-                <td>${satuanBesar}</td>
-                <td>${diskon}%</td>
-                <td class="text-right">${formatCurrency(subTotal)}</td>
-            </tr>
-        `);
+    $(document).on('change', '.item-satuan-besar', function() {
+        const row = $(this).closest('.item-row');
+        const unit = $(this).val();
+        row.find('.item-satuan').val(unit);
+        calculateItemTotal(row);
+    });
+
+    // Calculate item total
+    function calculateItemTotal(row) {
+        const qty = parseFloat(row.find('.item-qty').val()) || 0;
+        const harga = parseFloat(row.find('.item-harga').val()) || 0;
+        const total = qty * harga;
+        row.find('.item-total').val(total);
     }
 
-    // Add item to the table
-    $("#saveItemBtn").click(function () {
-        const kodeBarang = $("#kode_barang").val();
-        const namaBarang = $("#nama_barang").val();
-        const keterangan = $("#keterangan").val();
-        const harga = parseInt($("#harga").val()) || 0;
-        const qty = parseInt($("#quantity").val()) || 0;
-        const satuanKecil = $("#satuanKecil").val() || 0;
-        const satuanBesar = $("#satuanBesar").val() || 0;
-        const panjang = parseFloat($("#panjang").val()) || 0;
-        const diskon = parseInt($("#diskon").val()) || 0;
+    // Add Item Button
+    $('#addItemBtn').click(function() {
+        const row = $(this).closest('.item-row');
+        const kodeBarangSelect = row.find('.item-barang');
+        const selectedOption = kodeBarangSelect.find('option:selected');
+        
+        const kodeBarang = selectedOption.data('kode');
+        const namaBarang = selectedOption.data('nama');
+        const kodeBarangId = kodeBarangSelect.val();
+        const keterangan = row.find('#keterangan').val();
+        const harga = parseFloat(row.find('.item-harga').val()) || 0;
+        const qty = parseFloat(row.find('.item-qty').val()) || 0;
+        const satuan = row.find('.item-satuan').val();
+        const satuanBesar = row.find('.item-satuan-besar').val();
+        const diskon = parseFloat(row.find('#diskon').val()) || 0;
+        const panjang = parseFloat(row.find('#panjang').val()) || 0;
 
-        if (!kodeBarang || !namaBarang || !harga || !qty) {
-            alert("Mohon lengkapi data barang!");
+        if (!kodeBarangId || !kodeBarang || !namaBarang || !harga || !qty) {
+            alert('Mohon lengkapi data barang!');
             return;
         }
 
-        // Check if kode_barang is valid by searching for it
-        $.ajax({
-            url: window.kodeBarangSearchUrl,
-            method: "GET",
-            data: { keyword: kodeBarang },
-            async: false, // Make this synchronous to ensure check completes before continuing
-            success: function (data) {
-                // If no matching kode barang found
-                if (
-                    data.length === 0 ||
-                    !data.some((item) => item.kode_barang === kodeBarang)
-                ) {
-                    alert(
-                        "Kode barang tidak terdaftar! Silakan tambahkan di Master Data terlebih dahulu."
-                    );
-                    return false;
-                }
+        // Calculate total
+        const subtotal = harga * qty;
+        const diskonAmount = (subtotal * diskon) / 100;
+        const total = subtotal - diskonAmount;
 
-                // If valid, add item
-                const total = harga * qty;
+        const newItem = {
+            kodeBarang,
+            namaBarang,
+            keterangan,
+            harga: harga,
+            qty,
+            satuan,
+            satuanBesar,
+            diskon,
+            panjang,
+            total
+        };
 
-                const newItem = {
-                    kodeBarang,
-                    namaBarang,
-                    keterangan,
-                    harga,
-                    qty,
-                    satuanKecil,
-                    satuanBesar,
-                    panjang,
-                    diskon,
-                    total,
-                };
+        items.push(newItem);
+        renderItems();
+        calculateTotals();
 
-                items.push(newItem);
-                renderItems();
-                calculateTotals();
-
-                // Reset form and close modal
-                $("#addItemForm")[0].reset();
-                $("#itemPreview").empty();
-                $("#addItemModal").modal("hide");
-            },
-            error: function () {
-                alert("Terjadi kesalahan saat memvalidasi kode barang.");
-            },
-        });
-    });
-
-    // Item search functionality
-    $("#findItem").click(function () {
-        $("#kodeBarangSearchModal").modal("show");
+        // Reset form
+        row.find('select, input').val('');
+        row.find('.item-satuan-kecil').html('<option value="LBR">LBR</option>');
+        row.find('.item-satuan-besar').empty();
+        row.find('.item-satuan').val('LBR');
     });
 
     // Function to render items table
     function renderItems() {
-        const tbody = $("#itemsList");
+        const tbody = $('#itemsList');
         tbody.empty();
 
         items.forEach((item, index) => {
@@ -282,13 +224,13 @@ $(document).ready(function () {
                 <tr>
                     <td>${item.kodeBarang}</td>
                     <td>${item.namaBarang}</td>
-                    <td>${item.keterangan || "-"}</td>
+                    <td>${item.keterangan || '-'}</td>
                     <td class="text-right">${formatCurrency(item.harga)}</td>
-                    <td class="text-center">${item.qty}</td>
-                    <td class="text-center">${item.satuanKecil}</td>
-                    <td class="text-center">${item.satuanBesar}</td>
+                    <td>${item.qty} ${item.satuan || 'LBR'}</td>
+                    <td>${item.satuanBesar || 'BOX'}</td>
                     <td class="text-right">${formatCurrency(item.total)}</td>
-                    <td class="text-right">${item.diskon}%</td>
+                    <td class="text-center">${item.panjang || '-'}</td>
+                    <td class="text-right">${item.diskon || 0}%</td>
                     <td>
                         <button type="button" class="btn btn-sm btn-danger remove-item" data-index="${index}">
                             <i class="fas fa-trash"></i>
@@ -364,6 +306,8 @@ $(document).ready(function () {
             kode_supplier: $("#kode_supplier").val(), // This field name must match your database column
             pembayaran: $("#pembayaran").val(),
             cara_bayar: $("#cara_bayar").val(),
+            hari_tempo: parseInt($("#hari_tempo").val() || '0', 10),
+            tanggal_jatuh_tempo: $("#tanggal_jatuh_tempo").val() || null,
             items: items,
             subtotal: parseFloat(
                 $("#total").val().replace(/\./g, "").replace(/,/g, ".")
@@ -446,9 +390,6 @@ $(document).ready(function () {
         }
     });
 
-    // Initialize item preview
-    updateItemPreview();
-
     // Enhanced Kode Barang search modal
     $("#searchKodeBarangBtn").click(function () {
         const keyword = $("#searchKodeBarangInput").val();
@@ -491,16 +432,6 @@ $(document).ready(function () {
         }
     });
 
-    $(document).click(function (e) {
-        if (
-            !$(e.target).closest(
-                "#supplier, #supplierDropdown, #kode_barang, #kodeBarangDropdown, #cabang_display, #cabangDropdown"
-            ).length
-        ) {
-            $("#supplierDropdown").hide();
-            $("#kodeBarangDropdown").hide();
-        }
-    });
     // Select Kode Barang from search modal
     $(document).on("click", ".select-kode-barang", function () {
         const kodeBarang = $(this).data("kode");
@@ -508,31 +439,17 @@ $(document).ready(function () {
         const length = $(this).data("length");
         const cost = $(this).data("cost");
 
-        $("#kode_barang").val(kodeBarang);
-        $("#nama_barang").val(namaBarang);
-        $("#panjang").val(length);
-        $("#harga").val(cost);
+        // Find the option in the dropdown and select it
+        const option = $(`.item-barang option[data-kode="${kodeBarang}"]`);
+        if (option.length > 0) {
+            option.prop('selected', true);
+            $('.item-barang').trigger('change');
+        }
 
-        // Get panel name with AJAX request
-        $.ajax({
-            url: window.getPanelInfoUrl,
-            method: "GET",
-            data: { kode_barang: kodeBarang },
-            success: function (response) {
-                if (response.success && response.panel_name) {
-                    // Set both Nama Barang and Keterangan to the same Panel name
-                    $("#nama_barang").val(response.panel_name); // Update this line
-                    $("#keterangan").val(response.panel_name);
-                } else {
-                    $("#keterangan").val(namaBarang);
-                }
-                updateItemPreview();
-            },
-            error: function () {
-                $("#keterangan").val(namaBarang);
-                updateItemPreview();
-            },
-        });
+        // Set other fields
+        $('.item-harga').val(cost);
+        $('#panjang').val(length);
+        $('#keterangan').val(namaBarang);
 
         $("#kodeBarangSearchModal").modal("hide");
     });

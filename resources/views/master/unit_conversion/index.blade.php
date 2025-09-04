@@ -37,7 +37,7 @@
                                     <h6 class="card-title">Informasi Barang</h6>
                                     <p class="mb-1"><strong>Kode:</strong> {{ $kodeBarang->kode_barang }}</p>
                                     <p class="mb-1"><strong>Nama:</strong> {{ $kodeBarang->name }}</p>
-                                    <p class="mb-1"><strong>Satuan Dasar:</strong> {{ $kodeBarang->unit_dasar }}</p>
+                                    <p class="mb-1"><strong>Satuan Kecil:</strong> {{ $kodeBarang->unit_dasar }}</p>
                                     <p class="mb-1"><strong>Harga per {{ $kodeBarang->unit_dasar }}:</strong> Rp {{ number_format($kodeBarang->harga_jual, 0, ',', '.') }}</p>
                                 </div>
                             </div>

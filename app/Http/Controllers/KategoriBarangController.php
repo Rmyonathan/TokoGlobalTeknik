@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\KategoriBarang;
+use App\Models\GrupBarang;
 use Illuminate\Http\Request;
 
-class KategoriBarangController extends Controller
+class GrupBarangController extends Controller
 {
     /**
      * Display a listing of categories.
      */
     public function index()
     {
-        $categories = KategoriBarang::orderBy('created_at', 'desc')->paginate(10);
+        $categories = GrupBarang::orderBy('created_at', 'desc')->paginate(10);
         return view('master.kategori.index', compact('categories'));
     }
 
@@ -35,10 +35,10 @@ class KategoriBarangController extends Controller
             'status' => 'required|in:Active,Inactive',
         ]);
 
-        KategoriBarang::create($validated);
+        GrupBarang::create($validated);
 
         return redirect()->route('kategori.index')
-            ->with('success', 'Category created successfully!');
+            ->with('success', 'Grup Barang berhasil dibuat!');
     }
 
     /**
@@ -46,7 +46,7 @@ class KategoriBarangController extends Controller
      */
     public function edit($id)
     {
-        $category = KategoriBarang::findOrFail($id);
+        $category = GrupBarang::findOrFail($id);
         return view('master.kategori.edit', compact('category'));
     }
 
@@ -61,11 +61,11 @@ class KategoriBarangController extends Controller
             'status' => 'required|in:Active,Inactive',
         ]);
 
-        $category = KategoriBarang::findOrFail($id);
+        $category = GrupBarang::findOrFail($id);
         $category->update($validated);
 
-        return redirect()->route('master.kategori.index')
-            ->with('success', 'Category updated successfully!');
+        return redirect()->route('kategori.index')
+            ->with('success', 'Grup Barang berhasil diperbarui!');
     }
 
     /**
@@ -73,10 +73,25 @@ class KategoriBarangController extends Controller
      */
     public function destroy($id)
     {
-        $category = KategoriBarang::findOrFail($id);
+        $category = GrupBarang::findOrFail($id);
         $category->delete();
 
         return redirect()->route('kategori.index')
-            ->with('success', 'Category deleted successfully!');
+            ->with('success', 'Grup Barang berhasil dihapus!');
+    }
+
+    /**
+     * Toggle active status
+     */
+    public function toggleStatus($id)
+    {
+        $category = GrupBarang::findOrFail($id);
+        $category->update([
+            'status' => $category->status === 'Active' ? 'Inactive' : 'Active'
+        ]);
+
+        $status = $category->status === 'Active' ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()->route('kategori.index')
+            ->with('success', "Grup Barang berhasil {$status}!");
     }
 }

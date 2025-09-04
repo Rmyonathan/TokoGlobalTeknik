@@ -177,7 +177,8 @@ use Riskihajar\Terbilang\Facades\Terbilang;
             </div>
             <div class="right">
                 {{ \Carbon\Carbon::parse($purchase->created_at)->format('d M Y H:i') }}<br>
-                HALAMAN: {{ $pageNum }} / {{ $totalPages }}
+                HALAMAN: {{ $pageNum }} / {{ $totalPages }}<br>
+                Dicetak oleh: {{ auth()->user()->name ?? 'SYSTEM' }}
             </div>
         </div>
 

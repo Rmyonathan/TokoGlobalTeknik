@@ -9,8 +9,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Artisan;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Spatie\Permission\Models\Permission;
+use App\Models\RoleGroup;
 
 
 class AccountsController extends Controller
@@ -23,11 +24,15 @@ class AccountsController extends Controller
     {
         $user = Auth::user();
 
-        $users = User::all();
+        $users = User::with('roles')->get();
+        $roleGroups = RoleGroup::withRoles()->ordered()->get();
+        $roles = Role::with('permissions')->get();
 
         if ($user->role === 'admin') {
             return view('account-maintenance', [
                 'users' => $users,
+                'roleGroups' => $roleGroups,
+                'roles' => $roles,
             ]);
         }
 
@@ -37,15 +42,94 @@ class AccountsController extends Controller
     public function createRole()
     {
         $permissions = Permission::all();
-        return view('addRole', compact('permissions'));
+        $roleGroups = RoleGroup::active()->ordered()->get();
+        return view('addRole', compact('permissions', 'roleGroups'));
         
     }
 
     public function storeRole(Request $request)
     {
-        $role = Role::create(['name' => $request->name]);
-        $role->syncPermissions($request->permissions); // array of permission IDs
+        $request->validate([
+            'name' => 'required|string|max:255|unique:roles,name',
+            'display_name' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'group_id' => 'nullable|exists:role_groups,id',
+            'permissions' => 'nullable|array',
+        ]);
+
+        $role = Role::create([
+            'name' => $request->name,
+            'display_name' => $request->display_name ?: $request->name,
+            'description' => $request->description,
+            'group_id' => $request->group_id,
+            'is_active' => true,
+        ]);
+
+        if ($request->permissions) {
+            $role->syncPermissions($request->permissions);
+        }
+
         return redirect()->route('accounts.maintenance')->with('success', 'Role created successfully!');
+    }
+
+    public function editRole($id)
+    {
+        $role = Role::with('permissions')->findOrFail($id);
+        $permissions = Permission::all();
+        $roleGroups = RoleGroup::active()->ordered()->get();
+        
+        return view('editRole', compact('role', 'permissions', 'roleGroups'));
+    }
+
+    public function updateRole(Request $request, $id)
+    {
+        $role = Role::findOrFail($id);
+        
+        $request->validate([
+            'name' => 'required|string|max:255|unique:roles,name,' . $id,
+            'display_name' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'group_id' => 'nullable|exists:role_groups,id',
+            'permissions' => 'nullable|array',
+            'is_active' => 'boolean',
+        ]);
+
+        $role->update([
+            'name' => $request->name,
+            'display_name' => $request->display_name ?: $request->name,
+            'description' => $request->description,
+            'group_id' => $request->group_id,
+            'is_active' => $request->has('is_active'),
+        ]);
+
+        if ($request->permissions) {
+            $role->syncPermissions($request->permissions);
+        } else {
+            $role->syncPermissions([]);
+        }
+
+        return redirect()->route('accounts.maintenance')->with('success', 'Role updated successfully!');
+    }
+
+    public function viewRole($id)
+    {
+        $role = Role::with(['permissions', 'users', 'group'])->findOrFail($id);
+        
+        return view('viewRole', compact('role'));
+    }
+
+    public function deleteRole($id)
+    {
+        $role = Role::findOrFail($id);
+        
+        // Check if role has users
+        if ($role->users()->count() > 0) {
+            return back()->with('error', 'Cannot delete role that has users assigned. Please reassign users first.');
+        }
+
+        $role->delete();
+
+        return redirect()->route('accounts.maintenance')->with('success', 'Role deleted successfully!');
     }
 
     public function switchDatabase(Request $request)

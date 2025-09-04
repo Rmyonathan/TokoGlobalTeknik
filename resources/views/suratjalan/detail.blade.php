@@ -106,13 +106,23 @@
             </thead>
             <tbody>
                 @foreach ($suratJalan->transaksi->items as $i => $item)
+                @php
+                    // Get kode barang info for unit conversion
+                    $kodeBarang = \App\Models\KodeBarang::where('kode_barang', $item->kode_barang)->first();
+                    $unitDasar = $kodeBarang ? $kodeBarang->unit_dasar : 'Pcs';
+                    $unitTurunan = $kodeBarang ? $kodeBarang->unit_turunan : 'Pcs';
+                    
+                    // For Surat Jalan, we show quantity in the base unit (satuan besar)
+                    $displayQty = $item->qty;
+                    $displayUnit = $unitDasar;
+                @endphp
                 <tr>
                     <td class="center">{{ $i + 1 }}</td>
                     <td>{{ $item->kode_barang }}</td>
                     <td>{{ $item->nama_barang }}</td>
-                    <td class="center">{{ $item->panjang }}</td>
-                    <td class="center">{{ $item->qty }}</td>
-                    <td class="center">Pcs</td>
+                    <td class="center">{{ $item->panjang ?? '-' }}</td>
+                    <td class="center">{{ $displayQty }}</td>
+                    <td class="center">{{ $displayUnit }}</td>
                 </tr>
                 @endforeach
 

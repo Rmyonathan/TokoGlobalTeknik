@@ -8,9 +8,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Pembayaran;
 use App\Models\PembayaranDetail;
+use App\Models\PembayaranPiutangNotaKredit;
 use App\Models\Transaksi;
 use App\Models\Customer;
 use App\Models\Kas;
+use App\Models\NotaKredit;
 use Carbon\Carbon;
 
 class PembayaranPiutangController extends Controller
@@ -46,6 +48,39 @@ class PembayaranPiutangController extends Controller
     }
 
     /**
+     * Get customer's available nota kredit for payment
+     */
+    public function getCustomerNotaKredit(Request $request): JsonResponse
+    {
+        $request->validate([
+            'customer_id' => 'required|exists:customers,id'
+        ]);
+
+        $customer = Customer::find($request->customer_id);
+        
+        $notaKredit = NotaKredit::where('kode_customer', $customer->kode_customer)
+            ->where('status', 'approved')
+            ->where('sisa_kredit', '>', 0)
+            ->orderBy('tanggal', 'desc')
+            ->get()
+            ->map(function($nk) {
+                return [
+                    'id' => $nk->id,
+                    'no_nota_kredit' => $nk->no_nota_kredit,
+                    'tanggal' => $nk->tanggal->format('d/m/Y'),
+                    'total_kredit' => $nk->total_kredit,
+                    'sisa_kredit' => $nk->sisa_kredit,
+                    'keterangan' => $nk->keterangan
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $notaKredit
+        ]);
+    }
+
+    /**
      * Get customer's unpaid invoices for payment
      */
     public function getCustomerInvoices(Request $request): JsonResponse
@@ -64,6 +99,21 @@ class PembayaranPiutangController extends Controller
                 ->orderBy('tanggal', 'asc') // FIFO - oldest first
                 ->get()
                 ->map(function ($invoice) {
+                    // Hitung total retur penjualan yang sudah approved untuk transaksi ini
+                    $totalReturApproved = \App\Models\ReturPenjualan::where('transaksi_id', $invoice->id)
+                        ->whereIn('status', ['approved', 'processed'])
+                        ->sum('total_retur');
+
+                    // Sisa piutang setelah dikurangi retur
+                    // Formula: (grand_total - retur) - sudah_dibayar
+                    $tagihanSetelahRetur = $invoice->grand_total - $totalReturApproved;
+                    $sisaPiutangSetelahRetur = $tagihanSetelahRetur - $invoice->total_dibayar;
+                    
+                    // Pastikan tidak negatif
+                    if ($sisaPiutangSetelahRetur < 0) {
+                        $sisaPiutangSetelahRetur = 0;
+                    }
+
                     return [
                         'id' => $invoice->id,
                         'no_transaksi' => $invoice->no_transaksi,
@@ -71,11 +121,31 @@ class PembayaranPiutangController extends Controller
                         'tanggal_jatuh_tempo' => $invoice->tanggal_jatuh_tempo ? $invoice->tanggal_jatuh_tempo->format('d/m/Y') : '-',
                         'total_faktur' => $invoice->grand_total,
                         'sudah_dibayar' => $invoice->total_dibayar,
-                        'sisa_tagihan' => $invoice->sisa_piutang,
+                        'total_retur' => $totalReturApproved,
+                        'sisa_tagihan' => $sisaPiutangSetelahRetur,
+                        'sisa_tagihan_original' => $invoice->sisa_piutang,
                         'status_piutang' => $invoice->status_piutang,
                         'is_jatuh_tempo' => $invoice->checkJatuhTempo(),
                         'hari_keterlambatan' => $invoice->hari_keterlambatan,
-                        'suggested_payment' => $invoice->sisa_piutang // Default suggestion
+                        'suggested_payment' => $sisaPiutangSetelahRetur // Default suggestion
+                    ];
+                });
+
+            // Get nota kredit dari retur penjualan yang belum digunakan
+            $notaKredit = \App\Models\NotaKredit::where('kode_customer', $customer->kode_customer)
+                ->where('status', 'approved')
+                ->where('sisa_kredit', '>', 0)
+                ->orderBy('tanggal', 'asc')
+                ->get()
+                ->map(function ($nota) {
+                    return [
+                        'id' => $nota->id,
+                        'no_nota_kredit' => $nota->no_nota_kredit,
+                        'tanggal' => $nota->tanggal->format('d/m/Y'),
+                        'total_kredit' => $nota->total_kredit,
+                        'sisa_kredit' => $nota->sisa_kredit,
+                        'keterangan' => $nota->keterangan,
+                        'type' => 'nota_kredit'
                     ];
                 });
 
@@ -90,11 +160,13 @@ class PembayaranPiutangController extends Controller
                     'limit_hari_tempo' => $customer->limit_hari_tempo
                 ],
                 'invoices' => $invoices,
+                'nota_kredit' => $notaKredit,
                 'summary' => [
                     'total_invoices' => $invoices->count(),
                     'total_piutang' => $totalPiutang,
                     'total_jatuh_tempo' => $totalJatuhTempo,
-                    'invoices_jatuh_tempo' => $invoices->where('is_jatuh_tempo', true)->count()
+                    'invoices_jatuh_tempo' => $invoices->where('is_jatuh_tempo', true)->count(),
+                    'total_nota_kredit' => $notaKredit->sum('sisa_kredit')
                 ]
             ]);
 
@@ -133,7 +205,20 @@ class PembayaranPiutangController extends Controller
             foreach ($invoices as $invoice) {
                 if ($remainingPayment <= 0) break;
 
-                $sisaTagihan = $invoice->sisa_piutang;
+                // Hitung total retur penjualan yang sudah approved untuk transaksi ini
+                $totalReturApproved = \App\Models\ReturPenjualan::where('transaksi_id', $invoice->id)
+                    ->whereIn('status', ['approved', 'processed'])
+                    ->sum('total_retur');
+
+                // Sisa piutang setelah dikurangi retur
+                $tagihanSetelahRetur = $invoice->grand_total - $totalReturApproved;
+                $sisaTagihan = $tagihanSetelahRetur - $invoice->total_dibayar;
+                
+                // Pastikan tidak negatif
+                if ($sisaTagihan < 0) {
+                    $sisaTagihan = 0;
+                }
+                
                 $suggestedAmount = min($remainingPayment, $sisaTagihan);
 
                 $suggestions[] = [
@@ -142,6 +227,7 @@ class PembayaranPiutangController extends Controller
                     'tanggal' => $invoice->tanggal->format('d/m/Y'),
                     'total_faktur' => $invoice->grand_total,
                     'sudah_dibayar' => $invoice->total_dibayar,
+                    'total_retur' => $totalReturApproved,
                     'sisa_tagihan' => $sisaTagihan,
                     'suggested_payment' => $suggestedAmount,
                     'is_jatuh_tempo' => $invoice->checkJatuhTempo(),
@@ -217,7 +303,23 @@ class PembayaranPiutangController extends Controller
                 $transaksi = Transaksi::find($detail['transaksi_id']);
                 $sudahDibayar = $transaksi->total_dibayar ?? 0;
                 $jumlahDilunasi = $detail['jumlah_dilunasi'];
-                $sisaTagihan = $transaksi->grand_total - $sudahDibayar - $jumlahDilunasi;
+                
+                // Hitung total nota kredit yang digunakan untuk transaksi ini dalam pembayaran ini
+                $notaKreditDigunakanTransaksiIni = 0;
+                if ($request->nota_kredit_details) {
+                    $notaKreditDigunakanTransaksiIni = collect($request->nota_kredit_details)->sum('jumlah_digunakan');
+                }
+                
+                // Sisa tagihan = (grand_total - nota_kredit_digunakan) - sudah_dibayar - jumlah_dilunasi
+                // Nota kredit mengurangi tagihan, bukan menambah pembayaran
+                $tagihanSetelahNotaKredit = $transaksi->grand_total - $notaKreditDigunakanTransaksiIni;
+                $sisaTagihan = $tagihanSetelahNotaKredit - $sudahDibayar - $jumlahDilunasi;
+                
+                // Jika sisa tagihan negatif, berarti ada kelebihan pembayaran
+                // Ini bisa terjadi jika ada retur setelah faktur lunas
+                if ($sisaTagihan < 0) {
+                    $sisaTagihan = 0; // Set ke 0 untuk display
+                }
 
                 PembayaranDetail::create([
                     'pembayaran_id' => $pembayaran->id,
@@ -233,6 +335,31 @@ class PembayaranPiutangController extends Controller
 
                 // Update transaksi piutang status
                 PembayaranDetail::updateTransaksiPiutangStatus($detail['transaksi_id']);
+            }
+
+            // Create nota kredit details
+            if ($request->nota_kredit_details) {
+                foreach ($request->nota_kredit_details as $detail) {
+                    $notaKredit = NotaKredit::find($detail['nota_kredit_id']);
+                    $jumlahDigunakan = $detail['jumlah_digunakan'];
+                    $sisaNotaKredit = $notaKredit->sisa_kredit - $jumlahDigunakan;
+
+                    PembayaranPiutangNotaKredit::create([
+                        'pembayaran_id' => $pembayaran->id,
+                        'nota_kredit_id' => $detail['nota_kredit_id'],
+                        'no_nota_kredit' => $notaKredit->no_nota_kredit,
+                        'total_nota_kredit' => $notaKredit->total_kredit,
+                        'jumlah_digunakan' => $jumlahDigunakan,
+                        'sisa_nota_kredit' => $sisaNotaKredit,
+                        'keterangan' => 'Digunakan untuk pembayaran ' . $pembayaran->no_pembayaran
+                    ]);
+
+                    // Update nota kredit sisa
+                    $notaKredit->update([
+                        'sisa_kredit' => $sisaNotaKredit,
+                        'status' => $sisaNotaKredit <= 0 ? 'processed' : 'approved'
+                    ]);
+                }
             }
 
             // Update Kas if cash payment

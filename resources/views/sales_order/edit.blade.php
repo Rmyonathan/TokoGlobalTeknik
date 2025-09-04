@@ -95,7 +95,7 @@
 											<label>Barang</label>
 											<select class="form-control item-barang" name="items[{{ $index }}][kode_barang_id]" required>
 												@foreach($kodeBarangs as $barang)
-													<option value="{{ $barang->id }}" {{ $barang->id == $item->kode_barang_id ? 'selected' : '' }}>{{ $barang->kode_barang }} - {{ $barang->name }}</option>
+													<option value="{{ $barang->id }}" data-harga="{{ $barang->harga_jual }}" data-unit-dasar="{{ $barang->unit_dasar }}" data-kode="{{ $barang->kode_barang }}" {{ $barang->id == $item->kode_barang_id ? 'selected' : '' }}>{{ $barang->kode_barang }} - {{ $barang->name }}</option>
 												@endforeach
 											</select>
 										</div>
@@ -108,10 +108,15 @@
 									</div>
 									<div class="col-md-2">
 										<div class="form-group">
-											<label>Satuan</label>
-											<select class="form-control item-satuan" name="items[{{ $index }}][satuan]" required>
-												<option value="{{ $item->satuan }}" selected>{{ $item->satuan }}</option>
-											</select>
+											<label>Satuan Kecil</label>
+											<select class="form-control item-satuan-kecil" name="items[{{ $index }}][satuan_kecil]"></select>
+											<input type="hidden" class="item-satuan" name="items[{{ $index }}][satuan]" value="{{ $item->satuan }}">
+										</div>
+									</div>
+									<div class="col-md-2">
+										<div class="form-group">
+											<label>Satuan Besar</label>
+											<select class="form-control item-satuan-besar" name="items[{{ $index }}][satuan_besar]"></select>
 										</div>
 									</div>
 									<div class="col-md-2">
@@ -120,16 +125,29 @@
 											<input type="number" class="form-control item-harga" name="items[{{ $index }}][harga]" step="0.01" min="0" value="{{ $item->harga }}" required>
 										</div>
 									</div>
-									<div class="col-md-2">
+									<div class="col-md-1">
 										<div class="form-group">
 											<label>Total</label>
 											<input type="number" class="form-control item-total" value="{{ $item->total }}" readonly>
 										</div>
 									</div>
 								</div>
+							<div class="row">
+								<div class="col-md-11">
+									<div class="form-group">
+										<label>Keterangan</label>
+										<input type="text" class="form-control" name="items[{{ $index }}][keterangan]" value="{{ $item->keterangan }}">
+									</div>
+								</div>
+								<div class="col-md-1 d-flex align-items-end justify-content-end">
+									<button type="button" class="btn btn-danger btn-sm remove-item" style="display: none;">
+										<i class="fas fa-trash"></i>
+									</button>
+								</div>
 							</div>
-							@endforeach
 						</div>
+						@endforeach
+					</div>
 
 						<div class="row mt-3">
 							<div class="col-md-12">
@@ -144,5 +162,120 @@
 	</div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+	function populateUnitsForRow(row) {
+		const barangSelect = row.find('.item-barang');
+		const selectedOption = barangSelect.find('option:selected');
+		const kodeBarangStr = selectedOption.data('kode');
+		const kodeBarangId = barangSelect.val();
+		const currentSatuan = row.find('.item-satuan').val() || '{{ $salesOrder->items->first()->satuan ?? '' }}';
+
+		if (!kodeBarangId) {
+			row.find('.item-satuan-kecil').html('<option value="LBR">LBR</option>');
+			row.find('.item-satuan-besar').html('');
+			return;
+		}
+
+		// Ambil satuan kecil dari stocks, lalu populate satuan besar dari unit conversion
+		$.ajax({
+			url: '{{ route('stock.get') }}',
+			method: 'GET',
+			data: { kode_barang: kodeBarangStr },
+			success: function(resp) {
+				const kecilSelect = row.find('.item-satuan-kecil');
+				const besarSelect = row.find('.item-satuan-besar');
+				kecilSelect.empty();
+				besarSelect.empty();
+				const unitDasar = resp && resp.success && resp.data && resp.data.satuan ? resp.data.satuan : 'LBR';
+				kecilSelect.append('<option value="'+unitDasar+'">'+unitDasar+'</option>');
+				$.ajax({
+					url: `{{ route('sales-order.available-units', '') }}/${kodeBarangId}`,
+					method: 'GET',
+					success: function(units) {
+						if (Array.isArray(units) && units.length > 0) {
+							units.forEach(function(unit) {
+								if (unit !== unitDasar) {
+									besarSelect.append('<option value="'+unit+'">'+unit+'</option>');
+								}
+							});
+						}
+						row.find('.item-satuan').val(currentSatuan || unitDasar);
+					},
+					error: function() {
+						row.find('.item-satuan').val(currentSatuan || unitDasar);
+					}
+				});
+			},
+			error: function() {
+				row.find('.item-satuan-kecil').html('<option value="LBR">LBR</option>');
+				row.find('.item-satuan-besar').html('');
+				row.find('.item-satuan').val(currentSatuan || 'LBR');
+			}
+		});
+	}
+
+	function calculateItemTotal(row) {
+		const qty = parseFloat(row.find('.item-qty').val()) || 0;
+		const harga = parseFloat(row.find('.item-harga').val()) || 0;
+		const total = qty * harga;
+		row.find('.item-total').val(total.toFixed(2));
+	}
+
+	// Initialize existing rows
+	$('#items-container .item-row').each(function() {
+		populateUnitsForRow($(this));
+		calculateItemTotal($(this));
+	});
+
+	// When barang changes, repopulate units and set harga default
+	$(document).on('change', '.item-barang', function() {
+		const row = $(this).closest('.item-row');
+		const selectedOption = $(this).find('option:selected');
+		const harga = selectedOption.data('harga') || 0;
+		row.find('.item-harga').val(harga);
+		populateUnitsForRow(row);
+		calculateItemTotal(row);
+	});
+
+	function updateSatuanAndHarga(row, unit) {
+		const customerId = $('#customer_id').val();
+		const kodeBarangId = row.find('.item-barang').val();
+		row.find('.item-satuan').val(unit);
+		if (customerId && kodeBarangId && unit) {
+			$.ajax({
+				url: '{{ route('sales-order.customer-price') }}',
+				method: 'GET',
+				data: { customer_id: customerId, kode_barang_id: kodeBarangId, unit: unit },
+				success: function(priceInfo) {
+					row.find('.item-harga').val(priceInfo.harga_jual);
+					calculateItemTotal(row);
+				}
+			});
+		}
+	}
+
+	$(document).on('change', '.item-satuan-kecil', function() {
+		const row = $(this).closest('.item-row');
+		const unit = $(this).val();
+		row.find('.item-satuan-besar').prop('selectedIndex', -1);
+		updateSatuanAndHarga(row, unit);
+	});
+
+	$(document).on('change', '.item-satuan-besar', function() {
+		const row = $(this).closest('.item-row');
+		const unit = $(this).val();
+		updateSatuanAndHarga(row, unit);
+	});
+
+	// Recalculate total on input changes
+	$(document).on('input', '.item-qty, .item-harga', function() {
+		calculateItemTotal($(this).closest('.item-row'));
+	});
+});
+</script>
+@endpush
 
 

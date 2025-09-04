@@ -10,6 +10,7 @@ use App\Models\Transaksi;
 use App\Models\TransaksiItem;
 use App\Models\TransaksiItemSumber;
 use App\Models\StockBatch;
+use App\Models\StockMutation;
 use App\Models\StokOwner;
 use App\Models\KodeBarang;
 use App\Models\Customer;
@@ -76,6 +77,22 @@ class LaporanController extends Controller
                 $marginKotor = $omsetFaktur > 0 ? ($labaKotor / $omsetFaktur) * 100 : 0;
                 $marginBersih = $omsetFaktur > 0 ? ($labaBersih / $omsetFaktur) * 100 : 0;
 
+                // Build item-level details for detail modal
+                $itemDetails = $t->items->map(function($item){
+                    return [
+                        'kode_barang' => $item->kode_barang,
+                        'nama_barang' => $item->nama_barang,
+                        'qty' => (float) ($item->qty ?? 0),
+                        'harga' => (float) ($item->harga ?? 0),
+                        'sumber' => $item->transaksiItemSumber->map(function($s){
+                            return [
+                                'qty_diambil' => (float) ($s->qty_diambil ?? 0),
+                                'harga_beli' => (float) optional($s->stockBatch)->harga_beli,
+                            ];
+                        })->values()
+                    ];
+                })->values();
+
                 $laporanData[] = [
                     'no_transaksi' => $t->no_transaksi,
                     'tanggal' => $t->tanggal->format('d/m/Y'),
@@ -87,7 +104,8 @@ class LaporanController extends Controller
                     'laba_bersih' => $labaBersih,
                     'margin_kotor' => $marginKotor,
                     'margin_bersih' => $marginBersih,
-                    'status_piutang' => $t->status_piutang
+                    'status_piutang' => $t->status_piutang,
+                    'items' => $itemDetails,
                 ];
 
                 // Accumulate totals
@@ -208,6 +226,22 @@ class LaporanController extends Controller
                     $labaKotor = $omsetTransaksi - $modalTransaksi;
                     $labaBersih = $labaKotor - $ongkosKuliTransaksi;
 
+                    // Detail item per faktur
+                    $detailItems = $transaksiItems->map(function($item) {
+                        return [
+                            'kode_barang' => $item->kode_barang,
+                            'nama_barang' => $item->nama_barang,
+                            'qty' => $item->qty,
+                            'satuan' => $item->satuan,
+                            'harga' => $item->harga,
+                            'subtotal' => $item->qty * $item->harga,
+                            'ongkos_kuli' => $item->ongkos_kuli ?? 0,
+                            'harga_beli' => $item->harga_beli ?? 0,
+                            'qty_diambil' => $item->qty_diambil ?? 0,
+                            'modal_item' => ($item->qty_diambil ?? 0) * ($item->harga_beli ?? 0)
+                        ];
+                    })->values();
+
                     $detailTransaksi[] = [
                         'no_transaksi' => $noTransaksi,
                         'tanggal' => $transaksiItems->first()->tanggal,
@@ -220,7 +254,8 @@ class LaporanController extends Controller
                         'ongkos_kuli' => $ongkosKuliTransaksi,
                         'laba_bersih' => $labaBersih,
                         'margin_kotor' => $omsetTransaksi > 0 ? ($labaKotor / $omsetTransaksi) * 100 : 0,
-                        'margin_bersih' => $omsetTransaksi > 0 ? ($labaBersih / $omsetTransaksi) * 100 : 0
+                        'margin_bersih' => $omsetTransaksi > 0 ? ($labaBersih / $omsetTransaksi) * 100 : 0,
+                        'detail_items' => $detailItems
                     ];
 
                     $totalQty += $qtyTransaksi;
@@ -304,8 +339,10 @@ class LaporanController extends Controller
         try {
             $query = DB::table('transaksi_items as ti')
                 ->join('transaksi as t', 'ti.transaksi_id', '=', 't.id')
-                ->join('kode_barangs as kb', 'ti.kode_barang', '=', 'kb.id')
+                // Join ke master barang menggunakan kode_barang string, bukan ID
+                ->join('kode_barangs as kb', 'ti.kode_barang', '=', 'kb.kode_barang')
                 ->leftJoin('customers as c', 't.kode_customer', '=', 'c.kode_customer')
+                ->leftJoin('wilayahs as w', 'c.wilayah_id', '=', 'w.id')
                 ->leftJoin('stok_owners as so', 't.sales', '=', 'so.kode_stok_owner')
                 ->whereBetween('t.tanggal', [$startDate, $endDate])
                 ->where('t.status', '!=', 'canceled')
@@ -456,6 +493,13 @@ class LaporanController extends Controller
                     'rata_omset_per_faktur' => $rataOmsetPerFaktur,
                     'komisi_per_faktur' => $jumlahFaktur > 0 ? $komisi / $jumlahFaktur : 0,
                     'customer_detail' => $customerDetail,
+                    'transaksi_list' => $salesTransaksi->map(function($t){
+                        return [
+                            'no_transaksi' => $t->no_transaksi,
+                            'tanggal' => optional($t->tanggal)->format('d/m/Y'),
+                            'grand_total' => $t->grand_total,
+                        ];
+                    })->values(),
                     'periode_aktif' => [
                         'tanggal_pertama' => $salesTransaksi->min('tanggal')->format('d/m/Y'),
                         'tanggal_terakhir' => $salesTransaksi->max('tanggal')->format('d/m/Y')
@@ -504,57 +548,275 @@ class LaporanController extends Controller
     }
 
     /**
+     * Detail faktur yang membentuk komisi untuk satu sales
+     */
+    public function komisiSalesDetail(Request $request, string $salesCode)
+    {
+        $startDate = $request->get('start_date', now()->startOfMonth());
+        $endDate = $request->get('end_date', now()->endOfMonth());
+
+        $salesman = StokOwner::where('kode_stok_owner', $salesCode)->first();
+
+        $transaksi = Transaksi::with(['customer'])
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->where('status', '!=', 'canceled')
+            ->where('status_piutang', 'lunas')
+            ->where('sales', $salesCode)
+            ->orderBy('tanggal', 'desc')
+            ->get(['id','no_transaksi','tanggal','grand_total','kode_customer','sales']);
+
+        return view('laporan.komisi_sales_detail', [
+            'salesCode' => $salesCode,
+            'salesNama' => $salesman->keterangan ?? 'Unknown',
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'transaksi' => $transaksi,
+        ]);
+    }
+
+    /**
+     * Detail item dalam satu faktur untuk laporan komisi sales
+     */
+    public function komisiSalesInvoiceDetail(Request $request, int $transaksiId)
+    {
+        try {
+            $transaksi = Transaksi::with(['customer', 'items.kodeBarang'])
+                ->where('id', $transaksiId)
+                ->where('status', '!=', 'canceled')
+                ->where('status_piutang', 'lunas')
+                ->first();
+
+            if (!$transaksi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaksi tidak ditemukan'
+                ], 404);
+            }
+
+            $items = $transaksi->items->map(function($item) {
+                return [
+                    'kode_barang' => $item->kode_barang,
+                    'nama_barang' => $item->nama_barang,
+                    'qty' => (float) ($item->qty ?? 0),
+                    'satuan' => $item->satuan,
+                    'harga' => (float) ($item->harga ?? 0),
+                    'subtotal' => (float) ($item->qty ?? 0) * (float) ($item->harga ?? 0),
+                    'ongkos_kuli' => (float) ($item->ongkos_kuli ?? 0)
+                ];
+            });
+
+            $data = [
+                'no_transaksi' => $transaksi->no_transaksi,
+                'tanggal' => optional($transaksi->tanggal)->format('d/m/Y'),
+                'customer' => optional($transaksi->customer)->nama ?? 'Unknown',
+                'grand_total' => $transaksi->grand_total,
+                'items' => $items,
+                'total_items' => $items->count(),
+                'total_qty' => $items->sum('qty'),
+                'total_ongkos_kuli' => $items->sum('ongkos_kuli')
+            ];
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $data
+                ]);
+            }
+
+            return view('laporan.komisi_sales_invoice_detail', compact('data'));
+
+        } catch (\Exception $e) {
+            Log::error('Error getting invoice detail:', ['message' => $e->getMessage()]);
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Laporan Stok dengan FIFO tracking
      */
     public function laporanStok(Request $request)
     {
+        // Get filter parameters
         $kodeBarang = $request->get('kode_barang');
+        $namaBarang = $request->get('nama_barang');
+        $grupBarangId = $request->get('grup_barang');
         $showBatches = (bool) $request->get('show_batches', false);
+        $showPergerakan = (bool) $request->get('show_pergerakan', false);
+        $tanggalPergerakan = $request->get('tanggal_pergerakan', now()->format('Y-m-d'));
+        $jenisPergerakan = $request->get('jenis_pergerakan');
 
         try {
             $query = StockBatch::with(['kodeBarang'])
                 ->where('qty_sisa', '>', 0);
 
-            if ($kodeBarang) {
-                $query->whereHas('kodeBarang', function($q) use ($kodeBarang) {
-                    $q->where('kode_barang', $kodeBarang);
+            // Apply filters using when() for dynamic query building
+            $query->when($kodeBarang, function($q) use ($kodeBarang) {
+                return $q->whereHas('kodeBarang', function($subQ) use ($kodeBarang) {
+                    $subQ->where('kode_barang', 'like', "%{$kodeBarang}%");
                 });
-            }
+            });
+
+            $query->when($namaBarang, function($q) use ($namaBarang) {
+                return $q->whereHas('kodeBarang', function($subQ) use ($namaBarang) {
+                    $subQ->where('name', 'like', "%{$namaBarang}%");
+                });
+            });
+
+            $query->when($grupBarangId, function($q) use ($grupBarangId) {
+                return $q->whereHas('kodeBarang', function($subQ) use ($grupBarangId) {
+                    $subQ->where('grup_barang_id', $grupBarangId);
+                });
+            });
 
             $stockBatches = $query->orderBy('tanggal_masuk', 'asc')->get();
 
-            if ($showBatches) {
-                $laporanData = $stockBatches->map(function($batch) {
-                    return [
-                        'kode_barang' => $batch->kodeBarang->kode_barang,
-                        'nama_barang' => $batch->kodeBarang->name,
-                        'batch_id' => $batch->id,
-                        'tanggal_masuk' => optional($batch->tanggal_masuk)->format('d/m/Y'),
-                        'qty_masuk' => $batch->qty_masuk,
-                        'qty_sisa' => $batch->qty_sisa,
-                        'harga_beli' => $batch->harga_beli,
-                        'total_nilai_sisa' => $batch->qty_sisa * $batch->harga_beli,
-                    ];
-                });
+            // Handle pergerakan barang jika diminta
+            $laporanData = collect([]);
+            $summary = [];
+            $pergerakanData = collect([]);
+
+            if ($showPergerakan) {
+                // Query untuk stok masuk (pembelian, retur penjualan, dll)
+                $stokMasukQuery = StockMutation::whereDate('tanggal', $tanggalPergerakan)
+                    ->where('plus', '>', 0);
+
+                // Query untuk stok keluar (penjualan, retur pembelian, dll)
+                $stokKeluarQuery = StockMutation::whereDate('tanggal', $tanggalPergerakan)
+                    ->where('minus', '>', 0);
+
+                // Apply filters using when() for dynamic query building
+                $applyFilters = function($query) use ($kodeBarang, $namaBarang, $grupBarangId) {
+                    $query->when($kodeBarang, function($q) use ($kodeBarang) {
+                        return $q->where('kode_barang', 'like', "%{$kodeBarang}%");
+                    })
+                    ->when($namaBarang, function($q) use ($namaBarang) {
+                        return $q->where('nama_barang', 'like', "%{$namaBarang}%");
+                    })
+                    ->when($grupBarangId, function($q) use ($grupBarangId) {
+                        // For StockMutation, we need to join with kode_barangs table to filter by grup_barang_id
+                        return $q->join('kode_barangs', 'stock_mutations.kode_barang', '=', 'kode_barangs.kode_barang')
+                            ->where('kode_barangs.grup_barang_id', $grupBarangId)
+                            ->select('stock_mutations.*', 'stock_mutations.tanggal as tanggal');
+                    });
+                };
+
+                $applyFilters($stokMasukQuery);
+                $applyFilters($stokKeluarQuery);
+
+                // Get data berdasarkan jenis pergerakan
+                $stokMasuk = collect([]);
+                $stokKeluar = collect([]);
+
+                if (!$jenisPergerakan || $jenisPergerakan === 'semua' || $jenisPergerakan === 'masuk') {
+                    $stokMasuk = $stokMasukQuery->orderBy('tanggal', 'asc')->get();
+                }
+
+                if (!$jenisPergerakan || $jenisPergerakan === 'semua' || $jenisPergerakan === 'keluar') {
+                    $stokKeluar = $stokKeluarQuery->orderBy('tanggal', 'asc')->get();
+                }
+
+                // Format data untuk display
+                foreach ($stokMasuk as $mutation) {
+                    $pergerakanData->push([
+                        'waktu' => optional($mutation->tanggal)->format('H:i:s') ?? '00:00:00',
+                        'kode_barang' => $mutation->kode_barang,
+                        'nama_barang' => $mutation->nama_barang,
+                        'no_transaksi' => $mutation->no_transaksi,
+                        'no_nota' => $mutation->no_nota,
+                        'supplier_customer' => $mutation->supplier_customer,
+                        'jenis_pergerakan' => 'MASUK',
+                        'qty_masuk' => $mutation->plus,
+                        'qty_keluar' => 0,
+                        'satuan' => $mutation->satuan,
+                        'keterangan' => $mutation->keterangan,
+                        'created_by' => $mutation->created_by
+                    ]);
+                }
+
+                foreach ($stokKeluar as $mutation) {
+                    $pergerakanData->push([
+                        'waktu' => optional($mutation->tanggal)->format('H:i:s') ?? '00:00:00',
+                        'kode_barang' => $mutation->kode_barang,
+                        'nama_barang' => $mutation->nama_barang,
+                        'no_transaksi' => $mutation->no_transaksi,
+                        'no_nota' => $mutation->no_nota,
+                        'supplier_customer' => $mutation->supplier_customer,
+                        'jenis_pergerakan' => 'KELUAR',
+                        'qty_masuk' => 0,
+                        'qty_keluar' => $mutation->minus,
+                        'satuan' => $mutation->satuan,
+                        'keterangan' => $mutation->keterangan,
+                        'created_by' => $mutation->created_by
+                    ]);
+                }
+
+                // Sort by waktu
+                $pergerakanData = $pergerakanData->sortBy('waktu')->values();
+
+                // Summary untuk pergerakan
+                $summary = [
+                    'tanggal' => $tanggalPergerakan,
+                    'total_transaksi' => $pergerakanData->count(),
+                    'total_masuk' => $stokMasuk->count(),
+                    'total_keluar' => $stokKeluar->count(),
+                    'total_qty_masuk' => $stokMasuk->sum('plus'),
+                    'total_qty_keluar' => $stokKeluar->sum('minus'),
+                    'selisih_qty' => $stokMasuk->sum('plus') - $stokKeluar->sum('minus'),
+                    'jenis_barang_terlibat' => $pergerakanData->pluck('kode_barang')->unique()->count()
+                ];
             } else {
-                $groupedByBarang = $stockBatches->groupBy('kode_barang_id');
-                $laporanData = $groupedByBarang->map(function($batches) {
-                    $first = $batches->first();
-                    $totalQtySisa = $batches->sum('qty_sisa');
-                    $totalNilai = $batches->sum(function($b) { return $b->qty_sisa * $b->harga_beli; });
-                    return [
-                        'kode_barang' => $first->kodeBarang->kode_barang,
-                        'nama_barang' => $first->kodeBarang->name,
-                        'attribute' => $first->kodeBarang->attribute,
-                        'total_qty_sisa' => $totalQtySisa,
-                        'jumlah_batch' => $batches->count(),
-                        'total_nilai_stok' => $totalNilai,
-                        'rata_harga_beli' => $totalQtySisa > 0 ? $totalNilai / $totalQtySisa : 0,
-                    ];
-                })->values();
+                // Original stock report logic
+                if ($showBatches) {
+                    $laporanData = $stockBatches->map(function($batch) {
+                        return [
+                            'kode_barang' => $batch->kodeBarang->kode_barang,
+                            'nama_barang' => $batch->kodeBarang->name,
+                            'batch_id' => $batch->id,
+                            'tanggal_masuk' => optional($batch->tanggal_masuk)->format('d/m/Y'),
+                            'qty_masuk' => $batch->qty_masuk,
+                            'qty_sisa' => $batch->qty_sisa,
+                            'harga_beli' => $batch->harga_beli,
+                            'total_nilai_sisa' => $batch->qty_sisa * $batch->harga_beli,
+                            'action_pergerakan' => route('laporan.stok.pergerakan', $batch->kodeBarang->kode_barang),
+                        ];
+                    });
+                } else {
+                    $groupedByBarang = $stockBatches->groupBy('kode_barang_id');
+                    $laporanData = $groupedByBarang->map(function($batches) {
+                        $first = $batches->first();
+                        $totalQtySisa = $batches->sum('qty_sisa');
+                        $totalNilai = $batches->sum(function($b) { return $b->qty_sisa * $b->harga_beli; });
+                        return [
+                            'kode_barang' => $first->kodeBarang->kode_barang,
+                            'nama_barang' => $first->kodeBarang->name,
+                            'attribute' => $first->kodeBarang->attribute,
+                            'total_qty_sisa' => $totalQtySisa,
+                            'jumlah_batch' => $batches->count(),
+                            'total_nilai_stok' => $totalNilai,
+                            'rata_harga_beli' => $totalQtySisa > 0 ? $totalNilai / $totalQtySisa : 0,
+                            'action_pergerakan' => route('laporan.stok.pergerakan', $first->kodeBarang->kode_barang),
+                        ];
+                    })->values();
+                }
             }
 
             $summary = [
+                'tanggal' => $tanggalPergerakan,
+                'total_transaksi' => $stockBatches->count(),
+                'total_masuk' => 0,
+                'total_keluar' => 0,
+                'total_qty_masuk' => 0,
+                'total_qty_keluar' => 0,
+                'selisih_qty' => 0,
+                'jenis_barang_terlibat' => 0,
                 'total_jenis_barang' => $showBatches ? $stockBatches->pluck('kode_barang_id')->unique()->count() : $laporanData->count(),
                 'total_batch' => $stockBatches->count(),
                 'grand_total_qty' => $stockBatches->sum('qty_sisa'),
@@ -570,13 +832,26 @@ class LaporanController extends Controller
                 ]);
             }
 
-            return view('laporan.stok', compact('laporanData', 'summary', 'showBatches'));
+            return view('laporan.stok', compact(
+                'laporanData', 
+                'summary', 
+                'showBatches',
+                'showPergerakan',
+                'pergerakanData',
+                'tanggalPergerakan',
+                'jenisPergerakan',
+                'kodeBarang',
+                'namaBarang', 
+                'grupBarangId'
+            ));
 
         } catch (\Exception $e) {
             Log::error('Error generating laporan stok:', ['message' => $e->getMessage()]);
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
+
+
 
     /**
      * Laporan Piutang Pelanggan
@@ -587,11 +862,12 @@ class LaporanController extends Controller
         $endDate = $request->get('end_date', now()->endOfMonth());
         $customerId = $request->get('customer_id');
         $statusPiutang = $request->get('status_piutang');
+        $statusKeterlambatan = $request->get('status_keterlambatan');
         $showJatuhTempo = (bool) $request->get('show_jatuh_tempo', false);
 
         try {
             $query = Transaksi::with(['customer', 'pembayaranDetails'])
-                ->whereIn('status_piutang', ['belum_dibayar', 'sebagian'])
+                ->where('status', '!=', 'canceled')
                 ->whereBetween('tanggal', [$startDate, $endDate]);
 
             if ($customerId) {
@@ -613,8 +889,54 @@ class LaporanController extends Controller
                 ->get();
             // dd($transaksi);
             $laporanData = $transaksi->map(function($t) {
-                $isOverdue = method_exists($t, 'checkJatuhTempo') ? $t->checkJatuhTempo() : false;
-                $hariKeterlambatan = $isOverdue && $t->tanggal_jatuh_tempo ? now()->diffInDays($t->tanggal_jatuh_tempo) : 0;
+                $today = now();
+                $isOverdue = $t->tanggal_jatuh_tempo ? $today->gt($t->tanggal_jatuh_tempo) : false;
+                $hariKeterlambatan = $isOverdue && $t->tanggal_jatuh_tempo ? $t->tanggal_jatuh_tempo->diffInDays($today) : 0;
+
+                // Hitung total retur penjualan yang sudah approved untuk transaksi ini
+                $totalReturApproved = \App\Models\ReturPenjualan::where('transaksi_id', $t->id)
+                    ->whereIn('status', ['approved', 'processed'])
+                    ->sum('total_retur');
+
+                // Sisa piutang setelah dikurangi retur
+                $sisaPiutangSetelahRetur = $t->sisa_piutang - $totalReturApproved;
+
+                // Map status warna berdasarkan hari keterlambatan
+                $statusWarna = null;
+                $rowClass = null;
+                
+                // Jika faktur sudah lunas, beri warna hijau
+                if ($sisaPiutangSetelahRetur <= 0) {
+                    $statusWarna = 'hijau';
+                    $rowClass = 'table-success'; // Hijau
+                }
+                // Jika faktur belum lunas dan ada keterlambatan, beri warna sesuai tingkat keterlambatan
+                elseif ($sisaPiutangSetelahRetur > 0 && $hariKeterlambatan > 0) {
+                    if ($hariKeterlambatan >= 1 && $hariKeterlambatan <= 15) {
+                        $statusWarna = 'biru';
+                        $rowClass = 'table-info'; // Biru muda
+                    } elseif ($hariKeterlambatan >= 16 && $hariKeterlambatan <= 30) {
+                        $statusWarna = 'kuning';
+                        $rowClass = 'table-warning'; // Kuning
+                    } elseif ($hariKeterlambatan > 30) {
+                        $statusWarna = 'merah';
+                        $rowClass = 'table-danger'; // Merah
+                    }
+                }
+                // Jika faktur lunas tapi ada keterlambatan, tetap beri warna keterlambatan
+                elseif ($sisaPiutangSetelahRetur <= 0 && $hariKeterlambatan > 0) {
+                    if ($hariKeterlambatan >= 1 && $hariKeterlambatan <= 15) {
+                        $statusWarna = 'biru';
+                        $rowClass = 'table-info'; // Biru muda
+                    } elseif ($hariKeterlambatan >= 16 && $hariKeterlambatan <= 30) {
+                        $statusWarna = 'kuning';
+                        $rowClass = 'table-warning'; // Kuning
+                    } elseif ($hariKeterlambatan > 30) {
+                        $statusWarna = 'merah';
+                        $rowClass = 'table-danger'; // Merah
+                    }
+                }
+
                 return [
                     'no_transaksi' => $t->no_transaksi,
                     'tanggal' => optional($t->tanggal)->format('d/m/Y'),
@@ -623,14 +945,38 @@ class LaporanController extends Controller
                     'kode_customer' => $t->kode_customer,
                     'total_faktur' => $t->grand_total,
                     'total_dibayar' => $t->total_dibayar,
-                    'sisa_piutang' => $t->sisa_piutang,
+                    'total_retur' => $totalReturApproved,
+                    'sisa_piutang' => $sisaPiutangSetelahRetur,
+                    'sisa_piutang_original' => $t->sisa_piutang,
                     'status_piutang' => $t->status_piutang,
                     'is_jatuh_tempo' => $isOverdue,
                     'hari_keterlambatan' => $hariKeterlambatan,
-                    'kategori_keterlambatan' => $this->getKategoriKeterlambatan($hariKeterlambatan),
+                    'status_warna' => $statusWarna,
+                    'row_class' => $rowClass,
+                    'status_keterlambatan' => $this->getStatusKeterlambatan($hariKeterlambatan),
                     'persentase_pelunasan' => $t->grand_total > 0 ? ($t->total_dibayar / $t->grand_total) * 100 : 0
                 ];
             });
+
+            // Filter berdasarkan status keterlambatan
+            if ($statusKeterlambatan) {
+                $laporanData = $laporanData->filter(function($row) use ($statusKeterlambatan) {
+                    $hariKeterlambatan = $row['hari_keterlambatan'];
+                    
+                    switch ($statusKeterlambatan) {
+                        case 'belum_jatuh_tempo':
+                            return $hariKeterlambatan <= 0;
+                        case '1-15':
+                            return $hariKeterlambatan >= 1 && $hariKeterlambatan <= 15;
+                        case '16-30':
+                            return $hariKeterlambatan >= 16 && $hariKeterlambatan <= 30;
+                        case '>30':
+                            return $hariKeterlambatan > 30;
+                        default:
+                            return true;
+                    }
+                });
+            }
 
             $groupByCustomer = $laporanData->groupBy('kode_customer')->map(function($rows, $kode) {
                 $first = $rows->first();
@@ -674,11 +1020,446 @@ class LaporanController extends Controller
         }
     }
 
-    private function getKategoriKeterlambatan($hari): string
+    /**
+     * Laporan Utang Supplier
+     */
+    public function laporanUtangSupplier(Request $request)
+    {
+        $startDate = $request->get('start_date', now()->startOfMonth());
+        $endDate = $request->get('end_date', now()->endOfMonth());
+        $supplierId = $request->get('supplier_id');
+        $statusUtang = $request->get('status_utang');
+        $showJatuhTempo = (bool) $request->get('show_jatuh_tempo', false);
+
+        try {
+            $query = \App\Models\Pembelian::with(['supplier'])
+                ->where('status', '!=', 'canceled')
+                ->whereIn('status_utang', ['belum_dibayar', 'sebagian'])
+                ->whereBetween('tanggal', [$startDate, $endDate]);
+
+            if ($supplierId) {
+                $query->where('kode_supplier', $supplierId);
+            }
+
+            if ($statusUtang) {
+                $query->where('status_utang', $statusUtang);
+            }
+
+            if ($showJatuhTempo) {
+                $query->where('tanggal_jatuh_tempo', '<', now());
+            }
+
+            $supplierList = \App\Models\Supplier::orderBy('nama')->get();
+
+            $pembelian = $query->orderBy('tanggal_jatuh_tempo', 'asc')
+                ->orderBy('tanggal', 'asc')
+                ->get();
+
+            $laporanData = $pembelian->map(function($p) {
+                $today = now();
+                $isOverdue = $p->tanggal_jatuh_tempo ? $today->gt($p->tanggal_jatuh_tempo) : false;
+                $hariKeterlambatan = $isOverdue && $p->tanggal_jatuh_tempo ? $today->diffInDays($p->tanggal_jatuh_tempo) : 0;
+
+                // Map status warna
+                $statusWarna = null;
+                if ($hariKeterlambatan >= 1 && $hariKeterlambatan <= 15) {
+                    $statusWarna = 'biru';
+                } elseif ($hariKeterlambatan >= 16 && $hariKeterlambatan <= 30) {
+                    $statusWarna = 'kuning';
+                } elseif ($hariKeterlambatan > 30) {
+                    $statusWarna = 'merah';
+                }
+
+                // Bootstrap row class mapping
+                $rowClass = null;
+                if ($statusWarna === 'biru') {
+                    $rowClass = 'table-info';
+                } elseif ($statusWarna === 'kuning') {
+                    $rowClass = 'table-warning';
+                } elseif ($statusWarna === 'merah') {
+                    $rowClass = 'table-danger';
+                }
+
+                return [
+                    'nota' => $p->nota,
+                    'tanggal' => optional($p->tanggal)->format('d/m/Y'),
+                    'tanggal_jatuh_tempo' => $p->tanggal_jatuh_tempo ? $p->tanggal_jatuh_tempo->format('d/m/Y') : '-',
+                    'supplier' => optional($p->supplier)->nama ?? 'Unknown',
+                    'kode_supplier' => $p->kode_supplier,
+                    'total_faktur' => $p->grand_total,
+                    'total_dibayar' => $p->total_dibayar,
+                    'sisa_utang' => $p->sisa_utang,
+                    'status_utang' => $p->status_utang,
+                    'is_jatuh_tempo' => $isOverdue,
+                    'hari_keterlambatan' => $hariKeterlambatan,
+                    'status_warna' => $statusWarna,
+                    'row_class' => $rowClass,
+                    'grup_keterlambatan' => $this->getGrupKeterlambatan($hariKeterlambatan),
+                    'persentase_pelunasan' => $p->grand_total > 0 ? ($p->total_dibayar / $p->grand_total) * 100 : 0
+                ];
+            });
+
+            $groupBySupplier = $laporanData->groupBy('kode_supplier')->map(function($rows, $kode) {
+                $first = $rows->first();
+                return [
+                    'kode_supplier' => $kode,
+                    'nama_supplier' => $first['supplier'],
+                    'jumlah_faktur' => $rows->count(),
+                    'total_faktur' => $rows->sum('total_faktur'),
+                    'total_dibayar' => $rows->sum('total_dibayar'),
+                    'total_sisa_utang' => $rows->sum('sisa_utang'),
+                    'faktur_jatuh_tempo' => $rows->where('is_jatuh_tempo', true)->count(),
+                    'sisa_utang_jatuh_tempo' => $rows->where('is_jatuh_tempo', true)->sum('sisa_utang'),
+                ];
+            })->values();
+
+            $summary = [
+                'total_supplier' => $laporanData->pluck('kode_supplier')->unique()->count(),
+                'total_faktur' => $laporanData->count(),
+                'grand_total_faktur' => $laporanData->sum('total_faktur'),
+                'grand_total_dibayar' => $laporanData->sum('total_dibayar'),
+                'grand_sisa_utang' => $laporanData->sum('sisa_utang'),
+                'faktur_jatuh_tempo' => $laporanData->where('is_jatuh_tempo', true)->count(),
+                'sisa_utang_jatuh_tempo' => $laporanData->where('is_jatuh_tempo', true)->sum('sisa_utang'),
+            ];
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $laporanData,
+                    'group_by_supplier' => $groupBySupplier,
+                    'summary' => $summary
+                ]);
+            }
+
+            return view('laporan.utang_supplier', compact('startDate', 'endDate', 'laporanData', 'groupBySupplier', 'summary', 'supplierList'));
+
+        } catch (\Exception $e) {
+            Log::error('Error generating laporan utang supplier:', ['message' => $e->getMessage()]);
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    private function getGrupKeterlambatan($hari): string
     {
         if ($hari <= 0) return 'Normal';
         if ($hari <= 7) return 'Perhatian';
         if ($hari <= 30) return 'Bahaya';
         return 'Kritis';
+    }
+
+    /**
+     * Print laporan ongkos kuli
+     */
+    public function printOngkosKuli(Request $request)
+    {
+        $startDate = $request->get('start_date', now()->startOfMonth());
+        $endDate = $request->get('end_date', now()->endOfMonth());
+        $customerId = $request->get('customer_id');
+        $kodeBarang = $request->get('kode_barang');
+
+        try {
+            $query = DB::table('transaksi_items as ti')
+                ->join('transaksi as t', 'ti.transaksi_id', '=', 't.id')
+                ->join('kode_barangs as kb', 'ti.kode_barang', '=', 'kb.kode_barang')
+                ->leftJoin('customers as c', 't.kode_customer', '=', 'c.kode_customer')
+                ->leftJoin('wilayahs as w', 'c.wilayah_id', '=', 'w.id')
+                ->leftJoin('stok_owners as so', 't.sales', '=', 'so.kode_stok_owner')
+                ->whereBetween('t.tanggal', [$startDate, $endDate])
+                ->where('t.status', '!=', 'canceled')
+                ->where('ti.ongkos_kuli', '>', 0);
+
+            if ($customerId) {
+                $query->where('t.kode_customer', $customerId);
+            }
+
+            if ($kodeBarang) {
+                $query->where('kb.kode_barang', $kodeBarang);
+            }
+
+            $data = $query->select([
+                't.no_transaksi',
+                't.tanggal',
+                'c.nama as customer_nama',
+                'so.keterangan as sales_nama',
+                'w.nama_wilayah as wilayah',
+                'kb.kode_barang',
+                'kb.name as nama_barang',
+                'ti.qty',
+                'ti.satuan',
+                'ti.harga',
+                'ti.ongkos_kuli',
+                DB::raw('ti.qty * ti.harga as subtotal_item')
+            ])
+            ->orderBy('so.keterangan', 'asc')
+            ->orderBy('t.tanggal', 'desc')
+            ->get();
+
+            // Group by different criteria
+            $groupByCustomer = $data->groupBy('customer_nama')->map(function($items, $customerNama) {
+                return [
+                    'customer_nama' => $customerNama ?: 'Unknown',
+                    'total_ongkos_kuli' => $items->sum('ongkos_kuli'),
+                    'total_omset' => $items->sum('subtotal_item'),
+                    'jumlah_transaksi' => $items->pluck('no_transaksi')->unique()->count(),
+                    'persentase_ongkos' => $items->sum('subtotal_item') > 0 ? 
+                        ($items->sum('ongkos_kuli') / $items->sum('subtotal_item')) * 100 : 0
+                ];
+            })->values();
+
+            $groupByBarang = $data->groupBy('kode_barang')->map(function($items, $kodeBarang) {
+                return [
+                    'kode_barang' => $kodeBarang,
+                    'nama_barang' => $items->first()->nama_barang,
+                    'total_qty' => $items->sum('qty'),
+                    'total_ongkos_kuli' => $items->sum('ongkos_kuli'),
+                    'total_omset' => $items->sum('subtotal_item'),
+                    'rata_ongkos_per_unit' => $items->sum('qty') > 0 ? 
+                        $items->sum('ongkos_kuli') / $items->sum('qty') : 0,
+                    'persentase_ongkos' => $items->sum('subtotal_item') > 0 ? 
+                        ($items->sum('ongkos_kuli') / $items->sum('subtotal_item')) * 100 : 0
+                ];
+            })->values();
+
+            $summary = [
+                'total_transaksi' => $data->pluck('no_transaksi')->unique()->count(),
+                'total_items' => $data->count(),
+                'total_ongkos_kuli' => $data->sum('ongkos_kuli'),
+                'total_omset' => $data->sum('subtotal_item'),
+                'rata_ongkos_per_transaksi' => $data->pluck('no_transaksi')->unique()->count() > 0 ? 
+                    $data->sum('ongkos_kuli') / $data->pluck('no_transaksi')->unique()->count() : 0,
+                'persentase_ongkos_terhadap_omset' => $data->sum('subtotal_item') > 0 ? 
+                    ($data->sum('ongkos_kuli') / $data->sum('subtotal_item')) * 100 : 0
+            ];
+
+            return view('laporan.print_ongkos_kuli', compact(
+                'data', 'groupByCustomer', 'groupByBarang', 
+                'summary', 'startDate', 'endDate'
+            ));
+
+        } catch (\Exception $e) {
+            Log::error('Error generating print laporan ongkos kuli:', ['message' => $e->getMessage()]);
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Print laporan laba per faktur
+     */
+    public function printLabaPerFaktur(Request $request)
+    {
+        $startDate = $request->get('start_date', now()->startOfMonth());
+        $endDate = $request->get('end_date', now()->endOfMonth());
+        $customerId = $request->get('customer_id');
+        
+        try {
+            // Base query for transactions
+            $query = Transaksi::with(['customer', 'items.transaksiItemSumber.stockBatch'])
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where('status', '!=', 'canceled');
+
+            if ($customerId) {
+                $query->where('kode_customer', $customerId);
+            }
+
+            $transaksi = $query->orderBy('tanggal', 'desc')->get();
+
+            $laporanData = [];
+            $totalOmset = 0;
+            $totalModal = 0;
+            $totalLabaKotor = 0;
+            $totalOngkosKuli = 0;
+            $totalLabaBersih = 0;
+
+            foreach ($transaksi as $t) {
+                // Hitung modal berdasarkan FIFO dari transaksi_item_sumber
+                $modalFaktur = 0;
+                $ongkosKuliFaktur = 0;
+
+                foreach ($t->items as $item) {
+                    // Hitung ongkos kuli per item
+                    $ongkosKuliFaktur += $item->ongkos_kuli ?? 0;
+
+                    // Hitung modal dari sumber batch FIFO
+                    foreach ($item->transaksiItemSumber as $sumber) {
+                        if ($sumber->stockBatch) {
+                            $modalFaktur += $sumber->qty_diambil * $sumber->stockBatch->harga_beli;
+                        }
+                    }
+                }
+
+                $omsetFaktur = $t->grand_total;
+                $labaKotor = $omsetFaktur - $modalFaktur;
+                $labaBersih = $labaKotor - $ongkosKuliFaktur;
+                $marginKotor = $omsetFaktur > 0 ? ($labaKotor / $omsetFaktur) * 100 : 0;
+                $marginBersih = $omsetFaktur > 0 ? ($labaBersih / $omsetFaktur) * 100 : 0;
+
+                $laporanData[] = [
+                    'no_transaksi' => $t->no_transaksi,
+                    'tanggal' => $t->tanggal->format('d/m/Y'),
+                    'customer' => $t->customer->nama ?? '-',
+                    'omset' => $omsetFaktur,
+                    'modal' => $modalFaktur,
+                    'laba_kotor' => $labaKotor,
+                    'ongkos_kuli' => $ongkosKuliFaktur,
+                    'laba_bersih' => $labaBersih,
+                    'margin_kotor' => $marginKotor,
+                    'margin_bersih' => $marginBersih,
+                    'status_piutang' => $t->status_piutang,
+                ];
+
+                // Accumulate totals
+                $totalOmset += $omsetFaktur;
+                $totalModal += $modalFaktur;
+                $totalLabaKotor += $labaKotor;
+                $totalOngkosKuli += $ongkosKuliFaktur;
+                $totalLabaBersih += $labaBersih;
+            }
+
+            $summary = [
+                'total_faktur' => count($laporanData),
+                'total_omset' => $totalOmset,
+                'total_modal' => $totalModal,
+                'total_laba_kotor' => $totalLabaKotor,
+                'total_ongkos_kuli' => $totalOngkosKuli,
+                'total_laba_bersih' => $totalLabaBersih,
+                'margin_kotor_rata' => $totalOmset > 0 ? ($totalLabaKotor / $totalOmset) * 100 : 0,
+                'margin_bersih_rata' => $totalOmset > 0 ? ($totalLabaBersih / $totalOmset) * 100 : 0,
+                'roi' => $totalModal > 0 ? ($totalLabaBersih / $totalModal) * 100 : 0
+            ];
+
+            return view('laporan.print_laba_per_faktur', compact('laporanData', 'summary', 'startDate', 'endDate'));
+
+        } catch (\Exception $e) {
+            Log::error('Error generating print laporan laba per faktur:', ['message' => $e->getMessage()]);
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Detail pergerakan barang per kode barang
+     */
+    public function detailPergerakanBarang(Request $request, string $kodeBarang)
+    {
+        $startDate = $request->get('start_date', now()->subDays(30)->format('Y-m-d'));
+        $endDate = $request->get('end_date', now()->format('Y-m-d'));
+        $jenisPergerakan = $request->get('jenis_pergerakan');
+
+        try {
+            // Get barang info
+            $barang = KodeBarang::where('kode_barang', $kodeBarang)->first();
+            
+            if (!$barang) {
+                return back()->with('error', 'Barang tidak ditemukan');
+            }
+
+            // Query untuk stok masuk
+            $stokMasukQuery = StockMutation::where('kode_barang', $kodeBarang)
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where('plus', '>', 0);
+
+            // Query untuk stok keluar
+            $stokKeluarQuery = StockMutation::where('kode_barang', $kodeBarang)
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where('minus', '>', 0);
+
+            // Get data berdasarkan jenis pergerakan
+            $stokMasuk = collect([]);
+            $stokKeluar = collect([]);
+
+            if (!$jenisPergerakan || $jenisPergerakan === 'semua' || $jenisPergerakan === 'masuk') {
+                $stokMasuk = $stokMasukQuery->orderBy('tanggal', 'desc')->get();
+            }
+
+            if (!$jenisPergerakan || $jenisPergerakan === 'semua' || $jenisPergerakan === 'keluar') {
+                $stokKeluar = $stokKeluarQuery->orderBy('tanggal', 'desc')->get();
+            }
+
+            // Format data untuk display
+            $pergerakanData = collect([]);
+
+            foreach ($stokMasuk as $mutation) {
+                $pergerakanData->push([
+                    'tanggal' => $mutation->tanggal->format('d/m/Y'),
+                    'waktu' => $mutation->tanggal->format('H:i:s'),
+                    'no_transaksi' => $mutation->no_transaksi,
+                    'no_nota' => $mutation->no_nota,
+                    'supplier_customer' => $mutation->supplier_customer,
+                    'jenis_pergerakan' => 'MASUK',
+                    'qty_masuk' => $mutation->plus,
+                    'qty_keluar' => 0,
+                    'satuan' => $mutation->satuan,
+                    'keterangan' => $mutation->keterangan,
+                    'created_by' => $mutation->created_by
+                ]);
+            }
+
+            foreach ($stokKeluar as $mutation) {
+                $pergerakanData->push([
+                    'tanggal' => $mutation->tanggal->format('d/m/Y'),
+                    'waktu' => $mutation->tanggal->format('H:i:s'),
+                    'no_transaksi' => $mutation->no_transaksi,
+                    'no_nota' => $mutation->no_nota,
+                    'supplier_customer' => $mutation->supplier_customer,
+                    'jenis_pergerakan' => 'KELUAR',
+                    'qty_masuk' => 0,
+                    'qty_keluar' => $mutation->minus,
+                    'satuan' => $mutation->satuan,
+                    'keterangan' => $mutation->keterangan,
+                    'created_by' => $mutation->created_by
+                ]);
+            }
+
+            // Sort by tanggal desc, then waktu desc
+            $pergerakanData = $pergerakanData->sortByDesc('tanggal')->sortByDesc('waktu')->values();
+
+            // Summary
+            $summary = [
+                'kode_barang' => $kodeBarang,
+                'nama_barang' => $barang->name,
+                'attribute' => $barang->attribute,
+                'periode' => [
+                    'start_date' => $startDate,
+                    'end_date' => $endDate
+                ],
+                'total_transaksi' => $pergerakanData->count(),
+                'total_masuk' => $stokMasuk->count(),
+                'total_keluar' => $stokKeluar->count(),
+                'total_qty_masuk' => $stokMasuk->sum('plus'),
+                'total_qty_keluar' => $stokKeluar->sum('minus'),
+                'selisih_qty' => $stokMasuk->sum('plus') - $stokKeluar->sum('minus'),
+            ];
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $pergerakanData,
+                    'summary' => $summary
+                ]);
+            }
+
+            return view('laporan.detail_pergerakan_barang', compact(
+                'pergerakanData', 
+                'summary', 
+                'startDate', 
+                'endDate',
+                'jenisPergerakan'
+            ));
+
+        } catch (\Exception $e) {
+            Log::error('Error getting detail pergerakan barang:', ['message' => $e->getMessage()]);
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get status keterlambatan berdasarkan hari
+     */
+    private function getStatusKeterlambatan($hari)
+    {
+        if ($hari <= 0) return 'Tepat Waktu';
+        if ($hari >= 1 && $hari <= 15) return 'Perhatian (1-15 hari)';
+        if ($hari >= 16 && $hari <= 30) return 'Bahaya (16-30 hari)';
+        return 'Kritis (>30 hari)';
     }
 }

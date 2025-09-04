@@ -23,6 +23,55 @@ class UnitConversionController extends Controller
     }
 
     /**
+     * Return list of unit conversions as JSON (for inline management)
+     */
+    public function list($kodeBarangId)
+    {
+        $items = UnitConversion::where('kode_barang_id', $kodeBarangId)
+            ->orderBy('unit_turunan')
+            ->get(['id','unit_turunan','nilai_konversi','is_active']);
+        return response()->json($items);
+    }
+
+    /**
+     * List unit conversions by kode_barang string (for panels/edit view)
+     */
+    public function listByKode(string $kodeBarang)
+    {
+        $kb = KodeBarang::where('kode_barang', $kodeBarang)->first();
+        if (!$kb) {
+            return response()->json(['error' => 'Kode barang tidak ditemukan'], 404);
+        }
+        $items = UnitConversion::where('kode_barang_id', $kb->id)
+            ->orderBy('unit_turunan')
+            ->get(['id','unit_turunan','nilai_konversi','is_active']);
+        return response()->json(['kode_barang_id' => $kb->id, 'items' => $items]);
+    }
+
+    /**
+     * Store unit conversion by kode_barang string
+     */
+    public function storeByKode(Request $request, string $kodeBarang)
+    {
+        $kb = KodeBarang::where('kode_barang', $kodeBarang)->first();
+        if (!$kb) {
+            return response()->json(['error' => 'Kode barang tidak ditemukan'], 404);
+        }
+        $validator = Validator::make($request->all(), [
+            'unit_turunan' => 'required|string|max:20',
+            'nilai_konversi' => 'required|integer|min:1',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        UnitConversion::updateOrCreate(
+            ['kode_barang_id' => $kb->id, 'unit_turunan' => strtoupper($request->unit_turunan)],
+            ['nilai_konversi' => (int) $request->nilai_konversi, 'is_active' => true]
+        );
+        return response()->json(['success' => true]);
+    }
+
+    /**
      * Show the form for creating a new unit conversion
      */
     public function create($kodeBarangId)
@@ -49,6 +98,13 @@ class UnitConversionController extends Controller
         ]);
 
         if ($validator->fails()) {
+            // Check if this is an AJAX request
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
             return back()->withErrors($validator)->withInput();
         }
 
@@ -58,16 +114,32 @@ class UnitConversionController extends Controller
             ->first();
 
         if ($existingUnit) {
+            // Check if this is an AJAX request
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['unit_turunan' => 'Satuan ini sudah ada untuk barang ini']
+                ], 422);
+            }
             return back()->withErrors(['unit_turunan' => 'Satuan ini sudah ada untuk barang ini'])->withInput();
         }
 
-        UnitConversion::create([
+        $unitConversion = UnitConversion::create([
             'kode_barang_id' => $kodeBarangId,
             'unit_turunan' => $request->unit_turunan,
             'nilai_konversi' => $request->nilai_konversi,
             'keterangan' => $request->keterangan,
             'is_active' => true,
         ]);
+
+        // Check if this is an AJAX request
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Satuan konversi berhasil ditambahkan!',
+                'data' => $unitConversion
+            ]);
+        }
 
         return redirect()->route('unit_conversion.index', $kodeBarangId)
             ->with('success', 'Satuan konversi berhasil ditambahkan!');
@@ -135,6 +207,16 @@ class UnitConversionController extends Controller
         $unitConversion->update(['is_active' => !$unitConversion->is_active]);
         
         $status = $unitConversion->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        
+        // Check if this is an AJAX request
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Satuan konversi berhasil {$status}!",
+                'is_active' => $unitConversion->is_active
+            ]);
+        }
+        
         return back()->with('success', "Satuan konversi berhasil {$status}!");
     }
 
@@ -148,7 +230,112 @@ class UnitConversionController extends Controller
             
         $unitConversion->delete();
         
+        // Check if this is an AJAX request
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Satuan konversi berhasil dihapus!'
+            ]);
+        }
+        
         return redirect()->route('unit_conversion.index', $kodeBarangId)
             ->with('success', 'Satuan konversi berhasil dihapus!');
+    }
+
+    /**
+     * Update unit conversion by kode barang string
+     */
+    public function updateByKode(Request $request, $kodeBarang, $id)
+    {
+        // Find the kode barang by string
+        $kodeBarangModel = KodeBarang::where('kode_barang', $kodeBarang)->firstOrFail();
+        
+        $validator = Validator::make($request->all(), [
+            'unit_turunan' => 'required|string|max:20',
+            'nilai_konversi' => 'required|integer|min:1',
+            'keterangan' => 'nullable|string|max:255',
+        ], [
+            'unit_turunan.required' => 'Satuan turunan harus diisi',
+            'unit_turunan.max' => 'Satuan turunan maksimal 20 karakter',
+            'nilai_konversi.required' => 'Nilai konversi harus diisi',
+            'nilai_konversi.integer' => 'Nilai konversi harus berupa angka bulat',
+            'nilai_konversi.min' => 'Nilai konversi minimal 1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Check if unit already exists for this item (excluding current record)
+        $existingUnit = UnitConversion::where('kode_barang_id', $kodeBarangModel->id)
+            ->where('unit_turunan', $request->unit_turunan)
+            ->where('id', '!=', $id)
+            ->first();
+
+        if ($existingUnit) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['unit_turunan' => 'Satuan ini sudah ada untuk barang ini']
+            ], 422);
+        }
+
+        $unitConversion = UnitConversion::where('kode_barang_id', $kodeBarangModel->id)
+            ->findOrFail($id);
+            
+        $unitConversion->update([
+            'unit_turunan' => $request->unit_turunan,
+            'nilai_konversi' => $request->nilai_konversi,
+            'keterangan' => $request->keterangan,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Satuan konversi berhasil diupdate!',
+            'data' => $unitConversion
+        ]);
+    }
+
+    /**
+     * Toggle unit conversion status by kode barang string
+     */
+    public function toggleByKode($kodeBarang, $id)
+    {
+        // Find the kode barang by string
+        $kodeBarangModel = KodeBarang::where('kode_barang', $kodeBarang)->firstOrFail();
+        
+        $unitConversion = UnitConversion::where('kode_barang_id', $kodeBarangModel->id)
+            ->findOrFail($id);
+            
+        $unitConversion->update(['is_active' => !$unitConversion->is_active]);
+        
+        $status = $unitConversion->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        
+        return response()->json([
+            'success' => true,
+            'message' => "Satuan konversi berhasil {$status}!",
+            'is_active' => $unitConversion->is_active
+        ]);
+    }
+
+    /**
+     * Delete unit conversion by kode barang string
+     */
+    public function destroyByKode($kodeBarang, $id)
+    {
+        // Find the kode barang by string
+        $kodeBarangModel = KodeBarang::where('kode_barang', $kodeBarang)->firstOrFail();
+        
+        $unitConversion = UnitConversion::where('kode_barang_id', $kodeBarangModel->id)
+            ->findOrFail($id);
+            
+        $unitConversion->delete();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Satuan konversi berhasil dihapus!'
+        ]);
     }
 }

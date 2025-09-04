@@ -15,8 +15,11 @@ class KodeBarangController extends Controller
      */
     public function createCode()
     {
-        //
-        $group_names = KodeBarang::distinct()->pluck('attribute');
+        // Ambil nama grup dari tabel grup_barang yang sudah dibuat
+        $group_names = \App\Models\GrupBarang::where('status', 'Active')
+            ->orderBy('name')
+            ->pluck('name');
+            
         return view('panels.add-code', compact('group_names'));
     }
 
@@ -36,12 +39,12 @@ class KodeBarangController extends Controller
         // Validate the request
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'cost' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
+            // 'cost' dihapus dari form, akan diset default 0
+            'price' => 'nullable|numeric|min:0',
             'attribute' => 'required|string|max:255',
             'kode_barang' => 'required|string|max:255',
             'unit_dasar' => 'required|string|max:20',
-            'harga_jual' => 'required|numeric|min:0',
+            'harga_jual' => 'nullable|numeric|min:0',
             'ongkos_kuli_default' => 'nullable|numeric|min:0',
             // 'length' => 'required|numeric|min:0.1',
         ], [
@@ -57,9 +60,7 @@ class KodeBarangController extends Controller
             'name.required' => 'Panel name is required',
             'name.string' => 'Panel name must be a valid string',
             'name.max' => 'Panel name may not be greater than 255 characters',
-            'cost.required' => 'Cost is required',
-            'cost.numeric' => 'Cost must be a valid number',
-            'cost.min' => 'Cost must be at least 0',
+            // validasi cost dihapus
             'price.required' => 'Price is required',
             'price.numeric' => 'Price must be a valid number',
             'price.min' => 'Price must be at least 0',
@@ -82,14 +83,38 @@ class KodeBarangController extends Controller
         }
 
         $validated['status'] = 'Active';
+        $validated['cost'] = 0; // set default cost dari master barang
         
         // Set default values if not provided
         $validated['unit_dasar'] = $validated['unit_dasar'] ?? 'LBR';
+        $validated['price'] = $validated['price'] ?? 0;
         $validated['harga_jual'] = $validated['harga_jual'] ?? $validated['price'];
         $validated['ongkos_kuli_default'] = $validated['ongkos_kuli_default'] ?? 0;
 
+        // Cari grup barang berdasarkan attribute yang dipilih
+        $grupBarang = \App\Models\GrupBarang::where('name', $validated['attribute'])->first();
+        if ($grupBarang) {
+            $validated['grup_barang_id'] = $grupBarang->id;
+        }
+
         // Create the new KodeBarang
-        KodeBarang::create($validated);
+        $kodeBarang = KodeBarang::create($validated);
+
+        // Handle inline unit conversions payload (JSON array)
+        $ucPayload = $request->input('unit_conversions');
+        if ($ucPayload) {
+            $items = json_decode($ucPayload, true);
+            if (is_array($items)) {
+                foreach ($items as $it) {
+                    if (!empty($it['unit_turunan']) && !empty($it['nilai_konversi'])) {
+                        \App\Models\UnitConversion::updateOrCreate(
+                            [ 'kode_barang_id' => $kodeBarang->id, 'unit_turunan' => strtoupper($it['unit_turunan']) ],
+                            [ 'nilai_konversi' => (int) $it['nilai_konversi'], 'is_active' => true ]
+                        );
+                    }
+                }
+            }
+        }
 
         return redirect()->route('code.view-code')
             ->with('success', "Successfully added group code!");
@@ -114,15 +139,18 @@ class KodeBarangController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-   /**
- * Show the form for editing the specified resource.
- */
     public function edit($id)
     {
         $viewPath = resource_path('views/panels/edit-code.blade.php');
         if (file_exists($viewPath)) {
             $code = KodeBarang::findOrFail($id);
-            return view('panels.edit-code', compact('code'));
+            
+            // Ambil nama grup dari tabel grup_barang yang sudah dibuat
+            $group_names = \App\Models\GrupBarang::where('status', 'Active')
+                ->orderBy('name')
+                ->pluck('name');
+                
+            return view('panels.edit-code', compact('code', 'group_names'));
         } else {
             return "View file does not exist at: " . $viewPath;
         }
@@ -135,6 +163,7 @@ class KodeBarangController extends Controller
     {
         // Validate the request
         $validated = $request->validate([
+            'grup_barang_id' => 'required|string|max:255',
             'attribute' => 'required|string|max:255',
             'kode_barang' => 'required|string|max:255',
             'unit_dasar' => 'required|string|max:20',
@@ -142,6 +171,10 @@ class KodeBarangController extends Controller
             'ongkos_kuli_default' => 'nullable|numeric|min:0',
             // 'length' => 'required|numeric|min:0.1',
         ], [
+            'grup_barang_id.required' => 'Grup barang harus dipilih',
+            'grup_barang_id.string' => 'Grup barang harus berupa string',
+            'grup_barang_id.max' => 'Grup barang maksimal 255 karakter',
+            
             'kode_barang.required' => 'Item code is required',
             'kode_barang.string' => 'Item code must be a valid string',
             'kode_barang.max' => 'Item code may not be greater than 255 characters',
@@ -163,7 +196,19 @@ class KodeBarangController extends Controller
         ]);
 
         $code = KodeBarang::findOrFail($id);
-        // dd($code);
+        
+        // Cari grup barang berdasarkan nama yang dipilih
+        $grupBarang = \App\Models\GrupBarang::where('name', $validated['grup_barang_id'])->first();
+        if ($grupBarang) {
+            $validated['kategori_id'] = $grupBarang->id;
+        }
+        
+        // Update attribute berdasarkan grup barang yang dipilih
+        $validated['attribute'] = $validated['grup_barang_id'];
+        
+        // Hapus grup_barang_id dari data yang akan diupdate
+        unset($validated['grup_barang_id']);
+        
         $code->update($validated);
 
         return redirect()->route('code.view-code')
@@ -182,6 +227,18 @@ class KodeBarangController extends Controller
             ->with('success', "Successfully deleted code!");
     }
 
+    /**
+     * Toggle Active/Inactive status for KodeBarang
+     */
+    public function toggleStatus($id)
+    {
+        $code = KodeBarang::findOrFail($id);
+        $code->status = ($code->status === 'Active') ? 'Inactive' : 'Active';
+        $code->save();
+
+        return back()->with('success', 'Status barang berhasil diubah menjadi ' . $code->status);
+    }
+
     public function searchKodeBarang(Request $request)
     {
         $keyword = $request->input('keyword');
@@ -193,5 +250,58 @@ class KodeBarangController extends Controller
             ->get();
 
         return response()->json($kodeBarang);
+    }
+
+    /**
+     * Get next available item code for a specific grup barang
+     */
+    public function getNextItemCode(Request $request)
+    {
+        $grupBarangName = $request->input('grup_barang_name');
+        
+        if (!$grupBarangName) {
+            return response()->json(['error' => 'Grup barang name is required'], 400);
+        }
+
+        // Cari grup barang
+        $grupBarang = \App\Models\GrupBarang::where('name', $grupBarangName)->first();
+        
+        if (!$grupBarang) {
+            return response()->json(['error' => 'Grup barang not found'], 404);
+        }
+
+        // Cari semua kode barang yang sudah ada untuk grup ini
+        $existingKodeBarangs = KodeBarang::where('grup_barang_id', $grupBarang->id)
+            ->pluck('kode_barang')
+            ->toArray();
+
+        if (empty($existingKodeBarangs)) {
+            // Jika belum ada kode barang untuk grup ini, buat yang pertama
+            $nextCode = $grupBarangName . ' - 001';
+        } else {
+            // Cari nomor urut tertinggi yang sudah ada
+            $maxNumber = 0;
+            $prefix = $grupBarangName;
+            
+            foreach ($existingKodeBarangs as $existingCode) {
+                // Cari nomor urut dengan format "NAMA GRUP - 001"
+                if (preg_match('/^' . preg_quote($prefix, '/') . '\s*-\s*(\d+)$/', $existingCode, $matches)) {
+                    $number = intval($matches[1]);
+                    $maxNumber = max($maxNumber, $number);
+                }
+            }
+            
+            // Generate nomor berikutnya
+            $nextNumber = $maxNumber + 1;
+            $nextCode = $prefix . ' - ' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        }
+
+        return response()->json([
+            'success' => true,
+            'next_code' => $nextCode,
+            'grup_barang_id' => $grupBarang->id,
+            'existing_codes' => $existingKodeBarangs ?? [],
+            'next_number' => $nextNumber ?? 1
+        ]);
     }
 }

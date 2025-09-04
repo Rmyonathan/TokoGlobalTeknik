@@ -486,7 +486,16 @@
 
         function getActionButtons(status, transaction) {
             if (status === 'canceled') {
-                return `<span class="badge badge-secondary">Dibatalkan</span>`;
+                return `
+                    <form action="{{ route('transaksi.reapprove', '') }}/${transaction.id}" method="POST" style="display:inline;" 
+                          onsubmit="return confirm('Approve kembali transaksi ${transaction.no_transaksi}?')">
+                        @csrf
+                        <input type="hidden" name="from_customer_data" value="1">
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="fas fa-redo"></i> Re-approve
+                        </button>
+                    </form>
+                `;
             }
             
             return `

@@ -42,10 +42,13 @@ class WilayahController extends Controller
                 ->withInput();
         }
 
+        // Fix checkbox handling - check if the field exists in request
+        $isActive = $request->has('is_active') ? true : false;
+
         Wilayah::create([
             'nama_wilayah' => $request->nama_wilayah,
             'keterangan' => $request->keterangan,
-            'is_active' => $request->boolean('is_active')
+            'is_active' => $isActive
         ]);
 
         return redirect()->route('wilayah.index')
@@ -85,10 +88,13 @@ class WilayahController extends Controller
                 ->withInput();
         }
 
+        // Fix checkbox handling - check if the field exists in request
+        $isActive = $request->has('is_active') ? true : false;
+
         $wilayah->update([
             'nama_wilayah' => $request->nama_wilayah,
             'keterangan' => $request->keterangan,
-            'is_active' => $request->boolean('is_active')
+            'is_active' => $isActive
         ]);
 
         return redirect()->route('wilayah.index')

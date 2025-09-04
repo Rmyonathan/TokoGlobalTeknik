@@ -11,6 +11,7 @@ use App\Models\Transaksi;
 use App\Models\TransaksiItem;
 use App\Services\UnitConversionService;
 use App\Services\CustomerCreditService;
+use App\Services\FifoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -19,11 +20,13 @@ class SalesOrderController extends Controller
 {
     protected $unitService;
     protected $creditService;
+    protected $fifoService;
 
-    public function __construct(UnitConversionService $unitService, CustomerCreditService $creditService)
+    public function __construct(UnitConversionService $unitService, CustomerCreditService $creditService, FifoService $fifoService)
     {
         $this->unitService = $unitService;
         $this->creditService = $creditService;
+        $this->fifoService = $fifoService;
     }
 
     /**
@@ -85,6 +88,7 @@ class SalesOrderController extends Controller
             'salesman_id' => 'required|exists:stok_owners,id',
             'cara_bayar' => 'required|in:Tunai,Kredit',
             'hari_tempo' => 'required_if:cara_bayar,Kredit|integer|min:0',
+            'tanggal_jatuh_tempo' => 'nullable|date|after_or_equal:tanggal',
             'tanggal_estimasi' => 'nullable|date|after_or_equal:tanggal',
             'keterangan' => 'nullable|string',
             'items' => 'required|array|min:1',
@@ -121,6 +125,7 @@ class SalesOrderController extends Controller
                 'status' => 'pending',
                 'cara_bayar' => $request->cara_bayar,
                 'hari_tempo' => $request->hari_tempo ?? 0,
+                'tanggal_jatuh_tempo' => $request->tanggal_jatuh_tempo,
                 'tanggal_estimasi' => $request->tanggal_estimasi,
                 'keterangan' => $request->keterangan,
             ]);
@@ -314,8 +319,33 @@ class SalesOrderController extends Controller
         }
 
         try {
-            $salesOrder->update(['status' => 'approved']);
-            return back()->with('success', 'Sales Order berhasil disetujui');
+            // Langsung ubah status menjadi processed setelah approve
+            $salesOrder->update(['status' => 'processed']);
+            
+            // Redirect ke halaman faktur penjualan dengan parameter sales order
+            return redirect()->route('transaksi.penjualan', ['sales_order_id' => $salesOrder->id])
+                ->with('success', 'Sales Order berhasil disetujui dan diproses. Silakan buat faktur penjualan.');
+        } catch (Exception $e) {
+            return back()->withErrors(['error' => 'Terjadi kesalahan: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Re-approve Sales Order yang sudah dibatalkan
+     */
+    public function reApprove(SalesOrder $salesOrder)
+    {
+        if (!$salesOrder->isCanceled()) {
+            return back()->with('error', 'Hanya Sales Order yang dibatalkan yang dapat di-approve kembali');
+        }
+
+        try {
+            // Ubah status menjadi processed untuk re-approve
+            $salesOrder->update(['status' => 'processed']);
+            
+            // Redirect ke halaman faktur penjualan dengan parameter sales order
+            return redirect()->route('transaksi.penjualan', ['sales_order_id' => $salesOrder->id])
+                ->with('success', 'Sales Order berhasil di-approve kembali dan diproses. Silakan buat faktur penjualan.');
         } catch (Exception $e) {
             return back()->withErrors(['error' => 'Terjadi kesalahan: ' . $e->getMessage()]);
         }
@@ -326,6 +356,11 @@ class SalesOrderController extends Controller
      */
     public function process(SalesOrder $salesOrder)
     {
+        // Cek apakah Sales Order sudah diproses
+        if ($salesOrder->isProcessed()) {
+            return back()->with('info', 'Sales Order sudah diproses sebelumnya');
+        }
+
         if (!$salesOrder->canBeProcessed()) {
             return back()->with('error', 'Sales Order tidak dapat diproses');
         }
@@ -343,8 +378,19 @@ class SalesOrderController extends Controller
      */
     public function cancel(SalesOrder $salesOrder)
     {
-        if (!$salesOrder->canBeCanceled()) {
-            return back()->with('error', 'Sales Order tidak dapat dibatalkan');
+        // Validasi: tidak boleh ada Surat Jalan atau Faktur aktif dari SO ini
+        // Cek adanya Surat Jalan terkait SO ini (tanpa asumsi kolom status di tabel surat_jalan)
+        $hasActiveSJ = \App\Models\SuratJalan::whereHas('transaksi', function($q) use ($salesOrder) {
+                $q->where('sales_order_id', $salesOrder->id);
+            })
+            ->exists();
+
+        $hasActiveInvoice = Transaksi::where('sales_order_id', $salesOrder->id)
+            ->where('status', '!=', 'canceled')
+            ->exists();
+
+        if ($hasActiveSJ || $hasActiveInvoice) {
+            return back()->with('error', 'Batalkan semua Surat Jalan/Faktur terkait terlebih dahulu.');
         }
 
         try {
@@ -392,10 +438,53 @@ class SalesOrderController extends Controller
         }
     }
 
+    /**
+     * Search sales orders for API
+     */
+    public function search(Request $request)
+    {
+        $keyword = $request->input('keyword');
+        
+        if (!$keyword || strlen($keyword) < 2) {
+            return response()->json([]);
+        }
+
+        $salesOrders = SalesOrder::with(['customer', 'salesman', 'items.kodeBarang'])
+            ->where(function($query) use ($keyword) {
+                $query->where('no_so', 'like', "%{$keyword}%")
+                      ->orWhereHas('customer', function($q) use ($keyword) {
+                          $q->where('nama', 'like', "%{$keyword}%")
+                            ->orWhere('kode_customer', 'like', "%{$keyword}%");
+                      });
+            })
+            ->where('status', 'processed') // Only show processed sales orders
+            ->limit(10)
+            ->get();
+
+        return response()->json($salesOrders);
+    }
+
+    /**
+     * Get items for a specific sales order
+     */
+    public function getItems(SalesOrder $salesOrder)
+    {
+        $items = $salesOrder->items()->with('kodeBarang')->get();
+        
+        // Debug logging
+        \Log::info('Sales Order Items API Response:', [
+            'sales_order_id' => $salesOrder->id,
+            'items_count' => $items->count(),
+            'items' => $items->toArray()
+        ]);
+        
+        return response()->json($items);
+    }
+
     public function convertToTransaksi(SalesOrder $salesOrder)
     {
-        if ($salesOrder->status !== 'approved') {
-            return back()->with('error', 'Sales Order harus disetujui sebelum dikonversi ke penjualan.');
+        if ($salesOrder->status !== 'processed') {
+            return back()->with('error', 'Sales Order harus diproses sebelum dikonversi ke penjualan.');
         }
 
         DB::beginTransaction();
@@ -446,8 +535,8 @@ class SalesOrderController extends Controller
                 ]);
             }
 
-            // Update status SO
-            $salesOrder->update(['status' => 'processed']);
+            // Update status SO menjadi completed
+            $salesOrder->update(['status' => 'completed']);
 
             DB::commit();
 

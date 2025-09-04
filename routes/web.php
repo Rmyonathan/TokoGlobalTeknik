@@ -22,12 +22,13 @@ use App\Http\Controllers\CaraBayarController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PerusahaanController;
 use App\Http\Controllers\StockAdjustmentController;
-use App\Http\Controllers\KategoriBarangController;
+use App\Http\Controllers\GrupBarangController;
 use App\Http\Controllers\WilayahController;
 use App\Http\Controllers\UnitConversionController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\PembayaranPiutangController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\CustomerPriceController;
 
 use App\Models\StokOwner;
 use App\Models\Supplier;
@@ -49,6 +50,10 @@ use App\Models\Transaksi;
 | be assigned to the "web" middleware group.
 |
 */
+
+// Return Barang API routes (accessible without authentication)
+Route::get('/return-barang-api/search-transactions', [App\Http\Controllers\ReturnBarangController::class, 'searchTransactions'])->name('return-barang-api.search-transactions')->withoutMiddleware(['web', 'auth']);
+Route::get('/return-barang-api/transaction-items', [App\Http\Controllers\ReturnBarangController::class, 'getTransactionItems'])->name('return-barang-api.transaction-items')->withoutMiddleware(['web', 'auth']);
 
 // Public routes (authentication)
 Route::middleware(['web'])->group(function () {
@@ -91,6 +96,10 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::group(['middleware' => ['permission:manage roles'], 'prefix' => 'roles'], function () {
         Route::get('/createRole', [AccountsController::class, 'createRole'])->name('createRole');
         Route::post('/storeRole', [AccountsController::class, 'storeRole'])->name('storeRole');
+        Route::get('/view/{id}', [AccountsController::class, 'viewRole'])->name('viewRole');
+        Route::get('/edit/{id}', [AccountsController::class, 'editRole'])->name('editRole');
+        Route::put('/update/{id}', [AccountsController::class, 'updateRole'])->name('updateRole');
+        Route::delete('/delete/{id}', [AccountsController::class, 'deleteRole'])->name('deleteRole');
     });
     
     // ==============================
@@ -116,11 +125,33 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Customer Management routes - Edit
     Route::group(['middleware' => ['permission:edit customers'], 'prefix' => 'master'], function () {
         Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+        Route::patch('/customers/{customer}/toggle-status', [CustomerController::class, 'toggleStatus'])->name('customers.toggle-status');
     });
     
     // Customer Management routes - Delete
     Route::group(['middleware' => ['permission:delete customers'], 'prefix' => 'master'], function () {
         Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+    });
+    
+    // Customer Price Management routes - View and Create
+    Route::group(['middleware' => ['permission:manage customers'], 'prefix' => 'customer-price'], function () {
+        Route::get('/', [CustomerPriceController::class, 'index'])->name('customer-price.index');
+        Route::get('/create', [CustomerPriceController::class, 'create'])->name('customer-price.create');
+        Route::post('/', [CustomerPriceController::class, 'store'])->name('customer-price.store');
+        Route::get('/{customerPrice}', [CustomerPriceController::class, 'show'])->name('customer-price.show');
+        Route::get('/get-price', [CustomerPriceController::class, 'getCustomerPrice'])->name('customer-price.get-price');
+    });
+    
+    // Customer Price Management routes - Edit
+    Route::group(['middleware' => ['permission:edit customers'], 'prefix' => 'customer-price'], function () {
+        Route::get('/{customerPrice}/edit', [CustomerPriceController::class, 'edit'])->name('customer-price.edit');
+        Route::put('/{customerPrice}', [CustomerPriceController::class, 'update'])->name('customer-price.update');
+        Route::patch('/{customerPrice}/toggle-status', [CustomerPriceController::class, 'toggleStatus'])->name('customer-price.toggle-status');
+    });
+    
+    // Customer Price Management routes - Delete
+    Route::group(['middleware' => ['permission:delete customers'], 'prefix' => 'customer-price'], function () {
+        Route::delete('/{customerPrice}', [CustomerPriceController::class, 'destroy'])->name('customer-price.destroy');
     });
     
     // Supplier Management routes - View and Create
@@ -132,6 +163,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Supplier Management routes - Edit
     Route::group(['middleware' => ['permission:edit suppliers'], 'prefix' => 'master'], function () {
         Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
+        Route::patch('/suppliers/{supplier}/toggle-status', [SupplierController::class, 'toggleStatus'])->name('suppliers.toggle-status');
     });
     
     // Supplier Management routes - Delete
@@ -185,22 +217,23 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::delete('/perusahaan/{id}', [PerusahaanController::class, 'destroy'])->name('perusahaan.destroy');
     });
     
-    // Kategori routes - View and Create
-    Route::group(['middleware' => ['permission:manage categories'], 'prefix' => 'kategori'], function () {
-        Route::get('/', [KategoriBarangController::class, 'index'])->name('kategori.index');
-        Route::get('/create', [KategoriBarangController::class, 'create'])->name('kategori.create');
-        Route::post('/', [KategoriBarangController::class, 'store'])->name('kategori.store');
+    // Grup Barang routes - View and Create
+    Route::group(['middleware' => ['permission:manage categories'], 'prefix' => 'grup_barang'], function () {
+        Route::get('/', [GrupBarangController::class, 'index'])->name('grup_barang.index');
+        Route::get('/create', [GrupBarangController::class, 'create'])->name('grup_barang.create');
+        Route::post('/', [GrupBarangController::class, 'store'])->name('grup_barang.store');
     });
     
-    // Kategori routes - Edit
-    Route::group(['middleware' => ['permission:edit categories'], 'prefix' => 'kategori'], function () {
-        Route::get('/{id}/edit', [KategoriBarangController::class, 'edit'])->name('kategori.edit');
-        Route::put('/{id}', [KategoriBarangController::class, 'update'])->name('kategori.update');
+    // Grup Barang routes - Edit
+    Route::group(['middleware' => ['permission:edit categories'], 'prefix' => 'grup_barang'], function () {
+        Route::get('/{id}/edit', [GrupBarangController::class, 'edit'])->name('grup_barang.edit');
+        Route::put('/{id}', [GrupBarangController::class, 'update'])->name('grup_barang.update');
+        Route::patch('/{id}/toggle-status', [GrupBarangController::class, 'toggleStatus'])->name('grup_barang.toggle-status');
     });
     
-    // Kategori routes - Delete
-    Route::group(['middleware' => ['permission:delete categories'], 'prefix' => 'kategori'], function () {
-        Route::delete('/{id}', [KategoriBarangController::class, 'destroy'])->name('kategori.destroy');
+    // Grup Barang routes - Delete
+    Route::group(['middleware' => ['permission:delete categories'], 'prefix' => 'grup_barang'], function () {
+        Route::delete('/{id}', [GrupBarangController::class, 'destroy'])->name('grup_barang.destroy');
     });
     
     // Kode Barang Management routes - View and Create
@@ -208,17 +241,33 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/add', [KodeBarangController::class, 'createCode'])->name('code.create-code');
         Route::get('/view', [KodeBarangController::class, 'viewCode'])->name('code.view-code');
         Route::post('/add', [KodeBarangController::class, 'storeCode'])->name('code.store-code');
+        Route::get('/get-next-code', [KodeBarangController::class, 'getNextItemCode'])->name('code.get-next-code');
     });
     
     // Kode Barang Management routes - Edit
     Route::group(['middleware' => ['permission:edit kode barang'], 'prefix' => 'kode_barang'], function () {
         Route::get('/edit/{id}', [KodeBarangController::class, 'edit'])->name('code.edit');
         Route::put('/update/{id}', [KodeBarangController::class, 'update'])->name('code.update');
+        Route::post('/{id}/toggle-status', [KodeBarangController::class, 'toggleStatus'])->name('code.toggle-status');
     });
     
     // Kode Barang Management routes - Delete
     Route::group(['middleware' => ['permission:delete kode barang'], 'prefix' => 'kode_barang'], function () {
         Route::delete('/delete/{id}', [KodeBarangController::class, 'destroy'])->name('code.delete');
+    });
+
+    // Unit conversion inline AJAX endpoints
+    Route::prefix('unit-conversion')->group(function () {
+        Route::get('{kodeBarangId}/list', [\App\Http\Controllers\UnitConversionController::class, 'list'])->name('unit_conversion.list');
+        Route::post('{kodeBarangId}', [\App\Http\Controllers\UnitConversionController::class, 'store'])->name('unit_conversion.store');
+        Route::post('{kodeBarangId}/{id}/toggle', [\App\Http\Controllers\UnitConversionController::class, 'toggleStatus'])->name('unit_conversion.toggle');
+        Route::delete('{kodeBarangId}/{id}', [\App\Http\Controllers\UnitConversionController::class, 'destroy'])->name('unit_conversion.destroy');
+        // by kode string for panels/edit view
+        Route::get('by-kode/{kodeBarang}', [\App\Http\Controllers\UnitConversionController::class, 'listByKode'])->name('unit_conversion.list_by_kode');
+        Route::post('by-kode/{kodeBarang}', [\App\Http\Controllers\UnitConversionController::class, 'storeByKode'])->name('unit_conversion.store_by_kode');
+        Route::put('by-kode/{kodeBarang}/{id}', [\App\Http\Controllers\UnitConversionController::class, 'updateByKode'])->name('unit_conversion.update_by_kode');
+        Route::post('by-kode/{kodeBarang}/{id}/toggle', [\App\Http\Controllers\UnitConversionController::class, 'toggleByKode'])->name('unit_conversion.toggle_by_kode');
+        Route::delete('by-kode/{kodeBarang}/{id}', [\App\Http\Controllers\UnitConversionController::class, 'destroyByKode'])->name('unit_conversion.destroy_by_kode');
     });
     
     // Wilayah Management routes - View and Create
@@ -341,6 +390,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         // View routes
         Route::get('/lihatnota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.lihatnota');
         Route::get('/shownota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.shownota');
+        Route::get('/show/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.show');
         Route::get('/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
         
         // This catch-all route should be LAST
@@ -353,9 +403,10 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/update/{id}', [TransaksiController::class, 'update'])->name('transaksi.update');
     });
     
-    // Transaksi Penjualan routes - Cancel
+    // Transaksi Penjualan routes - Cancel & Re-approve
     Route::group(['middleware' => ['permission:cancel penjualan'], 'prefix' => 'transaksi'], function () {
         Route::post('/cancel/{id}', [TransaksiController::class, 'cancelTransaction'])->name('transaksi.cancel');
+        Route::post('/reapprove/{id}', [TransaksiController::class, 'reApproveTransaction'])->name('transaksi.reapprove');
     });
     
     // Additional Penjualan routes
@@ -497,10 +548,109 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Sales Order routes - Status Management
     Route::group(['middleware' => ['permission:manage sales order'], 'prefix' => 'sales-order'], function () {
         Route::post('/{salesOrder}/approve', [SalesOrderController::class, 'approve'])->name('sales-order.approve');
+        Route::post('/{salesOrder}/reapprove', [SalesOrderController::class, 'reApprove'])->name('sales-order.reapprove');
         Route::post('/{salesOrder}/process', [SalesOrderController::class, 'process'])->name('sales-order.process');
         Route::post('/{salesOrder}/cancel', [SalesOrderController::class, 'cancel'])->name('sales-order.cancel');
         Route::post('/sales-order/{salesOrder}/convert', [SalesOrderController::class, 'convertToTransaksi'])
         ->name('sales-order.convert');
+    });
+
+    // ==============================
+    // ROLE GROUPS SECTION
+    // ==============================
+    
+    // Role Groups routes
+    Route::group(['middleware' => ['permission:manage roles'], 'prefix' => 'role-groups'], function () {
+        Route::get('/', [App\Http\Controllers\RoleGroupController::class, 'index'])->name('role-groups.index');
+        Route::get('/create', [App\Http\Controllers\RoleGroupController::class, 'create'])->name('role-groups.create');
+        Route::post('/', [App\Http\Controllers\RoleGroupController::class, 'store'])->name('role-groups.store');
+        Route::get('/{roleGroup}', [App\Http\Controllers\RoleGroupController::class, 'show'])->name('role-groups.show');
+        Route::get('/{roleGroup}/edit', [App\Http\Controllers\RoleGroupController::class, 'edit'])->name('role-groups.edit');
+        Route::put('/{roleGroup}', [App\Http\Controllers\RoleGroupController::class, 'update'])->name('role-groups.update');
+        Route::delete('/{roleGroup}', [App\Http\Controllers\RoleGroupController::class, 'destroy'])->name('role-groups.destroy');
+        Route::post('/{roleGroup}/assign-role', [App\Http\Controllers\RoleGroupController::class, 'assignRole'])->name('role-groups.assign-role');
+        Route::delete('/{roleGroup}/remove-role/{role}', [App\Http\Controllers\RoleGroupController::class, 'removeRole'])->name('role-groups.remove-role');
+        Route::post('/{roleGroup}/toggle-status', [App\Http\Controllers\RoleGroupController::class, 'toggleStatus'])->name('role-groups.toggle-status');
+    });
+
+    // ==============================
+    // RETURN BARANG SECTION
+    // ==============================
+    
+
+    
+    // Return Barang routes - View and Create
+    Route::group(['middleware' => ['permission:view return barang'], 'prefix' => 'return-barang'], function () {
+        Route::get('/', [App\Http\Controllers\ReturnBarangController::class, 'index'])->name('return-barang.index');
+        Route::get('/create', [App\Http\Controllers\ReturnBarangController::class, 'create'])->name('return-barang.create');
+        Route::post('/store', [App\Http\Controllers\ReturnBarangController::class, 'store'])->name('return-barang.store');
+        Route::get('/{returnBarang}', [App\Http\Controllers\ReturnBarangController::class, 'show'])->name('return-barang.show');
+    });
+    
+    // Return Barang routes - Edit
+    Route::group(['middleware' => ['permission:edit return barang'], 'prefix' => 'return-barang'], function () {
+        Route::get('/{returnBarang}/edit', [App\Http\Controllers\ReturnBarangController::class, 'edit'])->name('return-barang.edit');
+        Route::put('/{returnBarang}', [App\Http\Controllers\ReturnBarangController::class, 'update'])->name('return-barang.update');
+        Route::delete('/{returnBarang}', [App\Http\Controllers\ReturnBarangController::class, 'destroy'])->name('return-barang.destroy');
+    });
+    
+    // Return Barang routes - Management
+    Route::group(['middleware' => ['permission:manage return barang'], 'prefix' => 'return-barang'], function () {
+        Route::post('/{returnBarang}/approve', [App\Http\Controllers\ReturnBarangController::class, 'approve'])->name('return-barang.approve');
+        Route::post('/{returnBarang}/reject', [App\Http\Controllers\ReturnBarangController::class, 'reject'])->name('return-barang.reject');
+        Route::post('/{returnBarang}/process', [App\Http\Controllers\ReturnBarangController::class, 'process'])->name('return-barang.process');
+    });
+
+    // ==============================
+    // RETUR PENJUALAN SECTION
+    // ==============================
+    
+    // Retur Penjualan routes - View and Create
+    Route::group(['middleware' => ['permission:view retur penjualan'], 'prefix' => 'retur-penjualan'], function () {
+        Route::get('/', [App\Http\Controllers\ReturPenjualanController::class, 'index'])->name('retur-penjualan.index');
+        Route::get('/create', [App\Http\Controllers\ReturPenjualanController::class, 'create'])->name('retur-penjualan.create');
+        Route::post('/store', [App\Http\Controllers\ReturPenjualanController::class, 'store'])->name('retur-penjualan.store');
+        Route::get('/{returPenjualan}', [App\Http\Controllers\ReturPenjualanController::class, 'show'])->name('retur-penjualan.show');
+    });
+    
+    // Retur Penjualan routes - Edit and Manage
+    Route::group(['middleware' => ['permission:edit retur penjualan'], 'prefix' => 'retur-penjualan'], function () {
+        Route::get('/{returPenjualan}/edit', [App\Http\Controllers\ReturPenjualanController::class, 'edit'])->name('retur-penjualan.edit');
+        Route::put('/{returPenjualan}', [App\Http\Controllers\ReturPenjualanController::class, 'update'])->name('retur-penjualan.update');
+        Route::delete('/{returPenjualan}', [App\Http\Controllers\ReturPenjualanController::class, 'destroy'])->name('retur-penjualan.destroy');
+    });
+    
+    // Retur Penjualan routes - Approve/Reject/Process
+    Route::group(['middleware' => ['permission:manage retur penjualan'], 'prefix' => 'retur-penjualan'], function () {
+        Route::post('/{returPenjualan}/approve', [App\Http\Controllers\ReturPenjualanController::class, 'approve'])->name('retur-penjualan.approve');
+        Route::post('/{returPenjualan}/reject', [App\Http\Controllers\ReturPenjualanController::class, 'reject'])->name('retur-penjualan.reject');
+        Route::post('/{returPenjualan}/process', [App\Http\Controllers\ReturPenjualanController::class, 'process'])->name('retur-penjualan.process');
+    });
+
+    // ==============================
+    // RETUR PEMBELIAN SECTION
+    // ==============================
+    
+    // Retur Pembelian routes - View and Create
+    Route::group(['middleware' => ['permission:view retur pembelian'], 'prefix' => 'retur-pembelian'], function () {
+        Route::get('/', [App\Http\Controllers\ReturPembelianController::class, 'index'])->name('retur-pembelian.index');
+        Route::get('/create', [App\Http\Controllers\ReturPembelianController::class, 'create'])->name('retur-pembelian.create');
+        Route::post('/store', [App\Http\Controllers\ReturPembelianController::class, 'store'])->name('retur-pembelian.store');
+        Route::get('/{returPembelian}', [App\Http\Controllers\ReturPembelianController::class, 'show'])->name('retur-pembelian.show');
+    });
+    
+    // Retur Pembelian routes - Edit and Manage
+    Route::group(['middleware' => ['permission:edit retur pembelian'], 'prefix' => 'retur-pembelian'], function () {
+        Route::get('/{returPembelian}/edit', [App\Http\Controllers\ReturPembelianController::class, 'edit'])->name('retur-pembelian.edit');
+        Route::put('/{returPembelian}', [App\Http\Controllers\ReturPembelianController::class, 'update'])->name('retur-pembelian.update');
+        Route::delete('/{returPembelian}', [App\Http\Controllers\ReturPembelianController::class, 'destroy'])->name('retur-pembelian.destroy');
+    });
+    
+    // Retur Pembelian routes - Approve/Reject/Process
+    Route::group(['middleware' => ['permission:manage retur pembelian'], 'prefix' => 'retur-pembelian'], function () {
+        Route::post('/{returPembelian}/approve', [App\Http\Controllers\ReturPembelianController::class, 'approve'])->name('retur-pembelian.approve');
+        Route::post('/{returPembelian}/reject', [App\Http\Controllers\ReturPembelianController::class, 'reject'])->name('retur-pembelian.reject');
+        Route::post('/{returPembelian}/process', [App\Http\Controllers\ReturPembelianController::class, 'process'])->name('retur-pembelian.process');
     });
 
     // ==============================
@@ -527,6 +677,31 @@ Route::middleware(['web', 'auth'])->group(function () {
     });
     
     // ==============================
+    // PEMBAYARAN UTANG SUPPLIER SECTION
+    // ==============================
+    
+    // Pembayaran Utang Supplier routes - View and Create
+    Route::group(['middleware' => ['permission:view pembayaran utang supplier'], 'prefix' => 'pembayaran-utang-supplier'], function () {
+        Route::get('/', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'index'])->name('pembayaran-utang-supplier.index');
+        Route::get('/create', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'create'])->name('pembayaran-utang-supplier.create');
+        Route::post('/store', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'store'])->name('pembayaran-utang-supplier.store');
+        Route::get('/{pembayaranUtangSupplier}', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'show'])->name('pembayaran-utang-supplier.show');
+    });
+    
+    // Pembayaran Utang Supplier routes - Edit and Manage
+    Route::group(['middleware' => ['permission:edit pembayaran utang supplier'], 'prefix' => 'pembayaran-utang-supplier'], function () {
+        Route::get('/{pembayaranUtangSupplier}/edit', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'edit'])->name('pembayaran-utang-supplier.edit');
+        Route::put('/{pembayaranUtangSupplier}', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'update'])->name('pembayaran-utang-supplier.update');
+        Route::delete('/{pembayaranUtangSupplier}', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'destroy'])->name('pembayaran-utang-supplier.destroy');
+    });
+    
+    // Pembayaran Utang Supplier routes - Confirm/Cancel
+    Route::group(['middleware' => ['permission:manage pembayaran utang supplier'], 'prefix' => 'pembayaran-utang-supplier'], function () {
+        Route::post('/{pembayaranUtangSupplier}/confirm', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'confirm'])->name('pembayaran-utang-supplier.confirm');
+        Route::post('/{pembayaranUtangSupplier}/cancel', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'cancel'])->name('pembayaran-utang-supplier.cancel');
+    });
+
+    // ==============================
     // LAPORAN SECTION
     // ==============================
     
@@ -534,11 +709,18 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::group(['middleware' => ['permission:view laporan'], 'prefix' => 'laporan'], function () {
         Route::get('/', [LaporanController::class, 'index'])->name('laporan.index');
         Route::get('/laba-per-faktur', [LaporanController::class, 'labaPerFaktur'])->name('laporan.laba-per-faktur');
+        Route::get('/laba-per-faktur/print', [LaporanController::class, 'printLabaPerFaktur'])->name('laporan.laba-per-faktur.print');
         Route::get('/laba-per-barang', [LaporanController::class, 'labaPerBarang'])->name('laporan.laba-per-barang');
         Route::get('/ongkos-kuli', [LaporanController::class, 'ongkosKuli'])->name('laporan.ongkos-kuli');
+        Route::get('/ongkos-kuli/print', [LaporanController::class, 'printOngkosKuli'])->name('laporan.ongkos-kuli.print');
+        Route::get('/komisi-sales/detail/{salesCode}', [LaporanController::class, 'komisiSalesDetail'])->name('laporan.komisi_sales.detail');
+        Route::get('/komisi-sales/invoice-detail/{transaksiId}', [LaporanController::class, 'komisiSalesInvoiceDetail'])->name('laporan.komisi_sales.invoice_detail');
         Route::get('/komisi-sales', [LaporanController::class, 'komisiSales'])->name('laporan.komisi-sales');
         Route::get('/stok', [LaporanController::class, 'laporanStok'])->name('laporan.stok');
+        Route::get('/stok/pergerakan/{kodeBarang}', [LaporanController::class, 'detailPergerakanBarang'])->name('laporan.stok.pergerakan');
         Route::get('/piutang', [LaporanController::class, 'laporanPiutang'])->name('laporan.piutang');
+        Route::get('/utang-supplier', [LaporanController::class, 'laporanUtangSupplier'])->name('laporan.utang-supplier');
+        Route::get('/retur', [App\Http\Controllers\LaporanReturController::class, 'index'])->name('laporan.retur');
     });
 
     // ==============================
@@ -553,6 +735,42 @@ Route::middleware(['web', 'auth'])->group(function () {
             return \App\Models\CaraBayar::where('metode', $metode)->get();
         });
 
+        // Transaction API routes
+        Route::get('/transaksi/{id}/items', function ($id) {
+            try {
+                $transaksi = \App\Models\Transaksi::findOrFail($id);
+                $items = \App\Models\TransaksiItem::where('transaksi_id', $id)
+                    ->with('kodeBarang')
+                    ->get();
+                
+                $itemsData = $items->map(function($item) {
+                    // Hitung subtotal jika NULL atau kosong
+                    $qty = (float) $item->qty;
+                    $harga = (float) $item->harga;
+                    $subtotal = (!is_null($item->subtotal) && $item->subtotal !== '') ? (float) $item->subtotal : ($qty * $harga);
+                    
+                    return [
+                        'kode_barang' => $item->kode_barang,
+                        'nama_barang' => $item->kodeBarang->nama ?? $item->nama_barang ?? '-',
+                        'qty' => $qty,
+                        'satuan' => $item->satuan,
+                        'harga' => $harga,
+                        'subtotal' => $subtotal
+                    ];
+                });
+                
+                return response()->json([
+                    'success' => true,
+                    'data' => $itemsData
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaksi tidak ditemukan'
+                ], 404);
+            }
+        });
+
         // Customer API routes
         Route::get('/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
         Route::get('/customers', [CustomerController::class, 'searchsuratjalan'])->name('api.customers');
@@ -561,6 +779,16 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Sales API routes
         Route::get('/sales/search', [StokOwnerController::class, 'search'])->name('api.sales.search');
         Route::get('/stok-owner/search', [StokOwnerController::class, 'search'])->name('api.stok-owner.search');
+        
+        // Sales Order API routes
+        Route::get('/sales-order/search', [SalesOrderController::class, 'search'])->name('api.sales-order.search');
+        Route::get('/sales-order/{salesOrder}/items', [SalesOrderController::class, 'getItems'])->name('api.sales-order.items');
+        
+        // Return Barang API routes
+        Route::get('/return-barang/search-transactions', [App\Http\Controllers\ReturnBarangController::class, 'searchTransactions'])->name('api.return-barang.search-transactions');
+        Route::get('/return-barang/transaction-items', [App\Http\Controllers\ReturnBarangController::class, 'getTransactionItems'])->name('api.return-barang.transaction-items');
+        
+
         
         // Panels API routes
         Route::get('/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
@@ -579,6 +807,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         
         // Pembayaran Piutang API routes
         Route::get('/pembayaran-piutang/customer-invoices', [PembayaranPiutangController::class, 'getCustomerInvoices'])->name('api.pembayaran-piutang.customer-invoices');
+        Route::get('/pembayaran-piutang/customer-nota-kredit', [PembayaranPiutangController::class, 'getCustomerNotaKredit'])->name('api.pembayaran-piutang.customer-nota-kredit');
         Route::get('/pembayaran-piutang/payment-suggestion', [PembayaranPiutangController::class, 'getPaymentSuggestion'])->name('api.pembayaran-piutang.payment-suggestion');
         Route::get('/pembayaran-piutang/statistics', [PembayaranPiutangController::class, 'getPaymentStatistics'])->name('api.pembayaran-piutang.statistics');
         
@@ -587,5 +816,21 @@ Route::middleware(['web', 'auth'])->group(function () {
         
         // Penjualan API routes
         Route::get('/getpenjualancustomer', [TransaksiController::class, 'getPenjualan']);
+        
+        // Retur Penjualan API routes
+        Route::get('/retur-penjualan/transaction-items', [App\Http\Controllers\ReturPenjualanController::class, 'getTransactionItems'])->name('api.retur-penjualan.transaction-items');
+        
+        // Retur Pembelian API routes
+        Route::get('/retur-pembelian/pembelian-items', [App\Http\Controllers\ReturPembelianController::class, 'getPembelianItems'])->name('api.retur-pembelian.pembelian-items');
+        
+        // Laporan Retur API routes
+        Route::get('/laporan/retur-penjualan', [App\Http\Controllers\LaporanReturController::class, 'getReturPenjualanReport'])->name('api.laporan.retur-penjualan');
+        Route::get('/laporan/retur-pembelian', [App\Http\Controllers\LaporanReturController::class, 'getReturPembelianReport'])->name('api.laporan.retur-pembelian');
+        Route::get('/laporan/dampak-stok-retur', [App\Http\Controllers\LaporanReturController::class, 'getDampakStokRetur'])->name('api.laporan.dampak-stok-retur');
+        Route::get('/laporan/summary-retur', [App\Http\Controllers\LaporanReturController::class, 'getSummaryRetur'])->name('api.laporan.summary-retur');
+        
+        // Pembayaran Utang Supplier API routes
+        Route::get('/pembayaran-utang-supplier/supplier-invoices', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'getSupplierInvoices'])->name('api.pembayaran-utang-supplier.supplier-invoices');
+        Route::get('/pembayaran-utang-supplier/supplier-nota-debits', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'getSupplierNotaDebits'])->name('api.pembayaran-utang-supplier.supplier-nota-debits');
     });
 });

@@ -21,6 +21,7 @@
                     <input type="text" class="form-control" id="nama_barang" name="nama_barang" placeholder="Masukkan nama barang">
                     <div id="namaBarangDropdown" class="dropdown-menu" style="display: none; position: absolute; width: 100%;"></div>
                 </div>
+                <input type="hidden" id="kode_barang_id" name="kode_barang_id">
             </div>
 
             <div class="form-group">
@@ -70,18 +71,11 @@
                 <label for="satuanKecil">Satuan Kecil</label>
                 <select class="form-control" id="satuanKecil" name="satuanKecil">
                     <option value="LBR">LBR</option>
-                    <option value="DUS">PCS</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="satuanBesar">Satuan</label>
-                <select class="form-control" id="satuanBesar" name="satuanBesar">
-                    <option value="LBR">LBR</option>
-                    <option value="DUS">DUS</option>
-                    <option value="BOX">BOX</option>
-                    <option value="PCS">PCS</option>
-                    <option value="UNIT">UNIT</option>
-                </select>
+                <label for="satuanBesar">Satuan Besar</label>
+                <select class="form-control" id="satuanBesar" name="satuanBesar"></select>
             </div>
 
             <div class="form-group">
@@ -183,7 +177,60 @@
 
         $('#satuanKecil, #satuanBesar').on('change', function() {
             updatePreview();
+            triggerHargaOngkosUpdate();
         });
+
+        function populateUnits(kodeBarangId, unitDasar) {
+            if (!kodeBarangId) {
+                $('#satuanKecil').html('<option value="LBR">LBR</option>');
+                $('#satuanBesar').html('');
+                return;
+            }
+            $.ajax({
+                url: `{{ route('sales-order.available-units', '') }}/${kodeBarangId}`,
+                method: 'GET',
+                success: function(units) {
+                    const kecil = $('#satuanKecil');
+                    const besar = $('#satuanBesar');
+                    kecil.empty();
+                    besar.empty();
+                    const base = unitDasar || 'LBR';
+                    kecil.append('<option value="'+base+'">'+base+'</option>');
+                    if (Array.isArray(units) && units.length > 0) {
+                        units.forEach(function(u){ if (u !== base) { besar.append('<option value="'+u+'">'+u+'</option>'); } });
+                    }
+                    kecil.val(base);
+                },
+                error: function() {
+                    $('#satuanKecil').html('<option value="LBR">LBR</option>');
+                    $('#satuanBesar').html('');
+                }
+            });
+        }
+
+        function triggerHargaOngkosUpdate() {
+            const kodeBarangId = $('#kode_barang_id').val();
+            const satuan = $('#satuanBesar').val() || $('#satuanKecil').val();
+            const customerId = $('#kode_customer').val();
+            if (kodeBarangId && satuan && customerId) {
+                $.ajax({
+                    url: "{{ route('api.transaksi.harga-ongkos') }}",
+                    method: "GET",
+                    data: {
+                        customer_id: customerId,
+                        kode_barang_id: kodeBarangId,
+                        satuan: satuan
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#harga').val(response.harga_jual);
+                            $('#ongkos_kuli').val(response.ongkos_kuli);
+                            updatePreview();
+                        }
+                    }
+                });
+            }
+        }
 
         function updatePreview() {
             const kodeBarang = $('#kode_barang').val() || '-';
@@ -214,7 +261,7 @@
                     <td>${quantity}</td>
                     <td class="text-right">${formatCurrency(total)}</td>
                     <td>${satuanKecil}</td>
-                    <td>${satuanBesar}</td>
+                    <td>${satuanBesar || '-'}</td>
                     <td>${diskon}%</td>
                     <td class="text-right">${formatCurrency(diskonAmount)}</td>
                     <td class="text-right">${formatCurrency(total)}</td>
@@ -233,8 +280,31 @@
                 $('#stock_tersedia').val('');
                 return;
             }
-            // Jika ada endpoint stok per kode_barang, panggil di sini. Untuk sekarang dikosongkan.
-            $('#stock_tersedia').val('');
+            $.ajax({
+                url: "{{ route('stock.get') }}",
+                method: 'GET',
+                data: { kode_barang: kodeBarang },
+                success: function(resp) {
+                    if (resp && resp.success && resp.data) {
+                        const data = resp.data;
+                        const good = parseFloat(data.good_stock) || 0;
+                        const unit = data.satuan || 'LBR';
+                        $('#stock_tersedia').val(good);
+                        // Set satuan kecil dari table stocks
+                        $('#satuanKecil').html('<option value="'+unit+'">'+unit+'</option>').val(unit);
+                        // Populate satuan besar berdasarkan konversi, menggunakan unit dasar dari stocks
+                        const kodeBarangId = $('#kode_barang_id').val();
+                        populateUnits(kodeBarangId, unit);
+                        // Update harga/ongkos sesuai unit terpilih
+                        triggerHargaOngkosUpdate();
+                    } else {
+                        $('#stock_tersedia').val('');
+                    }
+                },
+                error: function() {
+                    $('#stock_tersedia').val('');
+                }
+            });
         }
 
         // Search kode Barang (Kode Barang master)
@@ -275,12 +345,15 @@
             const kode = $(this).data('kode');
             const nama = $(this).data('name');
             const harga = $(this).data('harga') || 0;
+            const id = $(this).data('id');
 
             $('#kode_barang').val(kode);
             $('#nama_barang').val(nama);
             $('#harga').val(harga);
             $('#keterangan').val(nama);
+            $('#kode_barang_id').val(id);
 
+            // Ambil satuan kecil dari table stocks dan isi units
             fetchStock(kode);
             updatePreview();
             $('#kodeBarangDropdown').hide();

@@ -49,7 +49,10 @@ class PembelianController extends Controller
         $currentYear = date('y');
         $nota = "BL/{$currentMonth}/{$currentYear}-" . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
 
-        return view('pembelian.addpembelian', compact('nota'));
+        // Get KodeBarang data for dropdown
+        $kodeBarangs = KodeBarang::orderBy('name')->get();
+
+        return view('pembelian.addpembelian', compact('nota', 'kodeBarangs'));
     }
 
     /**
@@ -69,6 +72,8 @@ class PembelianController extends Controller
             'items.*.kodeBarang' => 'required|string',
             'items.*.harga' => 'required|numeric',
             'items.*.qty' => 'required|numeric',
+            'hari_tempo' => 'nullable|integer|min:0',
+            'tanggal_jatuh_tempo' => 'nullable|date|after_or_equal:tanggal',
         ]);
         
         try {
@@ -90,6 +95,8 @@ class PembelianController extends Controller
                 'kode_supplier' => $request->kode_supplier,
                 'pembayaran' => $request->pembayaran ?? 'Tunai',
                 'cara_bayar' => $request->cara_bayar,
+                'hari_tempo' => $request->hari_tempo ?? 0,
+                'tanggal_jatuh_tempo' => $request->tanggal_jatuh_tempo ?? null,
                 'subtotal' => $request->subtotal,
                 'diskon' => $request->diskon ?? 0,
                 'ppn' => $request->ppn ?? 0,
@@ -190,25 +197,29 @@ class PembelianController extends Controller
                         $result = $panelController->addPanelsToInventory(
                             $panelName, 
                             $cost, 
-                            $price, 
-                            // $length, 
                             $item['kodeBarang'], 
-                            $item['qty']
+                            (int) $item['qty']
                         );
                     } catch (\ArgumentCountError $e) {
                         // If the method doesn't accept the timestamp, use the original method
                         $result = $panelController->addPanelsToInventory(
                             $panelName, 
                             $cost, 
-                            $price, 
-                            // $length, 
                             $item['kodeBarang'], 
-                            $item['qty']
+                            (int) $item['qty']
                         );
                     }
                     
                     // Log the result
                     Log::info('Added panels to inventory:', ['result' => $result]);
+                    
+                    // Update cost di master barang dengan harga pembelian terbaru
+                    $kodeBarang->cost = $item['harga'];
+                    $kodeBarang->save();
+                    Log::info('Updated master barang cost:', [
+                        'kode_barang' => $item['kodeBarang'],
+                        'new_cost' => $item['harga']
+                    ]);
                 } else {
                     Log::warning('KodeBarang not found for purchase item:', ['kode_barang' => $item['kodeBarang']]);
                 }
@@ -520,25 +531,29 @@ class PembelianController extends Controller
                         $result = $panelController->addPanelsToInventory(
                             $panelName, 
                             $cost, 
-                            $price, 
-                            // $length, 
                             $item['kodeBarang'], 
-                            $item['qty']
+                            (int) $item['qty']
                         );
                     } catch (\ArgumentCountError $e) {
                         // If the method doesn't accept the timestamp, use the original method
                         $result = $panelController->addPanelsToInventory(
                             $panelName, 
                             $cost, 
-                            $price, 
-                            // $length, 
                             $item['kodeBarang'], 
-                            $item['qty']
+                            (int) $item['qty']
                         );
                     }
                     
                     // Log the result
                     Log::info('Added panels to inventory during update:', ['result' => $result]);
+                    
+                    // Update cost di master barang dengan harga pembelian terbaru
+                    $kodeBarang->cost = $item['harga'];
+                    $kodeBarang->save();
+                    Log::info('Updated master barang cost during update:', [
+                        'kode_barang' => $item['kodeBarang'],
+                        'new_cost' => $item['harga']
+                    ]);
                 } else {
                     Log::warning('KodeBarang not found for updated purchase item:', ['kode_barang' => $item['kodeBarang']]);
                 }
@@ -926,10 +941,8 @@ class PembelianController extends Controller
                         $result = $this->panelController->addPanelsToInventory(
                             $item['namaBarang'],
                             $item['harga'], // cost
-                            $kodeBarang->price,
-                            // $kodeBarang->length,
                             $item['kodeBarang'],
-                            $item['qty']
+                            (int) $item['qty']
                         );
                         
                         $generatedCount += $item['qty'];

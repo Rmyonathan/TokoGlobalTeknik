@@ -91,6 +91,18 @@
                     </div>
                 </div>
                 <div class="row mt-2">
+                    <div class="col-md-4">
+                        <label>Grup Barang</label>
+                        <select class="form-control" name="grup_barang">
+                            <option value="">-- Semua Grup --</option>
+                            @php $grupList = \App\Models\GrupBarang::orderBy('name')->get(); @endphp
+                            @foreach($grupList as $g)
+                                <option value="{{ $g->id }}" {{ request('grup_barang') == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="row mt-2">
                     <div class="col-md-12">
                         <div class="btn-group">
                             <a href="{{ route('stock.print.good') }}?kolom={{ $kolom }}&value={{ $value }}" target="_blank" class="btn btn-success">
@@ -154,6 +166,7 @@
                                             'value' => $value,
                                             'tanggal_awal' => $tanggal_awal,
                                             'tanggal_akhir' => $tanggal_akhir,
+                                            'grup_barang' => $grupId ?? request('grup_barang'),
                                             'selected_kode_barang' => $stock->kode_barang
                                         ]) }}" class="btn btn-primary btn-sm">
                                             <i class="fas fa-search mr-1"></i> Lihat Mutasi

@@ -7,111 +7,48 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 <head>
     <meta charset="UTF-8">
     <title>Nota Transaksi</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DejaVu+Sans+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        /* Match print_nota layout */
         * { box-sizing: border-box; }
-
-        @page {
-            size: 21.59cm 13.97cm;
-            margin: 0mm;
-        }
-
-        body {
-            font-family: 'Press Start 2P', monospace;
-            font-size: 7pt;
-            line-height: 1;
-            color: #000;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .page {
-            width: 95%;
-            /* PERUBAHAN FINAL: Padding samping dikurangi lagi menjadi 3mm agar tidak terpotong */
-            padding: 8mm 3mm 5mm 3mm;
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
-
-        .header { text-align: center; line-height: 1.1; }
-        .header strong { font-size: 9pt; }
-
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 7pt; }
-
-        .item-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
-        .item-table th,
-        .item-table td { border: 1px solid #000; padding: 2px 3px; font-size: 7pt; vertical-align: top; }
+        @page { size: 21.59cm 13.97cm landscape; margin: 0mm; }
+        body { font-family: 'DejaVu Sans Mono', monospace; font-size: 8pt; line-height: 0.8; color: #000; margin: 0; padding: 0; display: flex; flex-direction: column; width: 100%; height: 100%; }
+        .page { width: 90%; padding: 3mm 6mm 1mm 6mm; margin: 1mm auto 0 auto; display: flex; flex-direction: column; }
+        .header { text-align: center; line-height: 1.0; margin-bottom: 2mm; }
+        .header strong { font-size: 8.5pt; }
+        .info-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1mm; font-size: 6.8pt; width: 100%; }
+        .info-left-section { flex-basis: 65%; text-align: left; }
+        .info-right-section { flex-basis: 35%; text-align: right; }
+        .item-table { width: 100%; border-collapse: collapse; margin-top: 1.5mm; table-layout: fixed; }
+        .item-table th, .item-table td { border: 1px solid #000; padding: 0.5mm 1mm; font-size: 7.2pt; vertical-align: top; word-wrap: break-word; white-space: normal; }
         .item-table th { font-weight: bold; }
-
-        tr.empty-row td {
-            border: 1px solid #000;
-            border-color: #eee;
-            color: #fff;
-        }
+        .item-table th:nth-child(1), .item-table td:nth-child(1) { width: 5%; text-align: center; }
+        .item-table th:nth-child(2), .item-table td:nth-child(2) { width: 35%; }
+        .item-table th:nth-child(3), .item-table td:nth-child(3) { width: 10%; text-align: center; }
+        .item-table th:nth-child(4), .item-table td:nth-child(4) { width: 15%; text-align: center; }
+        .item-table th:nth-child(5), .item-table td:nth-child(5) { width: 15%; text-align: right; }
+        .item-table th:nth-child(6), .item-table td:nth-child(6) { width: 20%; text-align: right; }
+        tr.empty-row td { border: 1px solid #000; border-color: #eee; color: #fff; }
         tr.empty-row td:first-child { border-left-color: #000; }
         tr.empty-row td:last-child { border-right-color: #000; }
-
-        .footer-container {
-            width: 100%;
-            margin-top: auto;
-            padding-top: 5px;
-        }
-
-        .summary-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 7pt;
-            margin-bottom: 3px;
-        }
-        .summary-table th, .summary-table td { border: 1px solid #000; padding: 2px 3px; }
-        .summary-table th { text-align: left; }
-
-        .notes-details-wrapper {
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            width: 100%;
-            margin-top: 3px;
-        }
-
-        .notes-section {
-            flex-basis: 70%;
-            padding-right: 10px;
-            font-size: 7pt;
-            line-height: 1.1;
-            padding: 2px;
-        }
-
-        .details-row {
-            flex-basis: 30%;
-            font-size: 7pt;
-        }
-        .payment-info { }
-        .terbilang-section { font-style: italic; margin-top: 5px; }
-
-        .signature-row {
-            width: 100%;
-            overflow: hidden;
-            margin-top: 10px;
-            font-size: 9pt;
-        }
-        .signature-left { float: left; text-align: center; }
-        .signature-right { float: right; text-align: center; }
-
-        .edit-info-box { font-size: 7px; margin-top: 8px; padding: 2px; border: 1px solid #ccc; line-height: 1.0; clear: both; }
-
-        .right { text-align: right; }
-        .center { text-align: center; }
-
+        .footer-container { width: 100%; margin-top: auto; padding-top: 1.5mm; }
+        .summary-table { width: 100%; border-collapse: collapse; font-size: 7.2pt; margin-bottom: 1mm; }
+        .summary-table th, .summary-table td { border: 1px solid #000; padding: 1mm 1.5mm; }
+        .summary-table th { text-align: left; font-weight: bold; }
+        .notes-details-wrapper { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: nowrap; width: 100%; margin-top: 1.5mm; }
+        .notes-section { flex: 1 1 0%; min-width: 55%; padding-right: 2mm; font-size: 7pt; line-height: 1.05; padding: 0.8mm; }
+        .details-row { flex: 0 1 auto; min-width: 40%; display: flex; flex-direction: column; font-size: 7pt; text-align: right; padding-left: 2mm; }
+        .payment-info { margin-bottom: 0.8mm; }
+        .terbilang-section { font-style: italic; }
+        .signature-row { width: 100%; display: flex; justify-content: space-between; margin-top: 100px; font-size: 9pt; padding-top: 50px; }
+        .signature-left { float: left; text-align: center; width: 20%; }
+        .signature-right { float: right; text-align: center; width: 20%; }
+        .edit-info-box { font-size: 6pt; margin-top: 2.5mm; padding: 0.5mm; border: 1px solid #ccc; line-height: 1.0; clear: both; }
+        .right { text-align: right; } .center { text-align: center; }
         .no-print { position: fixed; top: 10px; right: 10px; z-index: 999; }
         .no-print button, .no-print a { margin-left: 8px; padding: 6px 16px; font-size: 14px; border: none; border-radius: 4px; background: #007bff; color: #fff; cursor: pointer; text-decoration: none; }
         .no-print a { background: #6c757d; }
-
         .page-break { page-break-after: always; }
-
         @media print { .no-print { display: none !important; } }
     </style>
 </head>
@@ -119,7 +56,7 @@ use Riskihajar\Terbilang\Facades\Terbilang;
 
 @php
     $defaultCompany = \App\Models\Perusahaan::where('is_default', true)->first() ?? new \App\Models\Perusahaan();
-    $itemsPerPage = 5;
+    $itemsPerPage = 10;
     $groupedItems = $transaction->items->chunk($itemsPerPage);
     $totalPages = $groupedItems->count();
     $pageNum = 0;
@@ -138,40 +75,61 @@ use Riskihajar\Terbilang\Facades\Terbilang;
     <div class="page">
         {{-- BAGIAN HEADER --}}
         <div class="header">
-            <strong>{{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}</strong><br>
-            {{ $defaultCompany->alamat ?? 'JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008' }}<br>
-            {{ $defaultCompany->kota ?? '8 ILIR' }}, {{ $defaultCompany->kode_pos ?? 'ILIR TIMUR II' }}<br>
-            TELP. {{ $defaultCompany->telepon ?? '(0711) 311158' }} &nbsp;&nbsp; FAX {{ $defaultCompany->fax ?? '(0711) 311158' }}<br>
-            NO FAKTUR: {{ $transaction->no_transaksi }}
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="text-align: left;">
+                    <strong>{{ $defaultCompany->nama ?? '' }}</strong><br>
+                    {{ $defaultCompany->alamat ?? '' }}<br>
+                    {{ $defaultCompany->kota ?? '' }}{{ $defaultCompany->kode_pos ? ', '.$defaultCompany->kode_pos : '' }}<br>
+                    @if(!empty($defaultCompany->telepon)) TELP. {{ $defaultCompany->telepon }} @endif
+                    @if(!empty($defaultCompany->fax)) &nbsp;&nbsp; FAX {{ $defaultCompany->fax }} @endif
+                </div>
+                <div style="text-align: right;">
+                    {{ \Carbon\Carbon::parse($transaction->tanggal)->format('d/M/Y') }}<br>
+                    HALAMAN: {{ $pageNum }} / {{ $totalPages }}
+                </div>
+            </div>
         </div>
 
-        {{-- INFO PELANGGAN & TANGGAL --}}
-        <div class="info-row">
-            <div>
-                <strong>Kpd Yth:</strong><br>
-                Nama: {{ $transaction->customer->nama ?? '-' }}<br>
-                Telp: {{ $transaction->customer->telepon ?? '-' }}<br>
-                Alamat: {{ $transaction->customer->alamat ?? '-' }}
-            </div>
-            <div class="right">
-                {{ \Carbon\Carbon::parse($transaction->tanggal)->format('d M Y') }}<br>
-                HALAMAN: {{ $pageNum }} / {{ $totalPages }}
-            </div>
-        </div>
+        {{-- INFO PELANGGAN & TRANSAKSI --}}
+        <table style="width: 100%; table-layout: fixed; margin-bottom: 10px;">
+            <tr>
+                <td style="width: 50%; vertical-align: top;">
+                    <strong>Kepada Yth: {{ $transaction->customer->nama ?? '-' }}</strong><br>
+                    {{ $transaction->customer->alamat ?? '-' }}
+                </td>
+                <td style="width: 50%; vertical-align: top;">
+                    <table style="width: 100%; font-size: 8pt;">
+                        <tr>
+                            <td style="width: 30%;"><strong>Faktur:</strong></td>
+                            <td style="width: 70%;">{{ $transaction->no_transaksi }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Salesman:</strong></td>
+                            <td>{{ $transaction->salesman->keterangan ?? 'OFFICE' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pengirim:</strong></td>
+                            <td>{{ $defaultCompany->nama ?? '' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pembayaran:</strong></td>
+                            <td>{{ $transaction->cara_bayar ?? 'Tunai' }}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
 
         {{-- TABEL DAFTAR BARANG --}}
         <table class="item-table">
             <thead>
                 <tr>
-                    <th style="width: 5%;">No.</th>
-                    <th style="width: 14%;">Kode Barang</th>
-                    <th style="width: 28%;">Nama Barang</th>
-                    <th style="width: 6%;">Qty</th>
-                    <th style="width: 6%;">Satuan</th>
-                    <th style="width: 14%;">Harga Satuan</th>
-                    <th style="width: 7%;">Disc %</th>
-                    <th style="width: 10%;">Disc Rp</th>
-                    <th style="width: 10%;">Sub Total</th>
+                    <th>No.</th>
+                    <th>Nama Barang</th>
+                    <th>Ball</th>
+                    <th>Kuantiti</th>
+                    <th>Harga @</th>
+                    <th>Jumlah</th>
                 </tr>
             </thead>
             <tbody>
@@ -180,13 +138,10 @@ use Riskihajar\Terbilang\Facades\Terbilang;
                     @php $rowCount++; @endphp
                     <tr>
                         <td class="center">{{ (($pageNum - 1) * $itemsPerPage) + $i + 1 }}</td>
-                        <td>{{ $item->kode_barang }}</td>
-                        <td>{{ $item->keterangan }}</td>
-                        <td class="center">{{ $item->qty }}</td>
-                        <td class="center">{{ $item->satuan ?? '-' }}</td>
-                        <td class="right">Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
-                        <td class="center">{{ $item->diskon_persen ?? 0 }}</td>
-                        <td class="right">Rp {{ number_format($item->diskon ?? 0, 0, ',', '.') }}</td>
+                        <td>{{ $item->nama_barang }}</td>
+                        <td class="center">{{ ceil($item->qty / 25) }}</td>
+                        <td class="center">{{ number_format($item->qty, 2) }} {{ $item->satuan ?? 'PAK' }}</td>
+                        <td class="right">@if($item->harga == 0) Bonus @else Rp {{ number_format($item->harga, 0, ',', '.') }} @endif</td>
                         <td class="right">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach

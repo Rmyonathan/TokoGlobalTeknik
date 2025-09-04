@@ -31,35 +31,11 @@
                             @enderror
                             <small class="form-text text-muted">Enter the name of the item code.</small>
                         </div>
-                        <div class="form-group">
-                            <label for="cost"><i class="fas fa-ruler mr-1"></i> Cost</label>
-                            <input type="number" step="0.01" class="form-control @error('cost') is-invalid @enderror" 
-                                id="cost" name="cost" value="{{ rtrim(rtrim($panel->cost, '0'), '.') }}" required>
-                            @error('price')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-text text-muted">Enter the cost.</small>
-                        </div>
 
-                        <div class="form-group">
-                            <label for="price"><i class="fas fa-ruler mr-1"></i> Price</label>
-                            <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" 
-                                id="price" name="price" value="{{ rtrim(rtrim($panel->price, '0'), '.') }}" required>
-                            @error('price')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-text text-muted">Enter the price.</small>
-                        </div>
 
-                        <!-- <div class="form-group">
-                            <label for="length"><i class="fas fa-ruler mr-1"></i> Panel Length (meters)</label>
-                            <input type="number" step="0.01" class="form-control @error('length') is-invalid @enderror" 
-                                id="length" name="length" value="{{ rtrim(rtrim($panel->length, '0'), '.') }}" required>
-                            @error('length')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-text text-muted">Enter the length of the aluminum panels in meters.</small>
-                        </div> -->
+                        <!-- Field price sudah dihapus -->
+
+                        <!-- Field length sudah dihapus -->
 
 
                         <div class="form-group">
@@ -87,6 +63,17 @@
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" class="custom-control-input" id="confirmCheck" required>
                                 <label class="custom-control-label" for="confirmCheck">I confirm that these panels are available in the warehouse</label>
+                            </div>
+                        </div>
+
+                        <hr/>
+                        <div class="form-group">
+                            <label><i class="fas fa-cogs mr-1"></i> Konversi Satuan</label>
+                            <div id="uc_list"></div>
+                            <div class="d-flex mt-2">
+                                <input type="text" id="uc_unit_add" class="form-control mr-2" placeholder="Satuan Turunan (mis. BOX)">
+                                <input type="number" id="uc_value_add" class="form-control mr-2" placeholder="Nilai Konversi (ke kecil)">
+                                <button type="button" id="uc_add_btn" class="btn btn-success">Tambah</button>
                             </div>
                         </div>
 
@@ -161,6 +148,222 @@ document.addEventListener('DOMContentLoaded', function() {
             const length = this.getAttribute('data-length');
             lengthInput.value = length;
         });
+    });
+    // Inline Unit Conversion for panels/edit view (by kode_barang string)
+    const ucList = document.getElementById('uc_list');
+    const ucUnitAdd = document.getElementById('uc_unit_add');
+    const ucValueAdd = document.getElementById('uc_value_add');
+    const ucAddBtn = document.getElementById('uc_add_btn');
+    const kodeBarangStr = document.getElementById('group_id').value; // field shows kode_barang
+
+    function renderUc(items){
+        if(!Array.isArray(items) || items.length===0){ ucList.innerHTML = '<div class="text-muted">Belum ada konversi.</div>'; return; }
+        let html = '<table class="table table-sm"><thead><tr><th>Satuan</th><th>Nilai</th><th>Status</th><th>Aksi</th></tr></thead><tbody>';
+        items.forEach(it => {
+            html += `<tr id="uc-row-${it.id}">
+                        <td>
+                            <span class="uc-display" id="uc-unit-display-${it.id}">${it.unit_turunan}</span>
+                            <input type="text" class="form-control form-control-sm uc-edit" id="uc-unit-edit-${it.id}" value="${it.unit_turunan}" style="display:none;">
+                        </td>
+                        <td>
+                            <span class="uc-display" id="uc-value-display-${it.id}">${it.nilai_konversi}</span>
+                            <input type="number" class="form-control form-control-sm uc-edit" id="uc-value-edit-${it.id}" value="${it.nilai_konversi}" style="display:none;">
+                        </td>
+                        <td>${it.is_active ? 'Aktif' : 'Nonaktif'}</td>
+                        <td>
+                            <div class="uc-display">
+                                <button type="button" class="btn btn-sm btn-primary" data-id="${it.id}" data-action="edit" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-warning" data-id="${it.id}" data-action="toggle" title="Toggle Status">
+                                    <i class="fas fa-toggle-${it.is_active ? 'on' : 'off'}"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger" data-id="${it.id}" data-action="delete" title="Hapus">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="uc-edit" style="display:none;">
+                                <button type="button" class="btn btn-sm btn-success" data-id="${it.id}" data-action="save" title="Simpan">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" data-id="${it.id}" data-action="cancel" title="Batal">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`
+        });
+        html += '</tbody></table>';
+        ucList.innerHTML = html;
+    }
+
+    function loadUc(){
+        fetch(`/unit-conversion/by-kode/${encodeURIComponent(kodeBarangStr)}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => { 
+                renderUc(data.items || []); 
+            })
+            .catch(error => {
+                console.error('Load unit conversions failed:', error);
+                ucList.innerHTML = '<div class="text-danger">Gagal memuat konversi satuan: ' + error.message + '</div>';
+            });
+    }
+    loadUc();
+
+    ucAddBtn.addEventListener('click', function(){
+        const unit = (ucUnitAdd.value||'').trim();
+        const val = parseInt(ucValueAdd.value||'0',10);
+        if(!unit || val<1){ alert('Isi satuan dan nilai konversi >= 1'); return; }
+        
+        fetch(`/unit-conversion/by-kode/${encodeURIComponent(kodeBarangStr)}`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type':'application/json', 
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ unit_turunan: unit, nilai_konversi: val })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                console.log('Add unit conversion successful:', data);
+                ucUnitAdd.value = '';
+                ucValueAdd.value = '';
+                loadUc();
+            } else {
+                // Handle validation errors
+                if (data.errors) {
+                    const errorMessages = Object.values(data.errors).flat();
+                    alert('Error: ' + errorMessages.join(', '));
+                } else {
+                    alert('Gagal menambah satuan konversi');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Add unit conversion failed:', error);
+            alert('Gagal menambah satuan konversi: ' + error.message);
+        });
+    });
+
+    // Handle unit conversion actions (edit, save, cancel, toggle, delete)
+    ucList.addEventListener('click', function(e){
+        const btn = e.target.closest('button[data-id]');
+        if(!btn) return;
+        const id = btn.getAttribute('data-id');
+        const action = btn.getAttribute('data-action');
+        
+        if(action === 'edit'){
+            // Show edit mode
+            document.querySelectorAll(`#uc-row-${id} .uc-display`).forEach(el => el.style.display = 'none');
+            document.querySelectorAll(`#uc-row-${id} .uc-edit`).forEach(el => el.style.display = 'block');
+        } else if(action === 'cancel'){
+            // Cancel edit mode
+            document.querySelectorAll(`#uc-row-${id} .uc-display`).forEach(el => el.style.display = 'block');
+            document.querySelectorAll(`#uc-row-${id} .uc-edit`).forEach(el => el.style.display = 'none');
+        } else if(action === 'save'){
+            // Save changes
+            const unit = document.getElementById(`uc-unit-edit-${id}`).value.trim();
+            const value = parseInt(document.getElementById(`uc-value-edit-${id}`).value || '0', 10);
+            
+            if(!unit || value < 1){
+                alert('Isi satuan dan nilai konversi >= 1');
+                return;
+            }
+            
+            fetch(`/unit-conversion/by-kode/${encodeURIComponent(kodeBarangStr)}/${id}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type':'application/json', 
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ unit_turunan: unit, nilai_konversi: value })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log('Update unit conversion successful:', data);
+                    loadUc(); // Reload the list
+                } else {
+                    if (data.errors) {
+                        const errorMessages = Object.values(data.errors).flat();
+                        alert('Error: ' + errorMessages.join(', '));
+                    } else {
+                        alert('Gagal mengupdate satuan konversi');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Update unit conversion failed:', error);
+                alert('Gagal mengupdate satuan konversi: ' + error.message);
+            });
+        } else if(action === 'toggle'){
+            fetch(`/unit-conversion/by-kode/${encodeURIComponent(kodeBarangStr)}/${id}/toggle`, { 
+                method: 'POST', 
+                headers: { 
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Toggle successful:', data);
+                loadUc();
+            })
+            .catch(error => {
+                console.error('Toggle failed:', error);
+                alert('Gagal mengubah status satuan konversi: ' + error.message);
+            });
+        } else if(action === 'delete'){
+            if(!confirm('Hapus satuan ini?')) return;
+            fetch(`/unit-conversion/by-kode/${encodeURIComponent(kodeBarangStr)}/${id}`, { 
+                method: 'DELETE', 
+                headers: { 
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Delete successful:', data);
+                loadUc();
+            })
+            .catch(error => {
+                console.error('Delete failed:', error);
+                alert('Gagal menghapus satuan konversi: ' + error.message);
+            });
+        }
     });
 });
 </script>

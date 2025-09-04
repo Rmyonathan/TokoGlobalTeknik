@@ -86,6 +86,7 @@ class CustomerController extends Controller
         $lastCustomer = Customer::orderBy('id', 'desc')->first();
         $newKodeCustomer = $lastCustomer ? str_pad($lastCustomer->id + 1, 4, '0', STR_PAD_LEFT) : '0001';
         $validated['kode_customer'] = $newKodeCustomer;
+        $validated['is_active'] = true; // Set default to active
 
         $customer = Customer::create($validated);
 
@@ -159,5 +160,19 @@ class CustomerController extends Controller
             ->get(['kode_customer', 'nama', 'alamat']); // Ambil kolom yang diperlukan saja
 
         return response()->json($customers);
+    }
+
+    /**
+     * Toggle active status
+     */
+    public function toggleStatus(Customer $customer)
+    {
+        $customer->update([
+            'is_active' => !$customer->is_active
+        ]);
+
+        $status = $customer->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()->route('customers.index')
+            ->with('success', "Customer berhasil {$status}!");
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Pagination\Paginator;
 use App\Models\Transaksi;
 use App\Models\TransaksiItem;
 use App\Models\Customer;
+use App\Models\CustomerPrice;
 use App\Models\Panel;
 use App\Models\SuratJalanItem;
 use App\Models\Kas;
@@ -112,9 +113,26 @@ class TransaksiController extends Controller
 
         // Format nomor transaksi baru
         $noTransaksi = 'KP/WS/' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
-        $inventory = app(\App\Http\Controllers\PanelController::class)->getKodeSummary();
+        
+        // Get KodeBarang data for dropdown
+        try {
+            $kodeBarangs = \App\Models\KodeBarang::active()->orderBy('name')->get();
+        } catch (\Exception $e) {
+            // Fallback jika ada masalah dengan scope active
+            $kodeBarangs = \App\Models\KodeBarang::orderBy('name')->get();
+        }
+        
+        // Debug: Log kodeBarangs count
+        \Log::info('KodeBarangs count: ' . $kodeBarangs->count());
 
-        return view('transaksi.penjualan', compact('noTransaksi', 'inventory'));
+        // Cek apakah ada sales_order_id dari parameter
+        $salesOrder = null;
+        if ($request->has('sales_order_id')) {
+            $salesOrder = \App\Models\SalesOrder::with(['customer', 'salesman', 'items.kodeBarang'])
+                ->find($request->sales_order_id);
+        }
+
+        return view('transaksi.penjualan', compact('noTransaksi', 'kodeBarangs', 'salesOrder'));
     }
 
     public function getByGroupId($group_id)
@@ -133,7 +151,6 @@ class TransaksiController extends Controller
      */
     public function store(Request $request){
         $request->validate([
-            'no_transaksi' => 'required|string|unique:transaksi,no_transaksi',
             'tanggal' => 'required|date',
             'kode_customer' => 'required|exists:customers,kode_customer',
             'sales' => 'required|exists:stok_owners,kode_stok_owner', // Validasi sales
@@ -143,6 +160,9 @@ class TransaksiController extends Controller
             'items.*.kodeBarang' => 'required|exists:kode_barangs,kode_barang', // Validasi kode_barang ke master KodeBarang
             'items.*.harga' => 'required|numeric',
             'items.*.qty' => 'required|numeric',
+            'notes' => 'nullable|string',
+            'hari_tempo' => 'nullable|integer|min:0',
+            'tanggal_jatuh_tempo' => 'nullable|date|after_or_equal:tanggal',
         ]);
         // dd($request);
         try {
@@ -176,15 +196,37 @@ class TransaksiController extends Controller
 
             $ppn = str_replace(',', '.', $request->ppn);
 
+            // Generate nomor transaksi baru (auto)
+            $prefix = 'KP/WS/';
+            $last = Transaksi::where('no_transaksi', 'like', $prefix . '%')
+                ->orderBy('no_transaksi', 'desc')
+                ->first();
+            $nextNumber = 1;
+            if ($last && strpos($last->no_transaksi, $prefix) === 0) {
+                $numeric = (int) substr($last->no_transaksi, strlen($prefix));
+                $nextNumber = $numeric + 1;
+            }
+            // Ensure uniqueness by checking existence and incrementing if needed
+            do {
+                $generatedNoTransaksi = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                $exists = Transaksi::where('no_transaksi', $generatedNoTransaksi)->exists();
+                if ($exists) {
+                    $nextNumber++;
+                }
+            } while ($exists);
+
             // Create transaction
             $transaksi = Transaksi::create([
-                'no_transaksi' => $request->no_transaksi,
+                'no_transaksi' => $generatedNoTransaksi,
                 'tanggal' => now(),
                 'kode_customer' => $request->kode_customer,
+                'sales_order_id' => $request->sales_order_id ?? null,
                 'sales' => $request->sales,
-                'pembayaran' => $request->pembayaran ?? 'Tunai',
-                'cara_bayar' => $request->cara_bayar ?? 'Tunai',
+                'pembayaran' => $request->pembayaran ?? 'Non Tunai',
+                'cara_bayar' => $request->cara_bayar ?? 'Kredit',
                 'tanggal_jadi' => $request->tanggal_jadi,
+                'hari_tempo' => $request->hari_tempo ?? 0,
+                'tanggal_jatuh_tempo' => $request->tanggal_jatuh_tempo,
                 'subtotal' => $request->subtotal,
                 'discount' => $request->discount ?? 0,
                 'disc_rupiah' => $request->disc_rp ?? 0,
@@ -192,6 +234,7 @@ class TransaksiController extends Controller
                 'dp' => $request->dp ?? 0,
                 'grand_total' => $request->grand_total,
                 'status' => 'baru',
+                'notes' => $request->notes,
                 'is_edited' => false,
             ]);
 
@@ -201,7 +244,7 @@ class TransaksiController extends Controller
 
             // Format transaction number for stock mutation
             $creator = Auth::check() ? Auth::user()->name : 'ADMIN';
-            $noTransaksi = $request->no_transaksi . " ({$creator})";
+            $noTransaksi = $transaksi->no_transaksi . " ({$creator})";
 
             // Create transaction items dengan sistem FIFO
             $fifoService = new FifoService();
@@ -221,7 +264,7 @@ class TransaksiController extends Controller
                 // Buat transaksi item
                 $transaksiItem = TransaksiItem::create([
                     'transaksi_id' => $transaksi->id,
-                    'no_transaksi' => $request->no_transaksi,
+                    'no_transaksi' => $transaksi->no_transaksi,
                     'kode_barang' => $item['kodeBarang'],
                     'nama_barang' => $item['namaBarang'],
                     'keterangan' => $item['keterangan'] ?? null,
@@ -231,6 +274,8 @@ class TransaksiController extends Controller
                     'qty' => $item['qty'],
                     'diskon' => $item['diskon'] ?? 0,
                     'total' => $item['total'],
+                    // Persist ongkos kuli from request (supports camelCase or snake_case)
+                    'ongkos_kuli' => $item['ongkos_kuli'] ?? ($item['ongkosKuli'] ?? 0),
                 ]);
 
                 // Alokasi stok menggunakan FIFO
@@ -250,13 +295,37 @@ class TransaksiController extends Controller
                     $item['namaBarang'],
                     $noTransaksi,
                     now(),
-                    $request->no_transaksi,
+                    $transaksi->no_transaksi,
                     $customerName . ' (' . $request->kode_customer . ')',
                     $item['qty'],
                     $request->sales,
                     'LBR'
                 );
             }
+
+            // Update status piutang transaksi & total piutang customer bila transaksi non-tunai/kredit
+            if (($request->cara_bayar === 'Kredit') || ($request->pembayaran === 'Non Tunai')) {
+                // Set status piutang untuk transaksi baru ini
+                $transaksi->status_piutang = 'belum_dibayar';
+                $transaksi->total_dibayar = 0;
+                $transaksi->sisa_piutang = $request->grand_total;
+                $transaksi->save();
+
+                // Hitung ulang total piutang customer dari transaksi aktif
+                $totalPiutang = Transaksi::where('kode_customer', $request->kode_customer)
+                    ->where('status', '!=', 'canceled')
+                    ->whereIn('status_piutang', ['belum_dibayar', 'sebagian'])
+                    ->sum('sisa_piutang');
+
+                Customer::where('kode_customer', $request->kode_customer)
+                    ->update(['total_piutang' => $totalPiutang]);
+
+                // Logging & perhitungan info limit (opsional)
+                $this->updateCustomerCreditLimit($request->kode_customer, $request->grand_total);
+            }
+
+            // Simpan harga jual spesifik untuk customer
+            $this->saveCustomerSpecificPrices($request->kode_customer, $request->items);
 
             DB::commit();
 
@@ -328,6 +397,7 @@ class TransaksiController extends Controller
             'items.*.harga' => 'required|numeric',
             'items.*.qty' => 'required|numeric',
             'edit_reason' => 'required|string|max:255',
+            'notes' => 'nullable|string',
         ]);
         
         try {
@@ -427,9 +497,10 @@ class TransaksiController extends Controller
                 'grand_total' => $request->grand_total,
                 'updated_at' => $currentDateTime,
                 'is_edited' => true,
-                'edited_by' => $editor,
+                'edited_by' => Auth::id(),
                 'edited_at' => $currentDateTime,
                 'edit_reason' => $request->edit_reason,
+                'notes' => $request->notes,
             ]);
             
             // Delete all existing items
@@ -579,6 +650,63 @@ class TransaksiController extends Controller
     }
 
 
+        /**
+     * Re-approve Transaction yang sudah dibatalkan
+     */
+    public function reApproveTransaction(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $transaksi = Transaksi::with(['items', 'customer'])->findOrFail($id);
+
+            // Cek apakah transaksi sudah dibatalkan
+            if (strpos($transaksi->status, 'canceled') === false) {
+                return back()->with('error', 'Hanya transaksi yang dibatalkan yang dapat di-approve kembali.');
+            }
+
+            // Get current user name
+            $userName = Auth::check() ? Auth::user()->name : 'SYSTEM';
+
+            // Restore transaction status
+            $transaksi->status = 'active';
+            $transaksi->canceled_by = null;
+            $transaksi->canceled_at = null;
+            $transaksi->cancel_reason = null;
+            $transaksi->reapproved_by = $userName;
+            $transaksi->reapproved_at = now();
+            $transaksi->save();
+
+            // Restore stock quantities
+            foreach ($transaksi->items as $item) {
+                $kodeBarang = KodeBarang::where('kode_barang', $item->kode_barang)->first();
+                if ($kodeBarang) {
+                    $kodeBarang->increment('stock', $item->qty);
+                }
+            }
+
+            // Restore customer piutang
+            $totalPiutang = Transaksi::where('kode_customer', $transaksi->kode_customer)
+                ->where('status', '!=', 'canceled')
+                ->whereIn('status_piutang', ['belum_dibayar', 'sebagian'])
+                ->sum('sisa_piutang');
+
+            Customer::where('kode_customer', $transaksi->kode_customer)
+                ->update(['total_piutang' => $totalPiutang]);
+
+            // Restore kas if cash transaction
+            if ($transaksi->cara_bayar === 'Tunai') {
+                $this->adjustKasSaldo();
+            }
+
+            DB::commit();
+            return back()->with('success', 'Transaksi berhasil di-approve kembali.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in reApproveTransaction:', ['message' => $e->getMessage()]);
+            return back()->with('error', 'Gagal meng-approve kembali transaksi: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Cancel Transaction Function
      */
@@ -588,7 +716,7 @@ class TransaksiController extends Controller
         $request->validate([
             'cancel_reason' => 'required|string|max:255',
         ]);
-        
+
         DB::beginTransaction();
         try {
             $transaksi = Transaksi::with(['items', 'customer'])->findOrFail($id);
@@ -614,7 +742,18 @@ class TransaksiController extends Controller
                     $panel->save();
                 }
 
-                // 2. Update Stock model
+                // 2. Revert FIFO allocations back to stock_batches and delete sumber
+                $sumberList = TransaksiItemSumber::where('transaksi_item_id', $item->id)->get();
+                foreach ($sumberList as $sumber) {
+                    $batch = StockBatch::find($sumber->stock_batch_id);
+                    if ($batch) {
+                        $batch->qty_sisa += $sumber->qty_diambil;
+                        $batch->save();
+                    }
+                    $sumber->delete();
+                }
+
+                // 3. Update Stock model (master)
                 $stock = \App\Models\Stock::where('kode_barang', $item->kode_barang)->first();
 
                 if ($stock) {
@@ -632,7 +771,7 @@ class TransaksiController extends Controller
                     ]);
                 }
 
-                // 3. Add detailed cancellation mutation record
+                // 4. Add detailed cancellation mutation record
                 \App\Models\StockMutation::create([
                     'kode_barang' => $item->kode_barang,
                     'nama_barang' => $item->nama_barang,
@@ -649,6 +788,34 @@ class TransaksiController extends Controller
                     'created_by' => $userName
                 ]);
             }
+
+            // Jika berasal dari Sales Order, kembalikan status SO agar bisa diproses ulang
+            if (!empty($transaksi->sales_order_id)) {
+                try {
+                    $so = \App\Models\SalesOrder::with(['items'])->find($transaksi->sales_order_id);
+                    if ($so) {
+                        // Kurangi qty_terkirim pada SO items berdasarkan transaksi items
+                        foreach ($transaksi->items as $item) {
+                            $soItem = $so->items->firstWhere('kode_barang', $item->kode_barang);
+                            if ($soItem && isset($soItem->qty_terkirim)) {
+                                $soItem->qty_terkirim = max(0, ($soItem->qty_terkirim - $item->qty));
+                                $soItem->save();
+                            }
+                        }
+                        $so->status = 'approved';
+                        $so->save();
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Revert SO on cancelTransaction failed', ['message' => $e->getMessage()]);
+                }
+            }
+
+            // Nolkan piutang pada transaksi yang dibatalkan
+            $transaksi->total_dibayar = 0;
+            $transaksi->sisa_piutang = 0;
+            // Gunakan nilai enum yang valid untuk kolom status_piutang
+            // Opsi valid: 'lunas', 'sebagian', 'belum_dibayar'
+            $transaksi->status_piutang = 'belum_dibayar';
 
             // Handle Kas adjustment for cash transactions
             if ($this->isCashPayment($transaksi->cara_bayar)) {
@@ -994,7 +1161,7 @@ class TransaksiController extends Controller
      */
     public function showNota($id)
     {
-        $transaction = Transaksi::with('items', 'customer')->findOrFail($id);
+        $transaction = Transaksi::with('items', 'customer', 'salesOrder', 'editedBy')->findOrFail($id);
 
         // Split items into chunks of 10 per page
         $itemsPerPage = 10;
@@ -1008,7 +1175,7 @@ class TransaksiController extends Controller
 
     public function nota($id)
     {
-        $transaction = Transaksi::with('items', 'customer')->findOrFail($id);
+        $transaction = Transaksi::with('items', 'customer', 'salesOrder')->findOrFail($id);
 
         // Split items into chunks of 10 per page
         $itemsPerPage = 10;
@@ -1130,6 +1297,7 @@ class TransaksiController extends Controller
                 'dp' => $request->dp ?? 0,
                 'grand_total' => $request->grand_total,
                 'status' => 'baru',
+                'notes' => $request->notes,
                 'is_edited' => false,
                 'keterangan' => $request->keterangan ?? 'Faktur dari Surat Jalan'
             ]);
@@ -1215,6 +1383,85 @@ class TransaksiController extends Controller
                 'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Update customer credit limit setelah transaksi kredit dibuat
+     */
+    private function updateCustomerCreditLimit($kodeCustomer, $grandTotal)
+    {
+        try {
+            $customer = Customer::where('kode_customer', $kodeCustomer)->first();
+            
+            if (!$customer) {
+                Log::warning("Customer dengan kode {$kodeCustomer} tidak ditemukan untuk update limit kredit");
+                return;
+            }
+
+            // Update informasi kredit customer menggunakan method dari model
+            $creditInfo = $customer->updateCreditInfo();
+
+            Log::info("Update credit limit for customer {$kodeCustomer}", [
+                'limit_kredit' => $creditInfo['limit_kredit'],
+                'total_piutang' => $creditInfo['total_piutang'],
+                'sisa_kredit' => $creditInfo['sisa_kredit'],
+                'new_transaction_amount' => $grandTotal,
+                'can_make_credit_transaction' => $customer->canMakeCreditTransaction($grandTotal)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error updating customer credit limit: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Simpan harga jual spesifik untuk customer
+     */
+    private function saveCustomerSpecificPrices($kodeCustomer, $items)
+    {
+        try {
+            $customer = Customer::where('kode_customer', $kodeCustomer)->first();
+            
+            if (!$customer) {
+                Log::warning("Customer dengan kode {$kodeCustomer} tidak ditemukan untuk simpan harga spesifik");
+                return;
+            }
+
+            foreach ($items as $item) {
+                // Cari kode barang berdasarkan kode_barang
+                $kodeBarang = KodeBarang::where('kode_barang', $item['kodeBarang'])->first();
+                
+                if (!$kodeBarang) {
+                    Log::warning("Kode barang {$item['kodeBarang']} tidak ditemukan");
+                    continue;
+                }
+
+                // Simpan atau update harga khusus untuk customer ini
+                CustomerPrice::updateOrCreate(
+                    [
+                        'customer_id' => $customer->id,
+                        'kode_barang_id' => $kodeBarang->id,
+                    ],
+                    [
+                        'harga_jual_khusus' => $item['harga'],
+                        'ongkos_kuli_khusus' => $item['ongkosKuli'] ?? 0,
+                        'unit_jual' => $item['satuan'] ?? 'LBR',
+                        'is_active' => true,
+                        'keterangan' => 'Harga dari faktur penjualan - ' . now()->format('Y-m-d H:i:s')
+                    ]
+                );
+
+                Log::info("Saved customer specific price", [
+                    'customer_id' => $customer->id,
+                    'kode_barang' => $item['kodeBarang'],
+                    'harga_jual_khusus' => $item['harga'],
+                    'unit_jual' => $item['satuan'] ?? 'LBR'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error("Error saving customer specific prices: " . $e->getMessage());
         }
     }
 

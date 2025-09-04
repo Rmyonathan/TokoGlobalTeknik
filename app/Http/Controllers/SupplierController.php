@@ -29,8 +29,8 @@ class SupplierController extends Controller
                 $query->where('contact_person', 'like', "%{$keyword}%");
             } elseif ($searchBy === 'hp_contact_person') {
                 $query->where('hp_contact_person', 'like', "%{$keyword}%");
-            } elseif ($searchBy === 'kode_kategori') {
-                $query->where('kode_kategori', 'like', "%{$keyword}%");
+            } elseif ($searchBy === 'kode_grup_barang') {
+                $query->where('kode_grup_barang', 'like', "%{$keyword}%");
             }
         } elseif ($keyword) {
             // Default: cari di nama dan kode_supplier
@@ -59,7 +59,7 @@ class SupplierController extends Controller
             'telepon_fax' => 'required',
             'contact_person' => 'required',
             'hp_contact_person' => 'required',
-            'kode_kategori' => 'required',
+            'kode_grup_barang' => 'required',
         ]);
         // Generate kode_supplier otomatis
         $lastSupplier = Supplier::orderBy('id', 'desc')->first();
@@ -67,6 +67,7 @@ class SupplierController extends Controller
 
         // Tambahkan kode_supplier ke data yang akan disimpan
         $validated['kode_supplier'] = $newKodeSupplier;
+        $validated['is_active'] = true; // Set default to active
 
         Supplier::create($validated);
 
@@ -82,7 +83,7 @@ class SupplierController extends Controller
             'telepon_fax' => 'required',
             'contact_person' => 'required',
             'hp_contact_person' => 'required',
-            'kode_kategori' => 'required',
+            'kode_grup_barang' => 'required',
         ]);
         
         // Generate kode_supplier otomatis
@@ -91,6 +92,7 @@ class SupplierController extends Controller
         
         // Tambahkan kode_supplier ke data yang akan disimpan
         $validated['kode_supplier'] = $newKodeSupplier;
+        $validated['is_active'] = true; // Set default to active
         
         $supplier = Supplier::create($validated);
         
@@ -107,7 +109,7 @@ class SupplierController extends Controller
             'telepon_fax' => 'required',
             'contact_person' => 'required',
             'hp_contact_person' => 'required',
-            'kode_kategori' => 'required',
+            'kode_grup_barang' => 'required',
         ]);
 
         $supplier->update($validated);
@@ -130,5 +132,19 @@ class SupplierController extends Controller
             ->get();
         
         return response()->json($suppliers);
+    }
+
+    /**
+     * Toggle active status
+     */
+    public function toggleStatus(Supplier $supplier)
+    {
+        $supplier->update([
+            'is_active' => !$supplier->is_active
+        ]);
+
+        $status = $supplier->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()->route('suppliers.index')
+            ->with('success', "Supplier berhasil {$status}!");
     }
 }

@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Atap Management System</title>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-
     <!-- Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
 
@@ -503,6 +503,23 @@
 
             <div class="collapse navbar-collapse" id="navbarTop">
                 <ul class="navbar-nav ml-auto">
+                    @if(config('database.available_databases'))
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="dbSwitchDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="bi bi-building"></i>
+                            {{ ucfirst(session('selected_database', array_key_first(config('database.available_databases')))) }}
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dbSwitchDropdown">
+                            @foreach(config('database.available_databases') as $key => $dbName)
+                                <form action="/switchDatabase" method="POST" class="px-3 py-1">
+                                    @csrf
+                                    <input type="hidden" name="database" value="{{ $key }}">
+                                    <button type="submit" class="btn btn-link p-0 {{ session('selected_database') === $key ? 'font-weight-bold' : '' }}">{{ ucfirst($key) }}</button>
+                                </form>
+                            @endforeach
+                        </div>
+                    </li>
+                    @endif
                     <li class="nav-item">
                         <?php if(auth()->guard()->guest()): ?>
                             <a class="nav-link" href="/signin"><i class="fas fa-sign-in-alt mr-1"></i> Masuk</a>
@@ -518,6 +535,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/account-maintenance"><i class="fas fa-user-cog mr-1"></i> Manage-Akun</a>
                     </li>
+                    @can('manage roles')
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo e(route('role-groups.index')); ?>"><i class="fas fa-layer-group mr-1"></i> Role Groups</a>
+                    </li>
+                    @endcan
                 </ul>
             </div>
         </div>
@@ -556,7 +578,7 @@
                                 <a class="nav-link" href="<?php echo e(route('perusahaan.index')); ?>"><i class="bi bi-building"></i> Master Perusahaan</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="<?php echo e(route('kategori.index')); ?>"><i class="fas fa-tags"></i> Kategori Barang</a>
+                                <a class="nav-link" href="<?php echo e(route('grup_barang.index')); ?>"><i class="fas fa-tags"></i> Grup Barang</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('code.view-code')); ?>"><i class="fas fa-barcode"></i> Kode Barang</a>
@@ -569,8 +591,8 @@
                                 @endif
                             </li>
                             <li class="nav-item">
-                                @if(Route::has('customer-prices.index'))
-                                <a class="nav-link" href="{{ route('customer-prices.index') }}"><i class="fas fa-tag"></i> Harga Khusus Pelanggan</a>
+                                @if(Route::has('customer-price.index'))
+                                <a class="nav-link" href="{{ route('customer-price.index') }}"><i class="fas fa-tag"></i> Harga Khusus Pelanggan</a>
                                 @else
                                 <a class="nav-link" href="#" title="Belum tersedia"><i class="fas fa-tag"></i> Harga Khusus Pelanggan</a>
                                 @endif
@@ -609,6 +631,16 @@
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('transaksi.listnota')); ?>"><i class="fas fa-envelope-open-text"></i> List Nota Penjualan</a>
                                         </li>
+                                        <!-- @can('view return barang')
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="<?php echo e(route('return-barang.index')); ?>"><i class="fas fa-undo"></i> Return Barang</a>
+                                        </li>
+                                        @endcan -->
+                                        @can('view retur penjualan')
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="<?php echo e(route('retur-penjualan.index')); ?>"><i class="fas fa-undo-alt"></i> Retur Penjualan</a>
+                                        </li>
+                                        @endcan
                                     </ul>
                                 </div>
                             </li>
@@ -629,6 +661,11 @@
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembelian.nota.list') }}"><i class="fas fa-envelope-open-text"></i> List Nota Pembelian</a>
                                         </li>
+                                        @can('view retur pembelian')
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="<?php echo e(route('retur-pembelian.index')); ?>"><i class="fas fa-undo-alt"></i> Retur Pembelian</a>
+                                        </li>
+                                        @endcan
                                     </ul>
                                 </div>
                             </li>
@@ -648,6 +685,23 @@
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembayaran-piutang.laporan') }}"><i class="fas fa-chart-line"></i> Laporan Piutang</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <!-- Pembayaran Utang Supplier -->
+                            <li class='nav-item'>
+                                <a class="nav-link" data-toggle="collapse" href="#pembayaranUtangSupplier" role="button" aria-expanded="false" aria-controls="pembayaranUtangSupplier">
+                                    <i class="fas fa-money-bill-wave"></i> Pembayaran Utang Supplier
+                                    <i class="fas fa-chevron-down ml-auto"></i>
+                                </a>
+                                <div class="collapse bg-dark border-0" id="pembayaranUtangSupplier">
+                                    <ul class="nav flex-column ml-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('pembayaran-utang-supplier.create') }}"><i class="fas fa-circle-plus"></i> Tambah Pembayaran</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('pembayaran-utang-supplier.index') }}"><i class="fas fa-list"></i> Daftar Pembayaran</a>
                                         </li>
                                     </ul>
                                 </div>
@@ -708,7 +762,16 @@
                                 <a class="nav-link" href="{{ route('laporan.stok') }}?show_batches=1"><i class="fas fa-layer-group"></i> Laporan Stok (per Batch)</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.stok') }}?show_pergerakan=1"><i class="fas fa-exchange-alt"></i> Pergerakan Barang</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="{{ route('laporan.piutang') }}"><i class="fas fa-credit-card"></i> Laporan Piutang Pelanggan</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.utang-supplier') }}"><i class="fas fa-file-invoice-dollar"></i> Laporan Utang Supplier</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.retur') }}"><i class="fas fa-undo-alt"></i> Laporan Retur Barang</a>
                             </li>
                         </ul>
                     </div>
@@ -799,6 +862,7 @@
     </script>
 
     <?php echo $__env->yieldContent('scripts'); ?>
+    @stack('scripts')
 
 </body>
 </html>

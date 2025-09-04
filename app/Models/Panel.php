@@ -12,17 +12,13 @@ class Panel extends Model
     protected $fillable = [
         'name',
         'group_id',
-        'length',
-        'price',
         'cost',
         'available',
         'parent_panel_id'
     ];
 
     protected $casts = [
-        'length' => 'decimal:2',
         'cost' => 'decimal:2',
-        'price' => 'decimal:2',
         'available' => 'boolean',
     ];
 

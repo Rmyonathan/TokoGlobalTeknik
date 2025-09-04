@@ -23,6 +23,9 @@
 			<a href="{{ route('laporan.piutang') }}" class="list-group-item list-group-item-action">
 				Laporan Piutang Pelanggan
 			</a>
+			<a href="{{ route('laporan.utang-supplier') }}" class="list-group-item list-group-item-action">
+				Laporan Utang Supplier
+			</a>
 		</div>
 	</div>
 </div>

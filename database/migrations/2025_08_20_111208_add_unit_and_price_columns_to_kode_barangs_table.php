@@ -13,14 +13,26 @@ return new class extends Migration
     {
         Schema::table('kode_barangs', function (Blueprint $table) {
             // Tambahkan kolom untuk sistem konversi unit dan harga dinamis
-            $table->foreignId('kategori_barang_id')->nullable()->constrained('kategori_barang')->onDelete('set null');
-            $table->string('unit_dasar', 20)->default('LBR'); // Unit dasar (LBR, KG, M, dll)
-            $table->decimal('harga_jual', 15, 2)->default(0); // Harga jual default
-            $table->decimal('ongkos_kuli_default', 15, 2)->default(0); // Ongkos kuli default
+            if (!Schema::hasColumn('kode_barangs', 'grup_barang_id')) {
+                $table->foreignId('grup_barang_id')->nullable()->constrained('grup_barang')->onDelete('set null');
+            }
+            if (!Schema::hasColumn('kode_barangs', 'unit_dasar')) {
+                $table->string('unit_dasar', 20)->default('LBR'); // Unit dasar (LBR, KG, M, dll)
+            }
+            if (!Schema::hasColumn('kode_barangs', 'harga_jual')) {
+                $table->decimal('harga_jual', 15, 2)->default(0); // Harga jual default
+            }
+            if (!Schema::hasColumn('kode_barangs', 'ongkos_kuli_default')) {
+                $table->decimal('ongkos_kuli_default', 15, 2)->default(0); // Ongkos kuli default
+            }
             
             // Index untuk optimasi query
-            $table->index(['kategori_barang_id']);
-            $table->index(['unit_dasar']);
+            if (!Schema::hasIndex('kode_barangs', 'kode_barangs_grup_barang_id_index')) {
+                $table->index(['grup_barang_id']);
+            }
+            if (!Schema::hasIndex('kode_barangs', 'kode_barangs_unit_dasar_index')) {
+                $table->index(['unit_dasar']);
+            }
         });
     }
 
@@ -30,11 +42,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('kode_barangs', function (Blueprint $table) {
-            $table->dropForeign(['kategori_barang_id']);
-            $table->dropIndex(['kategori_barang_id']);
+            $table->dropForeign(['grup_barang_id']);
+            $table->dropIndex(['grup_barang_id']);
             $table->dropIndex(['unit_dasar']);
             $table->dropColumn([
-                'kategori_barang_id',
+                'grup_barang_id',
                 'unit_dasar', 
                 'harga_jual',
                 'ongkos_kuli_default'

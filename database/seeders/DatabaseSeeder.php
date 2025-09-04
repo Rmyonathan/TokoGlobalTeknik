@@ -15,10 +15,16 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Run permissions and roles seeder
-        $this->call(PermissionSeeder::class);
+        $this->call(ImprovedPermissionSeeder::class);
         
         // Run user seeder
-        $this->call(UserSeeder::class);
+        // $this->call(UserSeeder::class);
+        
+        // Run grup barang seeder
+        $this->call(GrupBarangSeeder::class);
+        
+        // Run stok owner seeder
+        $this->call(StokOwnerSeeder::class);
         
         // Create sample data
         $this->createSampleData();
@@ -38,7 +44,7 @@ class DatabaseSeeder extends Seeder
             'telepon_fax' => '021-4567890',
             'contact_person' => 'Contact Person A',
             'hp_contact_person' => '083234567890',
-            'kode_kategori' => 'CAT001',
+            'kode_grup_barang' => 'GRP001',
         ]);
         
         // Create sample customer

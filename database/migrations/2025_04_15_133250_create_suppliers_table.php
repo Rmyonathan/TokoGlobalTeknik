@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('telepon_fax');
             $table->string('contact_person');
             $table->string('hp_contact_person');
-            $table->string('kode_kategori');
+            $table->string('kode_grup_barang');
             $table->timestamps();
         });
     }

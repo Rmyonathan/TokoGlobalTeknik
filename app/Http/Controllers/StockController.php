@@ -23,6 +23,8 @@ class StockController extends Controller
         $value = $request->input('value');
         $tanggal_awal = $request->input('tanggal_awal');
         $tanggal_akhir = $request->input('tanggal_akhir');
+        $grupId = $request->input('grup_barang');
+        $selectedKodeBarang = $request->input('selected_kode_barang');
 
         // Get all available stocks, but GROUP BY kode_barang to avoid duplicates
         $stocksQuery = Stock::select(
@@ -34,14 +36,23 @@ class StockController extends Controller
         )
         ->groupBy('stocks.kode_barang', 'stocks.nama_barang', 'stocks.satuan'); // Group by everything except SO
 
-        // Apply filters if provided
-        if ($value) {
+        // Apply filters using when() for dynamic query building
+        $stocksQuery->when($value, function($query, $value) use ($kolom) {
             if ($kolom === 'kode_barang') {
-                $stocksQuery->where('stocks.kode_barang', 'like', "%{$value}%");
+                return $query->where('stocks.kode_barang', 'like', "%{$value}%");
             } elseif ($kolom === 'nama') {
-                $stocksQuery->where('stocks.nama_barang', 'like', "%{$value}%");
+                return $query->where('stocks.nama_barang', 'like', "%{$value}%");
             }
-        }
+        });
+
+        // Filter by grup barang if provided
+        $stocksQuery->when($grupId, function($query, $grupId) {
+            return $query->whereIn('stocks.kode_barang', function($q) use ($grupId) {
+                $q->select('kode_barang')
+                  ->from('kode_barangs')
+                  ->where('grup_barang_id', $grupId);
+            });
+        });
 
         $stocks = $stocksQuery->get();
 
@@ -62,24 +73,23 @@ class StockController extends Controller
         }
 
         if ($selectedStock) {
-            // Build query for mutations - Remove SO condition
-            $mutationsQuery = StockMutation::where('kode_barang', $selectedStock->kode_barang)
+            // Build query for mutations with dynamic filters
+            $mutationsQuery = StockMutation::query()
+                ->when($selectedStock?->kode_barang, function($q) use ($selectedStock) {
+                    $q->where('kode_barang', $selectedStock->kode_barang);
+                })
+                ->when($tanggal_awal && $tanggal_akhir, function($q) use ($tanggal_awal, $tanggal_akhir) {
+                    $q->whereBetween(DB::raw('DATE(tanggal)'), [$tanggal_awal, $tanggal_akhir]);
+                }, function($q) use ($tanggal_awal, $tanggal_akhir) {
+                    if ($tanggal_awal) $q->whereDate('tanggal', '>=', $tanggal_awal);
+                    if ($tanggal_akhir) $q->whereDate('tanggal', '<=', $tanggal_akhir);
+                })
                 ->orderBy('tanggal')
                 ->orderBy('id');
 
-            // Apply date filters if provided
+            // Opening balance if start date is provided
             if ($tanggal_awal) {
-                // Get opening balance for the specified date - No SO parameter
-                $openingBalance = $this->getOpeningBalance(
-                    $selectedStock->kode_barang,
-                    $tanggal_awal
-                );
-
-                $mutationsQuery->whereDate('tanggal', '>=', $tanggal_awal);
-            }
-
-            if ($tanggal_akhir) {
-                $mutationsQuery->whereDate('tanggal', '<=', $tanggal_akhir);
+                $openingBalance = $this->getOpeningBalance($selectedStock->kode_barang, $tanggal_awal);
             }
 
             $mutations = $mutationsQuery->get();
@@ -93,7 +103,8 @@ class StockController extends Controller
             'value',
             'tanggal_awal',
             'tanggal_akhir',
-            'selectedStock'
+            'selectedStock',
+            'grupId'
         ));
     }
 

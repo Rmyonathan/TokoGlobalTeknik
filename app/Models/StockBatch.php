@@ -19,7 +19,9 @@ class StockBatch extends Model
         'harga_beli',
         'tanggal_masuk',
         'batch_number',
-        'keterangan'
+        'keterangan',
+        'customer_id',
+        'tipe_batch'
     ];
 
     protected $casts = [

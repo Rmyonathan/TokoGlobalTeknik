@@ -139,8 +139,25 @@ class PembayaranDetail extends Model
         if (!$transaksi) return;
 
         $totalDibayar = self::getTotalPelunasanByTransaksi($transaksiId);
-        $sisaPiutang = $transaksi->grand_total - $totalDibayar;
-        $statusPiutang = self::getStatusPelunasanTransaksi($transaksiId);
+        
+        // Hitung total nota kredit yang digunakan untuk transaksi ini
+        $totalNotaKreditDigunakan = \App\Models\PembayaranPiutangNotaKredit::whereHas('pembayaran', function($query) use ($transaksiId) {
+            $query->whereHas('details', function($q) use ($transaksiId) {
+                $q->where('transaksi_id', $transaksiId);
+            });
+        })->sum('jumlah_digunakan');
+
+        // Sisa piutang = (grand_total - total_nota_kredit_digunakan) - total_dibayar
+        // Nota kredit mengurangi tagihan, bukan menambah pembayaran
+        $tagihanSetelahNotaKredit = $transaksi->grand_total - $totalNotaKreditDigunakan;
+        $sisaPiutang = $tagihanSetelahNotaKredit - $totalDibayar;
+        
+        // Jika sisa piutang negatif, berarti ada kelebihan pembayaran
+        if ($sisaPiutang < 0) {
+            $sisaPiutang = 0; // Set ke 0 untuk display
+        }
+        
+        $statusPiutang = $sisaPiutang <= 0 ? 'lunas' : ($totalDibayar > 0 || $totalNotaKreditDigunakan > 0 ? 'sebagian' : 'belum_dibayar');
 
         $transaksi->update([
             'total_dibayar' => $totalDibayar,

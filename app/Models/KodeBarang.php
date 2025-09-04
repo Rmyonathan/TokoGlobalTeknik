@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\GrupBarang;
 
 class KodeBarang extends Model
 {
@@ -14,14 +15,13 @@ class KodeBarang extends Model
 
     protected $fillable = [
         'name',
-        'price',
         'cost',
         'kode_barang',
         'attribute',
         // 'length',
         'status',
-        // Kolom baru untuk sistem unit dan harga
-        'kategori_barang_id',
+        // Kolom yang sudah ada di database
+        'grup_barang_id',
         'unit_dasar',
         'harga_jual',
         'ongkos_kuli_default',
@@ -30,7 +30,6 @@ class KodeBarang extends Model
     protected $casts = [
         // 'length' => 'decimal:2',
         'cost' => 'decimal:2',
-        'price' => 'decimal:2',
         'harga_jual' => 'decimal:2',
         'ongkos_kuli_default' => 'decimal:2',
     ];
@@ -40,16 +39,10 @@ class KodeBarang extends Model
         return $this->hasMany(Panel::class);
     }
 
-    // Add relationship to KategoriBarang
-    public function kategori()
+    // Add relationship to GrupBarang using existing grup_barang_id column
+    public function grupBarang()
     {
-        return $this->belongsTo(KategoriBarang::class, 'kategori_id');
-    }
-
-    // Relasi baru untuk sistem unit dan harga
-    public function kategoriBarang(): BelongsTo
-    {
-        return $this->belongsTo(KategoriBarang::class, 'kategori_barang_id');
+        return $this->belongsTo(GrupBarang::class, 'grup_barang_id');
     }
 
     public function unitConversions(): HasMany
@@ -73,9 +66,9 @@ class KodeBarang extends Model
         return $query->where('status', 'Active');
     }
 
-    public function scopeByKategori($query, $kategoriId)
+    public function scopeByGrupBarang($query, $grupBarangId)
     {
-        return $query->where('kategori_barang_id', $kategoriId);
+        return $query->where('grup_barang_id', $grupBarangId);
     }
 
     public function scopeByUnitDasar($query, $unit)

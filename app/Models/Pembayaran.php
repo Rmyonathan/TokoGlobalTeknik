@@ -50,6 +50,11 @@ class Pembayaran extends Model
         return $this->hasMany(PembayaranDetail::class, 'pembayaran_id');
     }
 
+    public function notaKreditDetails(): HasMany
+    {
+        return $this->hasMany(PembayaranPiutangNotaKredit::class, 'pembayaran_id');
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

@@ -13,17 +13,11 @@ class OrderItem extends Model
         'order_id',
         'panel_id',
         'name',
-        'length',
-        'transaction',
-        'original_panel_length',
-        'remaining_length'
+        'transaction'
     ];
 
     protected $casts = [
-        'length' => 'decimal:2',
         'transaction' => 'decimal:2',
-        'original_panel_length' => 'decimal:2',
-        'remaining_length' => 'decimal:2',
     ];
 
     public function order()

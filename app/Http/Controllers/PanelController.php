@@ -278,7 +278,11 @@ class PanelController extends Controller
     public function editInventory(Request $request)
     {
         $panel = KodeBarang::where('kode_barang', $request->id)->first();
-        $quantity = Panel::where('group_id', $request->id)->count();
+        
+        // Ambil quantity dari good_stock di tabel stocks
+        $stock = \App\Models\Stock::where('kode_barang', $request->id)->first();
+        $quantity = $stock ? $stock->good_stock : 0;
+        
         return view('panels.edit', [
             'panel' => $panel,
             'quantity' => $quantity
@@ -295,8 +299,7 @@ class PanelController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'group_id' => 'required|string|max:255',
-            'cost' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
+            // 'price' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:1',
         ], [
             'group_id.required' => 'Item code is required',
@@ -307,13 +310,9 @@ class PanelController extends Controller
             'name.string' => 'Panel name must be a valid string',
             'name.max' => 'Panel name may not be greater than 255 characters',
 
-            'cost.required' => 'Cost is required',
-            'cost.numeric' => 'Cost must be a valid number',
-            'cost.min' => 'Cost must be at least 0',
-
-            'price.required' => 'Price is required',
-            'price.numeric' => 'Price must be a valid number',
-            'price.min' => 'Price must be at least 0',
+            // 'price.required' => 'Price is required',
+            // 'price.numeric' => 'Price must be a valid number',
+            // 'price.min' => 'Price must be at least 0',
 
             'quantity.required' => 'Quantity is required',
             'quantity.integer' => 'Quantity must be a whole number',
@@ -322,18 +321,17 @@ class PanelController extends Controller
 
         $name = $validated['name'];
         $group_id = $validated['group_id'];
-        $length = KodeBarang::where('kode_barang', $group_id)->first()->length;
-        $cost = $validated['cost'];
-        $price = $validated['price'];
+        $cost = 0; // Set default cost, harga beli hanya diinput dari pembelian
+        // $price = $validated['price'];
         $quantity = $validated['quantity'];
 
-        $check_panel = Panel::where('group_id', $group_id)->where('length', $length)->exists();
+        $check_panel = Panel::where('group_id', $group_id)->exists();
 
         if ($check_panel) {
             return response()->json(['error' => 'Panel already exists.'], 400);
         }
 
-        $result = $this->addPanelsToInventory($name, $cost, $price, $length, $group_id, $quantity);
+        $result = $this->addPanelsToInventory($name, $cost, $group_id, $quantity);
 
         return redirect()->route('panels.inventory')
             ->with('success', $result['message']);
@@ -346,8 +344,6 @@ class PanelController extends Controller
             'name' => 'required|string|max:255',
             'group_id' => 'required|string|max:255',
             // 'length' => 'required|numeric|min:0.1',
-            'cost' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
             'status' => 'required',
             'quantity' => 'required|integer|min:0',
         ], [
@@ -363,14 +359,6 @@ class PanelController extends Controller
             // 'length.numeric' => 'Panel length must be a number',
             // 'length.min' => 'Panel length must be at least 0.1 meters',
 
-            'cost.required' => 'Cost is required',
-            'cost.numeric' => 'Cost must be a valid number',
-            'cost.min' => 'Cost must be at least 0',
-
-            'price.required' => 'Price is required',
-            'price.numeric' => 'Price must be a valid number',
-            'price.min' => 'Price must be at least 0',
-
             'quantity.required' => 'Quantity is required',
             'quantity.integer' => 'Quantity must be a whole number',
             'quantity.min' => 'Quantity must be at least 0',
@@ -379,8 +367,7 @@ class PanelController extends Controller
         $name = $validated['name'];
         // $length = $validated['length'];
         $group_id = $validated['group_id'];
-        $cost = $validated['cost'];
-        $price = $validated['price'];
+        $cost = 0; // Set default cost, harga beli hanya diinput dari pembelian
         $quantity = $validated['quantity'];
         $status = $validated['status'];
         // dd($validated);
@@ -390,14 +377,13 @@ class PanelController extends Controller
         $kode->name = $name;
         // $kode->length = $length;
         $kode->cost = $cost;
-        $kode->price = $price;
         $kode->status = $status;
         $kode->save();
 
         // $parts = explode('-', $group_id);
         // $group_id = $parts[0];
 
-        $result = $this->addPanelsToInventory($name, $cost, $price, $group_id, $quantity);
+        $result = $this->addPanelsToInventory($name, $cost, $group_id, $quantity); // price = 0 karena sudah dihapus
 
         return redirect()->route('master.barang')
             ->with('success', $result['message']);
@@ -574,8 +560,8 @@ class PanelController extends Controller
                 $pengurang = KodeBarang::where('kode_barang', $kode)->first();
                 $qty = $quantities[$index];
 
-                $totalPengurangLength += $pengurang->length * $qty;
-                $totalTransaction += $pengurang->price * $pengurang->length * $qty;
+                $totalPengurangLength += $qty; // Simplified without length
+                $totalTransaction += $pengurang->price * $qty;
                 $totalQty += $qty;
 
                 $pengurangData[] = [
@@ -584,11 +570,9 @@ class PanelController extends Controller
                 ];
             }
 
-            // Check invalid conversion or insufficient inventory
+            // Check insufficient inventory (simplified without length calculations)
             if (
-                ($penambah->length >= $totalPengurangLength && ($penambah->length - $totalPengurangLength) != 0)
-                || ($penambah->length < $totalPengurangLength && ($totalPengurangLength % $penambah->length != 0))
-                || ($totalPengurangLength * $frequency > (Panel::where('group_id', $penambah->kode_barang)->where('available', true)->count() * $penambah->length * $frequency))
+                $totalPengurangLength * $frequency > Panel::where('group_id', $penambah->kode_barang)->where('available', true)->count() * $frequency
             ) {
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['error' => 'Invalid conversion ratio.'], 400);
@@ -596,8 +580,8 @@ class PanelController extends Controller
                     return redirect()->back()->with('error', 'Invalid conversion ratio.');
                 }
             }
-            // Calculate how many panels of penambah are needed
-            $reduction = ($penambah->length - $totalPengurangLength == 0) ? 1 : ($totalPengurangLength / $penambah->length);
+            // Calculate how many panels of penambah are needed (simplified)
+            $reduction = $totalPengurangLength;
 
             $panelPenambah = Panel::where('group_id', $penambah->kode_barang)
                 ->where('available', true)
@@ -644,10 +628,7 @@ class PanelController extends Controller
                         'order_id' => $order->id,
                         'panel_id' => $panelPenambah[0]->id ?? null, // Optional: random assignment
                         'name' => $item->name . " (from " . $penambah->name . ")",
-                        'length' => $item->length,
-                        'transaction' => $item->price * $item->length,
-                        'original_panel_length' => $penambah->length,
-                        'remaining_length' => 0
+                        'transaction' => $item->price * $qty
                     ]);
                 }
 
@@ -656,7 +637,7 @@ class PanelController extends Controller
                     $item->name,
                     $item->cost,
                     $item->price,
-                    $item->length,
+
                     $item->kode_barang,
                     $qty
                 );
@@ -989,7 +970,7 @@ class PanelController extends Controller
         // Manually group the panels
         $groupedPanels = [];
         foreach ($panels as $panel) {
-            $key = $panel->length . '-' . $panel->name . '-' . $panel->price . '-' . $panel->group_id;
+            $key = $panel->name . '-' . $panel->price . '-' . $panel->group_id;
 
             if (!isset($groupedPanels[$key])) {
                 $groupedPanels[$key] = [
@@ -1104,12 +1085,12 @@ class PanelController extends Controller
      * @param int $quantity Number of panels to add
      * @return array Status of the operation
      */
-    public function addPanelsToInventory(string $name, float $cost, float $price, string $group_id, int $quantity): array
+    public function addPanelsToInventory(string $name, float $cost, string $group_id, int $quantity): array
     {
         $panels = [];
 
         for ($i = 0; $i < $quantity; $i++) {
-            $panel = $this->createPanel($name, $cost, $price, true, null, $group_id);
+            $panel = $this->createPanel($name, $cost, 0, true, null, $group_id); // price = 0 karena sudah dihapus
             $panels[] = $panel;
         }
 
@@ -1125,7 +1106,7 @@ class PanelController extends Controller
         $panel = Panel::create([
             'name' => $name,
             'cost' => $cost,
-            'price' => $price,
+            // 'price' => $price, // Field price sudah dihapus
             // 'length' => $length,
             'group_id' => $group_id,
             'available' => $available,

@@ -14,6 +14,8 @@ class Perusahaan extends Model
         'kode_pos',
         'telepon',
         'fax',
+        'bri_account',
+        'bca_account',
         'catatan_nota',
         'catatan_surat_jalan',
         'is_active'

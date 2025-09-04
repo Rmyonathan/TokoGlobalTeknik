@@ -60,6 +60,7 @@
 			<div class="mb-2">
 				<button type="button" id="btnMuatFaktur" class="btn btn-sm btn-secondary">Muat Faktur</button>
 				<button type="button" id="btnSuggest" class="btn btn-sm btn-info">Sugesti Otomatis (FIFO)</button>
+				<button type="button" id="btnKlikLunas" class="btn btn-sm btn-success">Klik Lunas</button>
 			</div>
 
 			<div class="table-responsive">
@@ -170,10 +171,48 @@
         if(sum>totalBayar){ e.preventDefault(); alert('Total alokasi melebihi Total Bayar.'); return; }
     }
 
+    function klikLunas(){
+        const customerSelect = document.querySelector('select[name=customer_id]');
+        const customerId = customerSelect ? customerSelect.value : '';
+        if(!customerSelect){ alert('Pilih pelanggan dahulu'); return; }
+        
+        // Set total bayar ke total piutang customer
+        const totalBayar = document.getElementById('total_bayar');
+        if(totalBayar) totalBayar.value = '0'; // Will be updated after loading invoices
+        
+        // Load invoices first
+        loadInvoices();
+        
+        // After a short delay, set all remaining amounts to be paid
+        setTimeout(() => {
+            document.querySelectorAll('#tabelFaktur tbody tr').forEach(tr => {
+                const chk = tr.querySelector('.chk-include');
+                const inpBayar = tr.querySelector('.input-bayar');
+                const sisaCell = tr.querySelector('.sisa');
+                
+                if(chk && inpBayar && sisaCell) {
+                    chk.checked = true;
+                    const sisaText = sisaCell.textContent.replace(/\./g, '').replace(/,/g, '');
+                    const sisaAmount = parseFloat(sisaText) || 0;
+                    inpBayar.value = sisaAmount;
+                }
+            });
+            
+            // Update total bayar
+            let total = 0;
+            document.querySelectorAll('.input-bayar').forEach(inp => {
+                total += parseFloat(inp.value) || 0;
+            });
+            if(totalBayar) totalBayar.value = total;
+        }, 500);
+    }
+
     const btnMuat = document.getElementById('btnMuatFaktur');
     const btnSugg = document.getElementById('btnSuggest');
+    const btnKlikLunas = document.getElementById('btnKlikLunas');
     if(btnMuat) btnMuat.addEventListener('click', loadInvoices);
     if(btnSugg) btnSugg.addEventListener('click', suggestAlloc);
+    if(btnKlikLunas) btnKlikLunas.addEventListener('click', klikLunas);
     const form = document.getElementById('pembayaranForm');
     if(form) form.addEventListener('submit', function(e){ buildPaymentDetails(e); });
 })();

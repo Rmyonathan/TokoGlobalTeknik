@@ -191,4 +191,123 @@ class FifoService
             ->orderBy('tanggal_masuk', 'asc')
             ->get();
     }
+
+    /**
+     * Tambah stok untuk return barang dari penjualan
+     * 
+     * @param int $kodeBarangId
+     * @param float $qty
+     * @param float $harga
+     * @param string $keterangan
+     * @param string $customerId
+     * @return bool
+     * @throws Exception
+     */
+    public function addStock(int $kodeBarangId, float $qty, float $harga, string $keterangan, string $customerId = null): bool
+    {
+        DB::beginTransaction();
+        
+        try {
+            // Cari batch yang sudah ada dengan harga yang sama
+            $existingBatch = StockBatch::byKodeBarang($kodeBarangId)
+                ->where('harga_beli', $harga)
+                ->where('qty_sisa', '>', 0)
+                ->first();
+
+            if ($existingBatch) {
+                // Tambah ke batch yang sudah ada
+                $existingBatch->qty_sisa += $qty;
+                $existingBatch->save();
+            } else {
+                // Buat batch baru untuk return
+                StockBatch::create([
+                    'kode_barang_id' => $kodeBarangId,
+                    'qty_masuk' => $qty,
+                    'qty_sisa' => $qty,
+                    'harga_beli' => $harga,
+                    'tanggal_masuk' => now(),
+                    'keterangan' => $keterangan,
+                    'customer_id' => $customerId,
+                    'tipe_batch' => 'return_penjualan'
+                ]);
+            }
+
+            // Update tabel stocks untuk sinkronisasi dengan master barang
+            $kodeBarang = \App\Models\KodeBarang::find($kodeBarangId);
+            if ($kodeBarang) {
+                $stock = \App\Models\Stock::where('kode_barang', $kodeBarang->kode_barang)->first();
+                if ($stock) {
+                    $stock->good_stock += $qty;
+                    $stock->save();
+                }
+            }
+
+            DB::commit();
+            return true;
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Kurangi stok untuk return barang ke supplier
+     * 
+     * @param int $kodeBarangId
+     * @param float $qty
+     * @param string $keterangan
+     * @param string $customerId
+     * @return bool
+     * @throws Exception
+     */
+    public function reduceStock(int $kodeBarangId, float $qty, string $keterangan, string $customerId = null): bool
+    {
+        DB::beginTransaction();
+        
+        try {
+            // Ambil batch yang tersisa, urutkan berdasarkan FIFO
+            $batches = StockBatch::byKodeBarang($kodeBarangId)
+                ->tersisa()
+                ->fifo()
+                ->lockForUpdate()
+                ->get();
+
+            $qtyTersisa = $qty;
+
+            foreach ($batches as $batch) {
+                if ($qtyTersisa <= 0) break;
+
+                $qtyTersedia = $batch->qty_sisa;
+                $qtyAmbil = min($qtyTersisa, $qtyTersedia);
+
+                // Update qty_sisa di batch
+                $batch->qty_sisa -= $qtyAmbil;
+                $batch->save();
+
+                $qtyTersisa -= $qtyAmbil;
+            }
+
+            if ($qtyTersisa > 0) {
+                throw new Exception("Stok tidak mencukupi untuk return. Kekurangan: {$qtyTersisa}");
+            }
+
+            // Update tabel stocks untuk sinkronisasi dengan master barang
+            $kodeBarang = \App\Models\KodeBarang::find($kodeBarangId);
+            if ($kodeBarang) {
+                $stock = \App\Models\Stock::where('kode_barang', $kodeBarang->kode_barang)->first();
+                if ($stock) {
+                    $stock->good_stock -= $qty;
+                    $stock->save();
+                }
+            }
+
+            DB::commit();
+            return true;
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
 }

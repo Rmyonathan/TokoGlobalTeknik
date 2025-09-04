@@ -27,6 +27,10 @@ class PermissionSeeder extends Seeder
         $this->createInventoryPermissions();
         $this->createReportPermissions();
         $this->createSalesOrderPermissions();
+        $this->createReturnBarangPermissions();
+        $this->createReturPenjualanPermissions();
+        $this->createReturPembelianPermissions();
+        $this->createPembayaranUtangSupplierPermissions();
 
 
         // Create roles and assign permissions
@@ -184,6 +188,42 @@ class PermissionSeeder extends Seeder
         $this->createPermissionIfNotExists('delete sales order');
     }
 
+    private function createReturnBarangPermissions()
+    {
+        $this->createPermissionIfNotExists('view return barang');
+        $this->createPermissionIfNotExists('create return barang');
+        $this->createPermissionIfNotExists('edit return barang');
+        $this->createPermissionIfNotExists('manage return barang');
+        $this->createPermissionIfNotExists('delete return barang');
+        $this->createPermissionIfNotExists('approve return barang');
+        $this->createPermissionIfNotExists('reject return barang');
+        $this->createPermissionIfNotExists('process return barang');
+    }
+
+    private function createReturPenjualanPermissions()
+    {
+        $this->createPermissionIfNotExists('view retur penjualan');
+        $this->createPermissionIfNotExists('create retur penjualan');
+        $this->createPermissionIfNotExists('edit retur penjualan');
+        $this->createPermissionIfNotExists('manage retur penjualan');
+        $this->createPermissionIfNotExists('delete retur penjualan');
+        $this->createPermissionIfNotExists('approve retur penjualan');
+        $this->createPermissionIfNotExists('reject retur penjualan');
+        $this->createPermissionIfNotExists('process retur penjualan');
+    }
+
+    private function createReturPembelianPermissions()
+    {
+        $this->createPermissionIfNotExists('view retur pembelian');
+        $this->createPermissionIfNotExists('create retur pembelian');
+        $this->createPermissionIfNotExists('edit retur pembelian');
+        $this->createPermissionIfNotExists('manage retur pembelian');
+        $this->createPermissionIfNotExists('delete retur pembelian');
+        $this->createPermissionIfNotExists('approve retur pembelian');
+        $this->createPermissionIfNotExists('reject retur pembelian');
+        $this->createPermissionIfNotExists('process retur pembelian');
+    }
+
     /**
      * Create roles and assign permissions
      */
@@ -207,6 +247,27 @@ class PermissionSeeder extends Seeder
             'create sales order',
             'edit sales order',
             'manage sales order',
+            'view return barang',
+            'create return barang',
+            'edit return barang',
+            'manage return barang',
+            'approve return barang',
+            'reject return barang',
+            'process return barang',
+            'view retur penjualan',
+            'create retur penjualan',
+            'edit retur penjualan',
+            'manage retur penjualan',
+            'approve retur penjualan',
+            'reject retur penjualan',
+            'process retur penjualan',
+            'view retur pembelian',
+            'create retur pembelian',
+            'edit retur pembelian',
+            'manage retur pembelian',
+            'approve retur pembelian',
+            'reject retur pembelian',
+            'process retur pembelian',
             'view kas',
             'edit kas',
             'view hutang',
@@ -235,6 +296,10 @@ class PermissionSeeder extends Seeder
             'view sales order',
             'create sales order',
             'edit sales order',
+            'view return barang',
+            'create return barang',
+            'view retur penjualan',
+            'create retur penjualan',
             'view stock',
             // Allow viewing AR payment menu
             'view pembayaran piutang',
@@ -255,6 +320,8 @@ class PermissionSeeder extends Seeder
             'edit stock adjustment',
             'manage panels',
             'edit panels',
+            'view retur pembelian',
+            'create retur pembelian',
             'view laporan',
             'access inventory report'
         ];
@@ -342,6 +409,7 @@ class PermissionSeeder extends Seeder
             'edit customers',
             'view stock',
             'view pembayaran piutang',
+            'view pembayaran utang supplier',
             'view laporan',
             'view wilayah',
             'manage wilayah',
@@ -369,6 +437,10 @@ class PermissionSeeder extends Seeder
             'view hutang',
             'manage hutang',
             'edit hutang',
+            'view pembayaran utang supplier',
+            'create pembayaran utang supplier',
+            'edit pembayaran utang supplier',
+            'manage pembayaran utang supplier',
             'view laporan'
         ]);
         
@@ -388,9 +460,30 @@ class PermissionSeeder extends Seeder
             'edit stock adjustment',
             'cancel stock adjustment',
             'view pembayaran piutang',
+            'view pembayaran utang supplier',
             'view laporan',
             'view wilayah'
         ]);
+    }
+
+    /**
+     * Create Pembayaran Utang Supplier permissions
+     */
+    private function createPembayaranUtangSupplierPermissions()
+    {
+        $this->command->info('Creating Pembayaran Utang Supplier permissions...');
+        
+        $permissions = [
+            'view pembayaran utang supplier',
+            'create pembayaran utang supplier',
+            'edit pembayaran utang supplier',
+            'delete pembayaran utang supplier',
+            'manage pembayaran utang supplier',
+        ];
+        
+        foreach ($permissions as $permission) {
+            $this->createPermissionIfNotExists($permission);
+        }
     }
     
     /**

@@ -203,6 +203,10 @@
                         <label>Grand Total</label>
                         <input type="text" class="form-control text-right" id="grand_total" readonly value="{{ number_format($transaction->grand_total, 0, ',', '.') }}" style="font-size: 18px; font-weight: bold;">
                     </div>
+                    <div class="form-group">
+                        <label for="notes">Catatan</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Masukkan catatan tambahan (opsional)">{{ $transaction->notes ?? '' }}</textarea>
+                    </div>
                     <div class="form-group text-right mt-4">
                         <button type="button" class="btn btn-success" id="updateTransaction">
                             <i class="fas fa-save"></i> Simpan Perubahan
@@ -429,7 +433,7 @@
         const qty = parseInt($('#quantity').val()) || 0;
         const diskon = parseInt($('#diskon').val()) || 0;
 
-        if (!kodeBarang || !namaBarang || !harga || !qty) {
+        if (!kodeBarang || !namaBarang || harga === undefined || harga === null || !qty) {
             alert('Mohon lengkapi data barang!');
             return;
         }
@@ -479,9 +483,11 @@
                         <td class="text-right">${formatCurrency(item.total)}</td>
                         <td class="text-right">${item.diskon}%</td>
                         <td>
+@can('delete invoice items')
                             <button type="button" class="btn btn-sm btn-danger remove-item" data-index="${index}">
                                 <i class="fas fa-trash"></i>
                             </button>
+@endcan
                         </td>
                     </tr>
                 `);
@@ -574,7 +580,8 @@
                     ppn: $('#ppn_amount').val().replace(/\./g, ''),
                     dp: $('#dp_amount').val(),
                     grand_total: grandTotal,
-                    edit_reason: $('#edit_reason').val()
+                    edit_reason: $('#edit_reason').val(),
+                    notes: $('#notes').val()
                 };
 
                 showLoading();

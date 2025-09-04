@@ -37,14 +37,7 @@
                             <small class="form-text text-muted">Cari dan pilih kode barang.</small>
                         </div>
                         
-                        <div class="form-group">
-                            <label for="cost"><i class="fas fa-ruler mr-1"></i> Harga Beli (per meters)</label>
-                            <input type="number" step="0.01" class="form-control @error('cost') is-invalid @enderror" id="cost" name="cost" value="{{ old('cost') }}" required>
-                            @error('cost')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-text text-muted">Enter the price.</small>
-                        </div>
+
                         <div class="form-group">
                             <label for="price"><i class="fas fa-ruler mr-1"></i> Harga Jual (per meters)</label>
                             <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" id="price" name="price" value="{{ old('price') }}" required>

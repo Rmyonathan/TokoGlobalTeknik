@@ -173,12 +173,21 @@
                                             @endif
                                             
                                             @if($so->canBeApproved())
-                                                <form action="{{ route('sales-order.approve', $so) }}" method="POST" style="display: inline;">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Setujui Sales Order ini?')">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                </form>
+                                                @if($so->isCanceled())
+                                                    <form action="{{ route('sales-order.reapprove', $so) }}" method="POST" style="display: inline;">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Approve kembali Sales Order ini?')">
+                                                            <i class="fas fa-redo"></i> Re-approve
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <form action="{{ route('sales-order.approve', $so) }}" method="POST" style="display: inline;">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Setujui Sales Order ini?')">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             @endif
                                             
                                             <!-- @if($so->canBeProcessed())
@@ -190,7 +199,7 @@
                                                 </form>
                                             @endif -->
 
-                                            {{-- 🔥 Tombol Konversi ke Transaksi (jika status sudah approved) --}}
+                                            <!-- {{-- 🔥 Tombol Konversi ke Transaksi (jika status sudah approved) --}}
                                             @if($so->status == 'approved')
                                                 <form action="{{ route('sales-order.convert', $so) }}" method="POST" style="display: inline;">
                                                     @csrf
@@ -198,7 +207,7 @@
                                                         <i class="fas fa-exchange-alt"></i>
                                                     </button>
                                                 </form>
-                                            @endif
+                                            @endif -->
                                             
                                             @if($so->canBeCanceled())
                                                 <form action="{{ route('sales-order.cancel', $so) }}" method="POST" style="display: inline;">

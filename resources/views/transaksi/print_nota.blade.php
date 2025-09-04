@@ -227,25 +227,63 @@ use Riskihajar\Terbilang\Facades\Terbilang;
     <div class="page">
         {{-- INVOICE HEADER SECTION --}}
         <div class="header">
-            <strong>{{ $defaultCompany->nama ?? 'CV. ALUMKA CIPTA PRIMA' }}</strong><br>
-            {{ $defaultCompany->alamat ?? 'JL. SINAR RAGA ABI HASAN NO.1553 RT.022 RW.008' }}<br>
-            {{ $defaultCompany->kota ?? '8 ILIR' }}, {{ $defaultCompany->kode_pos ?? 'ILIR TIMUR II' }}<br>
-            TELP. {{ $defaultCompany->telepon ?? '(0711) 311158' }} &nbsp;&nbsp; FAX {{ $defaultCompany->fax ?? '(0711) 311158' }}<br>
-            NO FAKTUR: {{ $transaction->no_transaksi }}
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="text-align: left;">
+                    <strong>{{ $defaultCompany->nama ?? '' }}</strong><br>
+                    {{ $defaultCompany->alamat ?? '' }}<br>
+                    {{ $defaultCompany->kota ?? '' }}{{ $defaultCompany->kode_pos ? ', '.$defaultCompany->kode_pos : '' }}<br>
+                    @if(!empty($defaultCompany->telepon)) TELP. {{ $defaultCompany->telepon }} @endif
+                    @if(!empty($defaultCompany->fax)) &nbsp;&nbsp; FAX {{ $defaultCompany->fax }} @endif
+                </div>
+                <div style="text-align: right;">
+                    {{ \Carbon\Carbon::parse($transaction->tanggal)->format('d/M/Y') }}<br>
+                    HALAMAN: {{ $pageNum }} / {{ $totalPages }}<br>
+                    Dicetak oleh: {{ auth()->user()->name ?? 'SYSTEM' }}
+                </div>
+            </div>
+            <div style="text-align: center; margin: 10px 0; font-size: 12pt; font-weight: bold;">
+                <!-- NOTA TITIPAN BARANG -->
+            </div>
         </div>
 
-        {{-- CUSTOMER AND DATE INFORMATION --}}
-        <table style="width: 100%; table-layout: fixed;">
+        {{-- CUSTOMER AND TRANSACTION INFORMATION --}}
+        <table style="width: 100%; table-layout: fixed; margin-bottom: 10px;">
             <tr>
-                <td style="width: 65%; vertical-align: top;">
-                <strong>Kpd Yth:</strong><br>
-                Nama: {{ $transaction->customer->nama ?? '-' }}<br>
-                Telp: {{ $transaction->customer->telepon ?? '-' }}<br>
-                Alamat: {{ $transaction->customer->alamat ?? '-' }}
+                <td style="width: 50%; vertical-align: top;">
+                    <strong>Kepada Yth: {{ $transaction->customer->nama ?? '-' }}</strong><br>
+                    {{ $transaction->customer->alamat ?? '-' }}
                 </td>
-                <td style="width: 35%; vertical-align: top; text-align: right;">
-                {{ \Carbon\Carbon::parse($transaction->tanggal)->format('d M Y') }}<br>
-                HALAMAN: {{ $pageNum }} / {{ $totalPages }}
+                <td style="width: 50%; vertical-align: top;">
+                    <table style="width: 100%; font-size: 8pt;">
+                        <tr>
+                            <td style="width: 30%;"><strong>Faktur:</strong></td>
+                            <td style="width: 70%;">{{ $transaction->no_transaksi }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Salesman:</strong></td>
+                            <td>{{ $transaction->salesman->keterangan ?? 'OFFICE' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pengirim:</strong></td>
+                            <td>{{ $defaultCompany->nama ?? '' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pembayaran:</strong></td>
+                            <td>{{ $transaction->cara_bayar ?? 'Tunai' }}</td>
+                        </tr>
+                        @if($transaction->tanggal_jatuh_tempo)
+                        <tr>
+                            <td><strong>Jatuh Tempo:</strong></td>
+                            <td>{{ \Carbon\Carbon::parse($transaction->tanggal_jatuh_tempo)->format('d/M/Y') }}</td>
+                        </tr>
+                        @endif
+                        @if(!empty($transaction->hari_tempo))
+                        <tr>
+                            <td><strong>Hari Tempo:</strong></td>
+                            <td>{{ $transaction->hari_tempo }} hari</td>
+                        </tr>
+                        @endif
+                    </table>
                 </td>
             </tr>
         </table>
@@ -254,14 +292,12 @@ use Riskihajar\Terbilang\Facades\Terbilang;
         <table class="item-table">
             <thead>
                 <tr>
-                    <th>No.</th>
-                    <th>Kode Barang</th>
-                    <th>Nama Barang</th>
-                    <th>Qty</th>
-                    <th>Harga Satuan</th>
-                    <th>Disc %</th>
-                    <th>Disc Rp</th>
-                    <th>Sub Total</th>
+                    <th style="width: 5%;">No.</th>
+                    <th style="width: 35%;">Nama Barang</th>
+                    <th style="width: 10%;">Ball</th>
+                    <th style="width: 15%;">Kuantiti</th>
+                    <th style="width: 15%;">Harga @</th>
+                    <th style="width: 20%;">Jumlah</th>
                 </tr>
             </thead>
             <tbody>
@@ -270,12 +306,16 @@ use Riskihajar\Terbilang\Facades\Terbilang;
                     @php $rowCount++; @endphp
                     <tr>
                         <td class="center">{{ (($pageNum - 1) * $itemsPerPage) + $i + 1 }}</td>
-                        <td>{{ $item->kode_barang }}</td>
-                        <td>{{ $item->keterangan }}</td>
-                        <td class="center">{{ $item->qty }}</td>
-                        <td class="right">Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
-                        <td class="center">{{ $item->diskon_persen ?? 0 }}</td>
-                        <td class="right">Rp {{ number_format($item->diskon ?? 0, 0, ',', '.') }}</td>
+                        <td>{{ $item->nama_barang }}</td>
+                        <td class="center">{{ ceil($item->qty / 25) }}</td>
+                        <td class="center">{{ number_format($item->qty, 2) }} {{ $item->satuan ?? 'PAK' }}</td>
+                        <td class="right">
+                            @if($item->harga == 0)
+                                Bonus
+                            @else
+                                Rp {{ number_format($item->harga, 0, ',', '.') }}
+                            @endif
+                        </td>
                         <td class="right">Rp {{ number_format($item->total, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach
@@ -285,7 +325,7 @@ use Riskihajar\Terbilang\Facades\Terbilang;
                     @for ($j = $rowCount; $j < $itemsPerPage; $j++)
                         <tr class="empty-row">
                             <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
-                            <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                            <td>&nbsp;</td><td>&nbsp;</td>
                         </tr>
                     @endfor
                 @endif
@@ -333,24 +373,40 @@ use Riskihajar\Terbilang\Facades\Terbilang;
                 </tr>
             </table>
 
-            <table style="width: 100%; margin-top: 20px; font-size: 9pt; table-layout: fixed;">
-                <tr>
-                    <td style="width: 20%; text-align: center;">
-                    HORMAT KAMI<br><br><br>
-                    ( _____________ )
-                    </td>
-                    <td style="width: 60%;"></td>
-                    <td style="width: 20%; text-align: center;">
-                    PENERIMA<br><br><br>
-                    ( _____________ )
-                    </td>
-                </tr>
-            </table>
+            {{-- Payment Information --}}
+            <div style="margin-top: 15px; font-size: 8pt;">
+                <div style="display: flex; justify-content: space-between;">
+                    <div style="width: 50%;">
+                        <strong>1. Pembayaran Transfer ke A/N {{ $defaultCompany->nama ?? '' }}</strong><br>
+                        BRI: {{ $defaultCompany->bri_account ?? '0285-01-001326-560' }}<br>
+                        BCA: {{ $defaultCompany->bca_account ?? '020 523 0187' }}<br><br>
+                        <strong>2. Pembayaran GIRO / CHEQ ke A/N {{ $defaultCompany->nama ?? '' }}</strong><br>
+                        BCA: {{ $defaultCompany->bca_account ?? '020 523 0187' }}
+                    </div>
+                    <div style="width: 50%; text-align: center;">
+                        <div style="margin-bottom: 20px;">
+                            <strong>Diterima Oleh,</strong><br><br><br>
+                            ( _____________ )<br>
+                            <small>Tanda tangan & Nama jelas</small>
+                        </div>
+                        <div>
+                            <strong>Hormat Kami,</strong><br><br><br>
+                            ( _____________ )
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if($transaction->notes)
+            <div class="edit-info-box" style="margin-top: 10px;">
+                <strong>Catatan:</strong> {{ $transaction->notes }}
+            </div>
+            @endif
 
             @if($transaction->is_edited || $transaction->status == 'canceled')
             <div class="edit-info-box">
                 @if($transaction->is_edited)
-                    <strong>Informasi Edit:</strong> Diedit oleh: {{ $transaction->edited_by }} pada {{ \Carbon\Carbon::parse($transaction->edited_at)->format('d M Y H:i') }}<br>Alasan: {{ $transaction->edit_reason }}
+                    <strong>Informasi Edit:</strong> Diperbarui oleh: {{ $transaction->editedBy->name ?? 'Admin' }} pada {{ \Carbon\Carbon::parse($transaction->edited_at)->format('d M Y H:i') }}<br>Alasan: {{ $transaction->edit_reason }}
                 @endif
                 @if($transaction->is_edited && $transaction->status == 'canceled') <br> @endif
                 @if($transaction->status == 'canceled')

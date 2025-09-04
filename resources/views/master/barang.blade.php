@@ -95,7 +95,9 @@
                                                 <span class="text-muted">-</span>
                                             @endif
                                         </td>
-                                        <td>{{ $item['status'] }}</td>
+                                        <td>
+                                            <span class="badge {{ $item['status'] === 'Active' ? 'bg-success' : 'bg-secondary' }}">{{ $item['status'] }}</span>
+                                        </td>
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <form action="{{ route('panels.edit-inventory', ['id' => $item['group_id']]) }}" method="GET">
@@ -105,6 +107,12 @@
                                                 <form action="{{ route('panels.delete-inventory', ['id' => $item['group_id']]) }}" method="POST">
                                                     @csrf
                                                     <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Hapus</button>
+                                                </form>
+                                                <form action="{{ route('code.toggle-status', ['id' => $item['id'] ?? null]) }}" method="POST" onsubmit="return confirm('Ubah status barang ini?');">
+                                                    @csrf
+                                                    <button class="btn btn-sm {{ ($item['status'] === 'Active') ? 'btn-warning' : 'btn-primary' }}">
+                                                        {{ ($item['status'] === 'Active') ? 'Nonaktifkan' : 'Aktifkan' }}
+                                                    </button>
                                                 </form>
                                             </div>
                                         </td>

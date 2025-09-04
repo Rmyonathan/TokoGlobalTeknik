@@ -256,7 +256,7 @@ class StockAdjustmentController extends Controller
                     'name' => $kodeBarangModel->name,
                     'cost' => $kodeBarangModel->cost,
                     'price' => $kodeBarangModel->price,
-                    'length' => $kodeBarangModel->length,
+
                     'group_id' => $kodeBarangModel->kode_barang,
                     'available' => true,
                 ]);

@@ -24,8 +24,10 @@
                         <thead class="thead-dark">
                             <tr>
                                 <th style="border: 1px solid #000;">Kode Barang</th>
-                                <th style="border: 1px solid #000;">Attribute</th>
-                                <th style="border: 1px solid #000;">Length (m)</th>
+                                <th style="border: 1px solid #000;">Nama Barang</th>
+                                <th style="border: 1px solid #000;">Satuan Kecil</th>
+                                <th style="border: 1px solid #000;">Satuan Besar</th>
+                                <th style="border: 1px solid #000;">Status</th>
                                 <th style="border: 1px solid #000;">Aksi</th>
                             </tr>
                         </thead>
@@ -33,8 +35,23 @@
                             @foreach($codes as $code)
                                 <tr>
                                     <td style="border: 1px solid #000;">{{ $code->kode_barang }}</td>
-                                    <td style="border: 1px solid #000;">{{ $code->attribute }}</td>
-                                    <td style="border: 1px solid #000;">{{ number_format($code->length) }}</td>
+                                    <td style="border: 1px solid #000;">{{ $code->name }}</td>
+                                    <td style="border: 1px solid #000;">{{ $code->unit_dasar ?? '-' }}</td>
+                                    <td style="border: 1px solid #000; white-space: nowrap;">
+                                        @php
+                                            $convs = \App\Models\UnitConversion::where('kode_barang_id', $code->id)->orderBy('unit_turunan')->get();
+                                        @endphp
+                                        @if($convs->count() === 0)
+                                            <span class="badge badge-light">-</span>
+                                        @else
+                                            @foreach($convs as $uc)
+                                                <span class="badge {{ $uc->is_active ? 'badge-success' : 'badge-secondary' }} mr-2 mb-1">
+                                                    {{ $uc->unit_turunan }} = {{ $uc->nilai_konversi }} {{ $code->unit_dasar }}
+                                                </span>
+                                            @endforeach
+                                        @endif
+                                    </td>
+                                    <td style="border: 1px solid #000;">{{ $code->status }}</td>
                                     <td style="border: 1px solid #000;">
                                         <div class="btn-group" role="group">
                                             <a href="{{ route('code.edit', $code->id) }}" class="btn btn-sm btn-success">

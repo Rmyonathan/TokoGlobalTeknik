@@ -34,32 +34,62 @@ class SuratJalanController extends Controller
         $newNumber = $lastSuratJalan ? ((int) substr($lastSuratJalan->no_suratjalan, -5)) + 1 : 1;
         $noSuratJalan = 'SJ-' . date('m') . date('y') . '-' . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
 
-        $customers = Customer::all();
+        // Get all transactions that can be used for Surat Jalan
+        // Only show transactions that haven't been used for Surat Jalan yet
+        $availableTransactions = Transaksi::with(['customer', 'items'])
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('surat_jalan')
+                    ->whereColumn('surat_jalan.no_transaksi', 'transaksi.no_transaksi');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $noTransaksi = $request->get('no_transaksi'); // Jika ada no_transaksi dari query string
-        $transaksi = $noTransaksi ? Transaksi::with('items')->where('no_transaksi', $noTransaksi)->first() : null;
+        $transaksi = $noTransaksi ? Transaksi::with(['items', 'customer'])->where('no_transaksi', $noTransaksi)->first() : null;
         $transaksiItems = $transaksi ? $transaksi->items : collect();
 
-        return view('suratjalan.suratjalan', compact('noSuratJalan', 'customers', 'transaksi', 'transaksiItems'));
+        return view('suratjalan.suratjalan', compact('noSuratJalan', 'availableTransactions', 'transaksi', 'transaksiItems'));
     }
 
     public function store(Request $request){
-        $request->validate([
-            'no_suratjalan' => 'required|unique:surat_jalan,no_suratjalan',
-            'tanggal' => 'required|date',
-            'kode_customer' => 'required|exists:customers,kode_customer',
-            'alamat_suratjalan' => 'required|string',
-            'no_transaksi' => 'required|exists:transaksi,no_transaksi',
-            'tanggal_transaksi' => 'required|date',
-            'titipan_uang' => 'nullable|numeric',
-            'sisa_piutang' => 'nullable|numeric',
-            'items' => 'required|array',
-            'items.*.transaksi_id' => 'required|integer',
-            'items.*.no_transaksi' => 'required|exists:transaksi,no_transaksi',
-            'items.*.kode_barang' => 'required|string',
-            'items.*.nama_barang' => 'required|string',
-            'items.*.qty' => 'required|numeric|min:0.01',
-            // 'items.*.satuan' => 'required|string',
+        // Debug logging
+        Log::info('Surat Jalan Store Request:', [
+            'request_data' => $request->all(),
+            'items_count' => count($request->items ?? []),
+            'items' => $request->items
         ]);
+        
+        try {
+            $request->validate([
+                'no_suratjalan' => 'required|unique:surat_jalan,no_suratjalan',
+                'tanggal' => 'required|date',
+                'kode_customer' => 'required|exists:customers,kode_customer',
+                'alamat_suratjalan' => 'required|string',
+                'no_transaksi' => 'required|exists:transaksi,no_transaksi',
+                'tanggal_transaksi' => 'required|date',
+                'titipan_uang' => 'nullable|numeric',
+                'sisa_piutang' => 'nullable|numeric',
+                'items' => 'required|array',
+                            'items.*.transaksi_id' => 'required|integer|exists:transaksi,id',
+                'items.*.no_transaksi' => 'required|exists:transaksi,no_transaksi',
+                'items.*.kode_barang' => 'required|string',
+                'items.*.nama_barang' => 'required|string',
+                'items.*.qty' => 'required|numeric|min:0.01',
+                'items.*.satuan' => 'required|string',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Surat Jalan Validation Error:', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
     
         DB::beginTransaction();
         try {
@@ -81,12 +111,20 @@ class SuratJalanController extends Controller
                     throw new Exception("Kode barang {$item['kode_barang']} tidak ditemukan");
                 }
 
+                // Cari transaksi item yang sesuai
+                $transaksiItem = TransaksiItem::where('transaksi_id', $item['transaksi_id'])
+                    ->where('kode_barang', $item['kode_barang'])
+                    ->first();
+                
+                if (!$transaksiItem) {
+                    throw new Exception("Transaksi item tidak ditemukan untuk {$item['kode_barang']}");
+                }
+
                 // Konversi qty ke unit dasar untuk validasi stok
                 $qtyInBaseUnit = $this->unitService->convertToBaseUnit(
                     $kodeBarang->id, 
                     $item['qty'], 
-                    $kodeBarang->unit_dasar
-                    // $item['satuan']
+                    $item['satuan']
                 );
 
                 // Validasi stok tersedia
@@ -95,10 +133,10 @@ class SuratJalanController extends Controller
                     throw new Exception("Stok tidak mencukupi untuk {$item['nama_barang']}. Tersedia: {$stokTersedia}, Dibutuhkan: {$qtyInBaseUnit}");
                 }
 
-                // Buat Surat Jalan Item
+                // Buat Surat Jalan Item dengan transaksi_item_id yang benar
                 $suratJalanItem = SuratJalanItem::create([
                     'no_suratjalan' => $suratJalan->no_suratjalan,
-                    'transaksi_id' => $item['transaksi_id'],
+                    'transaksi_id' => $transaksiItem->id, // Ini harus ID dari transaksi_items, bukan transaksi
                     'kode_barang' => $item['kode_barang'],
                     'nama_barang' => $item['nama_barang'],
                     'qty' => $item['qty']
@@ -142,8 +180,23 @@ class SuratJalanController extends Controller
 
         } catch (Exception $e) {
             DB::rollBack();
+            
+            // Log detailed error information
+            Log::error('Surat Jalan Store Error:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            
             return response()->json([
-                'error' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'success' => false,
+                'error' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                'details' => [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]
             ], 400);
         }
     }
@@ -248,6 +301,65 @@ class SuratJalanController extends Controller
 
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Batalkan Surat Jalan: rollback alokasi FIFO, kurangi qty_terkirim SO, dan set status canceled
+     */
+    public function cancel(Request $request, $id)
+    {
+        $request->validate([
+            'cancel_reason' => 'required|string|max:255',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $sj = SuratJalan::with(['items.suratJalanItemSumber', 'items.transaksiItem'])->findOrFail($id);
+
+            if ($sj->status === 'canceled') {
+                return back()->with('error', 'Surat Jalan sudah dibatalkan.');
+            }
+
+            // Kembalikan alokasi FIFO ke stock_batches
+            foreach ($sj->items as $item) {
+                foreach ($item->suratJalanItemSumber as $src) {
+                    $batch = StockBatch::find($src->stock_batch_id);
+                    if ($batch) {
+                        $batch->qty_sisa += $src->qty_diambil;
+                        $batch->save();
+                    }
+                    $src->delete();
+                }
+            }
+
+            // Kurangi qty_terkirim pada sales order items jika ada relasi
+            if (!empty($sj->no_transaksi)) {
+                try {
+                    $trx = Transaksi::with(['salesOrder.items'])->where('no_transaksi', $sj->no_transaksi)->first();
+                    if ($trx && $trx->salesOrder) {
+                        foreach ($sj->items as $item) {
+                            $soItem = $trx->salesOrder->items->firstWhere('kode_barang', $item->kode_barang);
+                            if ($soItem && isset($soItem->qty_terkirim)) {
+                                $soItem->qty_terkirim = max(0, ($soItem->qty_terkirim - $item->qty));
+                                $soItem->save();
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Revert SO qty on SJ cancel failed', ['message' => $e->getMessage()]);
+                }
+            }
+
+            $sj->status = 'canceled';
+            $sj->keterangan = trim(($sj->keterangan ?? '') . ' | DIBATALKAN: ' . $request->cancel_reason);
+            $sj->save();
+
+            DB::commit();
+            return back()->with('success', 'Surat Jalan berhasil dibatalkan.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal membatalkan Surat Jalan: ' . $e->getMessage());
         }
     }
 }

@@ -8,7 +8,8 @@ use App\Models\KodeBarang;
 use App\Models\UnitConversion;
 use App\Models\CustomerPrice;
 use App\Models\Customer;
-use App\Models\KategoriBarang;
+use App\Models\GrupBarang;
+use Illuminate\Support\Facades\DB; // Added this import for DB facade
 
 class TestUnitConversionSystem extends Command
 {
@@ -23,17 +24,41 @@ class TestUnitConversionSystem extends Command
         // 1. Setup test data
         $this->info('1. Setup test data...');
         
-        // Buat kategori barang
-        $kategori = KategoriBarang::firstOrCreate(
-            ['name' => 'Plastik Test'],
-            ['description' => 'Kategori untuk testing unit conversion']
-        );
+        // Buat grup barang berdasarkan attribute panel yang ada
+        $panelAttributes = DB::table('panels')
+            ->select('attribute')
+            ->whereNotNull('attribute')
+            ->where('attribute', '!=', '')
+            ->distinct()
+            ->pluck('attribute')
+            ->toArray();
+
+        if (!empty($panelAttributes)) {
+            $grupBarang = GrupBarang::firstOrCreate(
+                ['name' => $panelAttributes[0]], // Gunakan attribute pertama
+                [
+                    'name' => $panelAttributes[0],
+                    'description' => 'Grup untuk testing unit conversion',
+                    'status' => 'Active'
+                ]
+            );
+        } else {
+            // Fallback jika tidak ada attribute
+            $grupBarang = GrupBarang::firstOrCreate(
+                ['name' => 'Plastik Test'],
+                [
+                    'name' => 'Plastik Test',
+                    'description' => 'Grup untuk testing unit conversion',
+                    'status' => 'Active'
+                ]
+            );
+        }
 
         // Update kode barang test dengan kolom baru
         $kodeBarang = KodeBarang::where('kode_barang', 'KB001')->first();
         if ($kodeBarang) {
             $kodeBarang->update([
-                'kategori_barang_id' => $kategori->id,
+                'grup_barang_id' => $grupBarang->id,
                 'unit_dasar' => 'LBR',
                 'harga_jual' => 12000,
                 'ongkos_kuli_default' => 500

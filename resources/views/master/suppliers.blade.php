@@ -22,7 +22,7 @@
                 <option value="telepon_fax" {{ request('search_by') == 'telepon_fax' ? 'selected' : '' }}>Telepon/Fax</option>
                 <option value="contact_person" {{ request('search_by') == 'contact_person' ? 'selected' : '' }}>Contact Person</option>
                 <option value="hp_contact_person" {{ request('search_by') == 'hp_contact_person' ? 'selected' : '' }}>HP Contact Person</option>
-                <option value="kode_kategori" {{ request('search_by') == 'kode_kategori' ? 'selected' : '' }}>Kode Kategori</option>
+                <option value="kode_grup_barang" {{ request('search_by') == 'kode_grup_barang' ? 'selected' : '' }}>Kode Grup Barang</option>
             </select>
             <input type="text" id="search_input" name="search" class="form-control w-50 mr-2" placeholder="Cari..." value="{{ request('search') }}">
             <button type="submit" class="btn btn-primary mr-2">Cari</button>
@@ -40,7 +40,8 @@
                 <th>Telepon/Fax</th>
                 <th>Contact Person</th>
                 <th>HP Contact Person</th>
-                <th>Kode Kategori</th>
+                <th>Kode Grup Barang</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -54,14 +55,39 @@
                     <td>{{ $supplier->telepon_fax }}</td>
                     <td>{{ $supplier->contact_person }}</td>
                     <td>{{ $supplier->hp_contact_person }}</td>
-                    <td>{{ $supplier->kode_kategori }}</td>
+                    <td>{{ $supplier->kode_grup_barang }}</td>
                     <td>
-                        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#editSupplierModal-{{ $supplier->id }}">Edit</button>
-                        <form action="{{ route('suppliers.destroy', $supplier) }}" method="POST" style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
-                        </form>
+                        @if($supplier->is_active)
+                            <span class="badge badge-success">Aktif</span>
+                        @else
+                            <span class="badge badge-secondary">Nonaktif</span>
+                        @endif
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#editSupplierModal-{{ $supplier->id }}" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            
+                            <form action="{{ route('suppliers.toggle-status', $supplier) }}" method="POST" style="display: inline;">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" 
+                                        class="btn btn-sm {{ $supplier->is_active ? 'btn-success' : 'btn-secondary' }}" 
+                                        title="{{ $supplier->is_active ? 'Nonaktifkan' : 'Aktifkan' }}"
+                                        onclick="return confirm('Apakah Anda yakin ingin {{ $supplier->is_active ? 'menonaktifkan' : 'mengaktifkan' }} supplier ini?')">
+                                    <i class="fas fa-{{ $supplier->is_active ? 'check' : 'times' }}"></i>
+                                </button>
+                            </form>
+                            
+                            <form action="{{ route('suppliers.destroy', $supplier) }}" method="POST" style="display:inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-sm" title="Hapus" onclick="return confirm('Apakah Anda yakin ingin menghapus supplier ini?')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
             @endforeach
@@ -114,9 +140,9 @@
                         <input type="text" name="hp_contact_person" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label for="kode_kategori">Kode Kategori</label>
-                        <input type="text" name="kode_kategori" class="form-control" required>
-                        @error('kode_kategori')
+                        <label for="kode_grup_barang">Kode Grup Barang</label>
+                        <input type="text" name="kode_grup_barang" class="form-control" required>
+                        @error('kode_grup_barang')
                             <small class="text-danger">{{ $message }}</small>
                         @enderror
                     </div>
@@ -181,8 +207,8 @@
                         <input type="text" name="hp_contact_person" class="form-control" value="{{ $supplier->hp_contact_person }}" required>
                     </div>
                     <div class="mb-3">
-                        <label for="kode_kategori" class="form-label">Kode Kategori</label>
-                        <input type="text" name="kode_kategori" class="form-control" value="{{ $supplier->kode_kategori }}" required>
+                        <label for="kode_grup_barang" class="form-label">Kode Grup Barang</label>
+                        <input type="text" name="kode_grup_barang" class="form-control" value="{{ $supplier->kode_grup_barang }}" required>
                     </div>
                 </div>
                 <div class="modal-footer">

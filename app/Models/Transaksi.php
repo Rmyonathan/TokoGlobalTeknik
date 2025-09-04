@@ -16,10 +16,12 @@ class Transaksi extends Model
         'no_transaksi',
         'tanggal',
         'kode_customer',
+        'sales_order_id',
         'sales',
         'pembayaran',
         'cara_bayar',
         'tanggal_jadi',
+        'hari_tempo',
         'subtotal',
         'discount',
         'disc_rupiah',
@@ -37,6 +39,7 @@ class Transaksi extends Model
         'edited_by',
         'edited_at',
         'edit_reason',
+        'notes',
     ];
 
     protected $casts = [
@@ -44,6 +47,7 @@ class Transaksi extends Model
         'tanggal_jadi' => 'datetime',
         'tanggal_jatuh_tempo' => 'date',
         'tanggal_pelunasan' => 'date',
+        'hari_tempo' => 'integer',
         'total_dibayar' => 'decimal:2',
         'sisa_piutang' => 'decimal:2',
         'edited_at' => 'datetime',
@@ -87,11 +91,24 @@ class Transaksi extends Model
     }
 
     /**
+     * Relasi ke SalesOrder
+     */
+    public function salesOrder()
+    {
+        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
+    }
+
+    /**
      * Relasi ke salesman (stok_owners) menggunakan kolom kode
      */
     public function salesman()
     {
         return $this->belongsTo(StokOwner::class, 'sales', 'kode_stok_owner');
+    }
+
+    public function editedBy()
+    {
+        return $this->belongsTo(User::class, 'edited_by');
     }
 
     public function pembayaranDetails()

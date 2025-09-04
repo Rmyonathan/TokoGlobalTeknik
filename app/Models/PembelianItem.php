@@ -50,4 +50,12 @@ class PembelianItem extends Model
     {
         return $this->belongsTo(Pembelian::class, 'nota', 'nota');
     }
+
+    /**
+     * Get the kode barang associated with the item.
+     */
+    public function kodeBarang()
+    {
+        return $this->belongsTo(KodeBarang::class, 'kode_barang', 'kode_barang');
+    }
 }

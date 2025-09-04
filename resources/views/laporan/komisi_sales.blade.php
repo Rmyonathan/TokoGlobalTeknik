@@ -27,16 +27,24 @@
 						<th>Total Omset</th>
 						<th>Komisi (0.4%)</th>
 						<th>Rata Omset/Faktur</th>
+						<th>Action</th>
 					</tr>
 				</thead>
 				<tbody>
-					@forelse(($laporanData ?? []) as $row)
+					@forelse(($laporanData ?? []) as $idx => $row)
 					<tr>
-						<td>{{ $row['sales_nama'] }} ({{ $row['sales_code'] }})</td>
+						<td>
+							{{ $row['sales_nama'] }} ({{ $row['sales_code'] }})
+						</td>
 						<td class="text-right">{{ number_format($row['jumlah_faktur']) }}</td>
 						<td class="text-right">{{ number_format($row['total_omset'], 0, ',', '.') }}</td>
 						<td class="text-right">{{ number_format($row['komisi'], 0, ',', '.') }}</td>
 						<td class="text-right">{{ number_format($row['rata_omset_per_faktur'], 0, ',', '.') }}</td>
+						<td>
+							<a class="btn btn-sm btn-outline-primary ml-2" href="{{ route('laporan.komisi_sales.detail', ['salesCode' => $row['sales_code'], 'start_date' => request('start_date', isset($startDate) ? \Illuminate\Support\Carbon::parse($startDate)->format('Y-m-d') : now()->startOfMonth()->format('Y-m-d')), 'end_date' => request('end_date', isset($endDate) ? \Illuminate\Support\Carbon::parse($endDate)->format('Y-m-d') : now()->endOfMonth()->format('Y-m-d'))]) }}">
+								Detail
+							</a>
+						</td>
 					</tr>
 					@empty
 					<tr><td colspan="5" class="text-center">Tidak ada data</td></tr>

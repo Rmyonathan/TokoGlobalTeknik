@@ -27,8 +27,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="no_transaksi">No. Transaksi</label>
-                            <input type="text" class="form-control" id="no_transaksi" name="no_transaksi" value="{{ $noTransaksi ?? '' }}" placeholder="Masukkan nomor transaksi" style="background-color: #fff; color: #000; font-weight: bold;">
-                            <!-- <input type="text" class="form-control" id="no_transaksi" name="no_transaksi" value="{{ $noTransaksi ?? 'KP/WS/0147' }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;"> -->
+                            <input type="text" class="form-control" id="no_transaksi" value="{{ $noTransaksi ?? '' }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
                         </div>
 
                         <div class="form-group">
@@ -64,6 +63,21 @@
                             <input type="text" id="hpCustomer" name="customer-hp" class="form-control" readonly>
                         </div>
 
+                        <div class="form-group">
+                            <label for="sales_order">Sales Order (Opsional)</label>
+                            <div class="input-group">
+                                <input type="text" id="sales_order_search" name="sales_order_display" class="form-control" placeholder="Cari Sales Order...">
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-info" id="load_sales_order_btn">
+                                        <i class="fas fa-search"></i> Cari
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="hidden" id="sales_order_id" name="sales_order_id">
+                            <div id="salesOrderDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
+                            <small class="form-text text-muted">Pilih Sales Order untuk mengisi otomatis data transaksi</small>
+                        </div>
+
                     </div>
 
                     <div class="col-md-6">
@@ -78,17 +92,26 @@
                         <div class="form-group">
                             <label for="metode_pembayaran">Metode Pembayaran</label>
                             <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
-                                <option selected disabled value=""> Pilih Metode Pembayaran</option>
-                                <option value="Tunai">Tunai</option>
-                                <option value="Non Tunai">Non Tunai</option>
+                                <option value="Non Tunai" selected>Non Tunai</option>
                             </select>
+                            <small class="form-text text-muted">Semua pembayaran menggunakan kredit/tempo</small>
                         </div>
 
                         <div class="form-group">
                             <label for="cara_bayar">Cara Bayar</label>
                             <select class="form-control" id="cara_bayar" name="cara_bayar">
-                                <option value="">Pilih Metode Dulu</option>
+                                <option value="Kredit" selected>Kredit</option>
                             </select>
+                        </div>
+
+                        <div class="form-group" id="hariTempoGroup" style="display:block;">
+                            <label for="hari_tempo">Hari Tempo</label>
+                            <input type="number" class="form-control" id="hari_tempo" name="hari_tempo" min="0" value="0">
+                            <small class="form-text text-muted">Isi 0 jika tanpa tempo</small>
+                        </div>
+                        <div class="form-group" id="jatuhTempoGroup" style="display:block;">
+                            <label for="tanggal_jatuh_tempo">Tanggal Jatuh Tempo</label>
+                            <input type="date" class="form-control" id="tanggal_jatuh_tempo" name="tanggal_jatuh_tempo">
                         </div>
 
                         <div class="form-group">
@@ -110,11 +133,95 @@
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Rincian Barang</h5>
-            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addItemModal">
-                <i class="fas fa-plus-circle"></i> Tambah Barang
-            </button>
         </div>
         <div class="card-body">
+            <!-- Form Tambah Barang seperti Sales Order -->
+            <div id="items-container">
+                <div class="item-row" data-index="0">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Barang</label>
+                                <select class="form-control item-barang" id="kode_barang_select">
+                                    <option value="">Pilih Barang</option>
+                                    @if(isset($kodeBarangs) && $kodeBarangs)
+                                        @foreach($kodeBarangs as $barang)
+                                            <option value="{{ $barang->id }}" 
+                                                data-harga="{{ $barang->harga_jual }}"
+                                                data-unit-dasar="{{ $barang->unit_dasar }}"
+                                                data-kode="{{ $barang->kode_barang }}"
+                                                data-nama="{{ $barang->name }}">
+                                                {{ $barang->kode_barang }} - {{ $barang->name }}
+                                            </option>
+                                        @endforeach
+                                    @else
+                                        <option value="">Tidak ada data barang</option>
+                                    @endif
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Qty</label>
+                                <input type="number" class="form-control item-qty" id="quantity" step="0.01" min="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Satuan Kecil</label>
+                                <select class="form-control item-satuan-kecil" id="satuanKecil">
+                                    <option value="LBR">LBR</option>
+                                </select>
+                                <input type="hidden" class="item-satuan" id="satuan" value="LBR">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Satuan Besar</label>
+                                <select class="form-control item-satuan-besar" id="satuanBesar"></select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Harga</label>
+                                <input type="number" class="form-control item-harga" id="harga" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="form-group">
+                                <label>Total</label>
+                                <input type="number" class="form-control item-total" id="item_total" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Diskon (%)</label>
+                                <input type="number" class="form-control" id="diskon" placeholder="0" min="0" max="100">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Ongkos Kuli</label>
+                                <input type="number" class="form-control" id="ongkos_kuli" placeholder="0">
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="form-group">
+                                <label>Keterangan</label>
+                                <input type="text" class="form-control" id="keterangan" placeholder="Keterangan">
+                            </div>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end justify-content-end">
+                            <button type="button" class="btn btn-success btn-sm" id="addItemBtn">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-bordered table-striped" id="itemsTable">
                     <thead>
@@ -213,6 +320,10 @@
                         <label>Grand Total</label>
                         <input type="text" class="form-control text-right" id="grand_total" readonly value="0" style="font-size: 18px; font-weight: bold;">
                     </div>
+                    <div class="form-group">
+                        <label for="notes">Catatan</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Masukkan catatan tambahan (opsional)"></textarea>
+                    </div>
                     <div class="form-group text-right mt-4">
                         <button type="button" class="btn btn-success" id="saveTransaction">
                             <i class="fas fa-save"></i> Simpan Transaksi
@@ -276,26 +387,7 @@
 
 
 
-<!-- Add Item Modal -->
-<div class="modal fade" id="addItemModal" tabindex="-1" role="dialog" aria-labelledby="addItemModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addItemModalLabel">Tambah Barang</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                @include('transaksi.add_item')
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-                <button type="button" class="btn btn-primary" id="saveItemBtn">Tambahkan</button>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <!-- Modal Invoice -->
 <div class="modal fade" id="invoiceModal" tabindex="-1" role="dialog" aria-labelledby="invoiceModalLabel" aria-hidden="true">
@@ -343,32 +435,66 @@
         let items = [];
         let grandTotal = 0;
 
-        // Metode Pembayaran
-        $('#metode_pembayaran').on('change', function () {
-            const metode = $(this).val();
-            $('#cara_bayar').html('<option value="">Loading...</option>');
+        // Auto-fill form jika ada data Sales Order
+        @if(isset($salesOrder) && $salesOrder)
+            // Set sales order data
+            $('#sales_order_id').val('{{ $salesOrder->id }}');
+            $('#sales_order_search').val('{{ $salesOrder->no_so }} - {{ $salesOrder->customer->nama }}');
             
-            $.ajax({
-                url: '{{ url("api/cara-bayar/by-metode") }}',
-                method: 'GET',
-                data: { metode: metode },
-                success: function (data) {
-                    let options = '';
-                    // Preselect first option and reflect to summary selector
-                    data.forEach(cb => {
-                        options += `<option value="${cb.nama}">${cb.nama}</option>`;
-                    });
-                    $('#cara_bayar').html(options);
-                    const first = data.length > 0 ? data[0].nama : '';
-                    if (first) {
-                        $('#cara_bayar').val(first).trigger('change');
-                    }
-                },
-                error: function () {
-                    $('#cara_bayar').html('<option value="">Gagal load data</option>');
-                }
-            });
-        });
+            // Set customer data
+            $('#kode_customer').val('{{ $salesOrder->customer->kode_customer }}');
+            $('#customer').val('{{ $salesOrder->customer->kode_customer }} - {{ $salesOrder->customer->nama }}');
+            $('#alamatCustomer').val('{{ $salesOrder->customer->alamat }}');
+            $('#hpCustomer').val('{{ $salesOrder->customer->hp ?? "" }} / {{ $salesOrder->customer->telepon ?? "" }}');
+            
+            // Set salesman data
+            $('#sales').val('{{ $salesOrder->salesman->kode_stok_owner }}');
+            $('#kode_sales').val('{{ $salesOrder->salesman->kode_stok_owner }}');
+            
+            // Set payment method to kredit/tempo
+            $('#metode_pembayaran').val('Non Tunai');
+            $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+            $('#hariTempoGroup').show();
+            $('#jatuhTempoGroup').show();
+            // Fill tempo fields from Sales Order if available
+            @if(!is_null($salesOrder->hari_tempo))
+                $('#hari_tempo').val('{{ $salesOrder->hari_tempo }}');
+            @endif
+            @if(!is_null($salesOrder->tanggal_jatuh_tempo))
+                $('#tanggal_jatuh_tempo').val('{{ optional($salesOrder->tanggal_jatuh_tempo)->format('Y-m-d') }}');
+            @endif
+            
+            // Set cara bayar after a delay to ensure dropdown is loaded
+            setTimeout(() => {
+                $('#cara_bayar').val('{{ $salesOrder->cara_bayar }}').trigger('change');
+            }, 500);
+            
+            // Set tanggal jadi if available
+            @if($salesOrder->tanggal_estimasi)
+                $('#tanggal_jadi').val('{{ $salesOrder->tanggal_estimasi }}');
+            @endif
+            
+            // Load sales order items
+            loadSalesOrderItems({{ $salesOrder->id }});
+        @endif
+
+        // Metode Pembayaran
+        // Force kredit/tempo mode
+        $('#metode_pembayaran').val('Non Tunai');
+        $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+        function recalcJatuhTempoPenjualan(){
+            const base = $('#tanggal').val();
+            const hari = parseInt($('#hari_tempo').val()||'0',10);
+            if(!base || isNaN(hari)) return;
+            const d = new Date(base);
+            d.setDate(d.getDate()+hari);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth()+1).padStart(2,'0');
+            const dd = String(d.getDate()).padStart(2,'0');
+            $('#tanggal_jatuh_tempo').val(`${yyyy}-${mm}-${dd}`);
+        }
+        $('#tanggal').on('change', recalcJatuhTempoPenjualan);
+        $('#hari_tempo').on('input', recalcJatuhTempoPenjualan);
 
         $('#cara_bayar').on('change', function () {
             const selected = $(this).val();
@@ -424,6 +550,180 @@
             $('#hpCustomer').val(`${hpCustomer} / ${telpCustomer}`);
             $('#customerDropdown').hide();
         });
+
+        // Search Sales Order
+        $('#sales_order_search').on('input', function () {
+            const keyword = $(this).val();
+            if (keyword.length > 0) {
+                $.ajax({
+                    url: "{{ route('api.sales-order.search') }}",
+                    method: "GET",
+                    data: { keyword },
+                    success: function (data) {
+                        let dropdown = '';
+                        if (data.length > 0) {
+                            data.forEach(so => {
+                                dropdown += `<a class="dropdown-item sales-order-item" 
+                                    data-id="${so.id}" 
+                                    data-no-so="${so.no_so}"
+                                    data-customer="${so.customer?.nama || ''}"
+                                    data-salesman="${so.salesman?.keterangan || ''}"
+                                    data-tanggal="${so.tanggal}"
+                                    data-cara-bayar="${so.cara_bayar}"
+                                    data-hari-tempo="${so.hari_tempo || ''}"
+                                    data-tanggal-jatuh-tempo="${so.tanggal_jatuh_tempo || ''}"
+                                    data-tanggal-estimasi="${so.tanggal_estimasi || ''}"
+                                    data-subtotal="${so.subtotal}"
+                                    data-grand-total="${so.grand_total}">
+                                ${so.no_so} - ${so.customer?.nama || ''} - ${so.tanggal} - ${so.grand_total}</a>`;
+                            });
+                        } else {
+                            dropdown = '<a class="dropdown-item disabled">Tidak ada Sales Order ditemukan</a>';
+                        }
+                        $('#salesOrderDropdown').html(dropdown).show();
+                    },
+                    error: function () {
+                        alert('Terjadi kesalahan saat mencari Sales Order.');
+                    }
+                });
+            } else {
+                $('#salesOrderDropdown').hide();
+            }
+        });
+
+        // Select Sales Order
+        $(document).on('click', '.sales-order-item', function () {
+            const soId = $(this).data('id');
+            const noSo = $(this).data('no-so');
+            const customer = $(this).data('customer');
+            const salesman = $(this).data('salesman');
+            const tanggal = $(this).data('tanggal');
+            const caraBayar = $(this).data('cara-bayar');
+            const hariTempo = $(this).data('hari-tempo');
+            const tanggalJatuhTempo = $(this).data('tanggal-jatuh-tempo');
+            const tanggalEstimasi = $(this).data('tanggal-estimasi');
+            const subtotal = $(this).data('subtotal');
+            const grandTotal = $(this).data('grand-total');
+
+            // Set sales order ID
+            $('#sales_order_id').val(soId);
+            $('#sales_order_search').val(`${noSo} - ${customer}`);
+
+            // Auto-fill customer if not already set
+            if (!$('#kode_customer').val()) {
+                // Trigger customer search and selection
+                $('#customer').val(customer).trigger('input');
+                // Note: You might need to adjust this based on your customer data structure
+            }
+
+            // Auto-fill salesman
+            if (salesman) {
+                $('#sales').val(salesman).trigger('input');
+            }
+
+            // Force kredit/tempo and fill tempo values
+            $('#metode_pembayaran').val('Non Tunai');
+            $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+            $('#hariTempoGroup').show();
+            $('#jatuhTempoGroup').show();
+            if (hariTempo !== undefined && hariTempo !== '') {
+                $('#hari_tempo').val(hariTempo);
+            }
+            if (tanggalJatuhTempo) {
+                $('#tanggal_jatuh_tempo').val(tanggalJatuhTempo);
+            }
+
+            // Auto-fill tanggal jadi if available
+            if (tanggalEstimasi) {
+                $('#tanggal_jadi').val(tanggalEstimasi);
+            }
+
+            // Load sales order items
+            loadSalesOrderItems(soId);
+
+            $('#salesOrderDropdown').hide();
+        });
+
+        // Load Sales Order Items
+        function loadSalesOrderItems(soId) {
+            $.ajax({
+                url: `{{ url('api/sales-order') }}/${soId}/items`,
+                method: "GET",
+                success: function (data) {
+                    // Debug logging
+                    console.log('Sales Order Items Data:', data);
+                    
+                    // Clear existing items
+                    items = [];
+                    
+                    // Add items from sales order
+                    data.forEach(item => {
+                        console.log('Processing item:', item);
+                        console.log('KodeBarang relation:', item.kode_barang);
+                        
+                        // Determine satuan kecil and satuan besar based on Sales Order data
+                        const unitDasar = item.kode_barang?.unit_dasar || 'LBR';
+                        const satuanSO = item.satuan;
+                        
+                        // Satuan kecil selalu unit dasar (LBR)
+                        // Satuan besar adalah unit turunan (JEGG) jika ada
+                        const newItem = {
+                            kodeBarang: item.kode_barang?.kode_barang || item.kode_barang_id || '',
+                            namaBarang: item.kode_barang?.name || item.nama_barang || '',
+                            keterangan: item.keterangan || '',
+                            harga: parseFloat(item.harga),
+                            qty: parseFloat(item.qty),
+                            satuan: unitDasar, // Satuan kecil selalu unit dasar
+                            satuanBesar: satuanSO !== unitDasar ? satuanSO : '', // Satuan besar jika berbeda dari unit dasar
+                            total: parseFloat(item.total),
+                            diskon: 0,
+                            ongkosKuli: 0
+                        };
+                        
+                        console.log('New item created:', newItem);
+                        items.push(newItem);
+                    });
+                    
+                    // Render items and calculate totals
+                    renderItems();
+                    calculateTotals();
+                    
+                    // Auto-select satuan in form if there's only one item
+                    if (data.length === 1) {
+                        const item = data[0];
+                        const unitDasar = item.kode_barang?.unit_dasar || 'LBR';
+                        const satuanSO = item.satuan;
+                        
+                        // Set satuan kecil (always unit dasar)
+                        const satuanKecilSelect = $('.item-satuan-kecil');
+                        satuanKecilSelect.val(unitDasar);
+                        $('.item-satuan').val(unitDasar);
+                        
+                        // Set satuan besar (only if different from unit dasar)
+                        const satuanBesarSelect = $('.item-satuan-besar');
+                        if (satuanSO !== unitDasar) {
+                            satuanBesarSelect.val(satuanSO);
+                        } else {
+                            satuanBesarSelect.val(''); // Clear if same as unit dasar
+                        }
+                        
+                        console.log('Auto-selected units:', {
+                            unitDasar: unitDasar,
+                            satuanSO: satuanSO,
+                            satuanKecil: unitDasar,
+                            satuanBesar: satuanSO !== unitDasar ? satuanSO : ''
+                        });
+                    }
+                    
+                    // Show success message
+                    alert('Sales Order berhasil dimuat! Data transaksi telah diisi otomatis.');
+                },
+                error: function (xhr) {
+                    console.error('Error loading sales order items:', xhr.responseText);
+                    alert('Gagal memuat item Sales Order.');
+                }
+            });
+        }
 
         // Search Sales
         $('#sales').on('input', function () {
@@ -638,52 +938,159 @@
             calculateTotals();
         });
 
-        $('#saveItemBtn').click(function() {
-        const kodeBarang = $('#kode_barang').val();
-        const namaBarang = $('#nama_barang').val();
-        const keterangan = $('#keterangan').val();
-        const harga = parseInt($('#harga').val()) || 0;  // Use edited price
-        const panjang = parseInt($('#panjang').val()) || 0;
-        const lebar = parseInt($('#lebar').val()) || 0;
-        const qty = parseInt($('#quantity').val()) || 0;
-        const satuan = $('#satuanKecil').val();
-        const satuanBesar = $('#satuanBesar').val();
-        const diskon = parseInt($('#diskon').val()) || 0;
-        const ongkosKuli = parseInt($('#ongkos_kuli').val()) || 0;
+        // Handle barang change (seperti di Sales Order)
+        $(document).on('change', '.item-barang', function() {
+            const row = $(this).closest('.item-row');
+            const selectedOption = $(this).find('option:selected');
+            const harga = selectedOption.data('harga') || 0;
+            const kodeBarangStr = selectedOption.data('kode');
+            const namaBarang = selectedOption.data('nama');
+            
+            row.find('.item-harga').val(harga);
+            
+            // Get available units for this product
+            const kodeBarangId = $(this).val();
+            if (kodeBarangId) {
+                // Fetch base unit from stocks by kode_barang string, then populate units
+                $.ajax({
+                    url: '{{ route('stock.get') }}',
+                    method: 'GET',
+                    data: { kode_barang: kodeBarangStr },
+                    success: function(resp) {
+                        const kecilSelect = row.find('.item-satuan-kecil');
+                        const besarSelect = row.find('.item-satuan-besar');
+                        kecilSelect.empty();
+                        besarSelect.empty();
+                        const unitDasar = resp && resp.success && resp.data && resp.data.satuan ? resp.data.satuan : 'LBR';
+                        
+                        // Set small unit from stocks
+                        kecilSelect.append('<option value="'+unitDasar+'">'+unitDasar+'</option>');
+                        row.find('.item-satuan').val(unitDasar);
+                        
+                        // Then fetch available units to fill big units
+                        $.ajax({
+                            url: `{{ route('sales-order.available-units', '') }}/${kodeBarangId}`,
+                            method: 'GET',
+                            success: function(units) {
+                                if (units && units.length > 0) {
+                                    units.forEach(unit => {
+                                        if (unit !== unitDasar) {
+                                            besarSelect.append('<option value="'+unit+'">'+unit+'</option>');
+                                        }
+                                    });
+                                }
+                            },
+                            error: function() {
+                                console.log('Error fetching available units');
+                            }
+                        });
+                    },
+                    error: function() {
+                        console.log('Error fetching stock data');
+                    }
+                });
+            }
+            
+            calculateItemTotal(row);
+        });
 
-        if (!kodeBarang || !namaBarang || !harga || !qty) {
-            alert('Mohon lengkapi data barang!');
-            return;
+        // Handle qty change
+        $(document).on('input', '.item-qty', function() {
+            calculateItemTotal($(this).closest('.item-row'));
+        });
+
+        // Handle harga change
+        $(document).on('input', '.item-harga', function() {
+            calculateItemTotal($(this).closest('.item-row'));
+        });
+
+        // Handle satuan kecil change
+        $(document).on('change', '.item-satuan-kecil', function() {
+            const row = $(this).closest('.item-row');
+            const unit = $(this).val();
+            row.find('.item-satuan').val(unit);
+            calculateItemTotal(row);
+        });
+
+        // Handle satuan besar change
+        $(document).on('change', '.item-satuan-besar', function() {
+            const row = $(this).closest('.item-row');
+            const unit = $(this).val();
+            row.find('.item-satuan').val(unit);
+            calculateItemTotal(row);
+        });
+
+        // Calculate item total
+        function calculateItemTotal(row) {
+            const qty = parseFloat(row.find('.item-qty').val()) || 0;
+            const harga = parseFloat(row.find('.item-harga').val()) || 0;
+            const total = qty * harga;
+            row.find('.item-total').val(total);
         }
 
-        // Calculate total using the edited harga value
-        const total = harga * qty;
+        // Add Item Button
+        $('#addItemBtn').click(function() {
+            const row = $(this).closest('.item-row');
+            const kodeBarangSelect = row.find('.item-barang');
+            const selectedOption = kodeBarangSelect.find('option:selected');
+            
+            const kodeBarang = selectedOption.data('kode') || selectedOption.text().split(' - ')[0];
+            const namaBarang = selectedOption.data('nama') || selectedOption.text().split(' - ')[1];
+            const kodeBarangId = kodeBarangSelect.val();
+            const keterangan = row.find('#keterangan').val();
+            const harga = parseFloat(row.find('.item-harga').val()) || 0;
+            const qty = parseFloat(row.find('.item-qty').val()) || 0;
+            const satuan = row.find('.item-satuan').val();
+            const satuanBesar = row.find('.item-satuan-besar').val();
+            const diskon = parseFloat(row.find('#diskon').val()) || 0;
+            const ongkosKuli = parseFloat(row.find('#ongkos_kuli').val()) || 0;
 
-        const newItem = {
-            kodeBarang,
-            namaBarang,
-            keterangan,
-            harga: harga,  // Use the edited harga value
-            panjang,
-            lebar,
-            qty,
-            satuan,
-            satuanBesar,
-            diskon,
-            ongkosKuli,
-            total
-        };
+            // Debug logging
+            console.log('Debug Add Item:', {
+                kodeBarangId: kodeBarangId,
+                kodeBarang: kodeBarang,
+                namaBarang: namaBarang,
+                selectedOption: selectedOption[0],
+                dataAttributes: {
+                    kode: selectedOption.data('kode'),
+                    nama: selectedOption.data('nama'),
+                    harga: selectedOption.data('harga')
+                }
+            });
 
-        items.push(newItem);
-        renderItems();
-        calculateTotals();
+            if (!kodeBarangId || !kodeBarang || !namaBarang || harga === undefined || harga === null || !qty) {
+                alert('Mohon lengkapi data barang!');
+                return;
+            }
 
-        // Reset form and close modal
-        $('#addItemForm')[0].reset();
-        $('#addItemModal').modal('hide');
-        $('body').removeClass('modal-open');
-        $('.modal-backdrop').remove();
-    });
+            // Calculate total
+            const subtotal = harga * qty;
+            const diskonAmount = (subtotal * diskon) / 100;
+            const total = subtotal - diskonAmount;
+
+            const newItem = {
+                kodeBarang,
+                namaBarang,
+                keterangan,
+                harga: harga,
+                qty,
+                satuan,
+                satuanBesar,
+                diskon,
+                ongkosKuli,
+                total
+            };
+
+            items.push(newItem);
+            renderItems();
+            calculateTotals();
+
+            // Reset form
+            row.find('select, input').val('');
+            row.find('.item-satuan-kecil').html('<option value="LBR">LBR</option>');
+            row.find('.item-satuan-besar').empty();
+            row.find('.item-satuan').val('LBR');
+        });
 
 
         // Function to render items table
@@ -780,20 +1187,23 @@
         }
 
         const transactionData = {
-            no_transaksi: $('#no_transaksi').val(),
             tanggal: $('#tanggal').val(),
             kode_customer: $('#kode_customer').val(),
+            sales_order_id: $('#sales_order_id').val() || null,
             sales: $('#sales').val(),
             pembayaran: $('#metode_pembayaran').val(),
             cara_bayar: $('#cara_bayar').val() || $('#cara_bayar_akhir').val() || 'Tunai',
+            hari_tempo: parseInt($('#hari_tempo').val()||'0',10),
+            tanggal_jatuh_tempo: $('#tanggal_jatuh_tempo').val() || null,
             tanggal_jadi: $('#tanggal_jadi').val(),
             items: items,
             subtotal: $('#total').val().replace(/\./g, ''),
-            discount: $('#discount_amount').val().replace(/\./g, ''),
-            disc_rp: $('#disc_rp').val(),
-            ppn: $('#ppn_amount').val().replace(/\./g, ''),
-            dp: $('#dp_amount').val(),
-            grand_total: grandTotal
+            discount: $('#discount_checkbox').is(':checked') ? parseFloat($('#discount_percent').val()) || 0 : 0,
+            disc_rp: $('#disc_rp_checkbox').is(':checked') ? parseFloat($('#disc_rp').val()) || 0 : 0,
+            ppn: $('#ppn_checkbox').is(':checked') ? parseFloat($('#ppn_amount').val().replace(/\./g, '')) || 0 : 0,
+            dp: $('#dp_checkbox').is(':checked') ? parseFloat($('#dp_amount').val()) || 0 : 0,
+            grand_total: grandTotal,
+            notes: $('#notes').val()
         };
 
         showLoading();

@@ -23,12 +23,14 @@ class SalesOrder extends Model
         'keterangan',
         'tanggal_estimasi',
         'cara_bayar',
-        'hari_tempo'
+        'hari_tempo',
+        'tanggal_jatuh_tempo'
     ];
 
     protected $casts = [
         'tanggal' => 'date',
         'tanggal_estimasi' => 'date',
+        'tanggal_jatuh_tempo' => 'date',
         'subtotal' => 'decimal:2',
         'diskon' => 'decimal:2',
         'grand_total' => 'decimal:2',
@@ -67,6 +69,11 @@ class SalesOrder extends Model
     public function scopeProcessed($query)
     {
         return $query->where('status', 'processed');
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
     }
 
     public function scopeCanceled($query)
@@ -117,17 +124,22 @@ class SalesOrder extends Model
 
     public function canBeApproved(): bool
     {
-        return $this->isPending();
+        return $this->isPending() || $this->isCanceled();
     }
 
     public function canBeProcessed(): bool
     {
-        return $this->isApproved();
+        return $this->isApproved() || $this->isCanceled();
     }
 
     public function canBeCanceled(): bool
     {
         return in_array($this->status, ['pending', 'approved']);
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed';
     }
 
     public function getStatusBadge(): string
@@ -136,6 +148,7 @@ class SalesOrder extends Model
             'pending' => 'badge-warning',
             'approved' => 'badge-info',
             'processed' => 'badge-success',
+            'completed' => 'badge-primary',
             'canceled' => 'badge-danger'
         ];
 
@@ -148,6 +161,7 @@ class SalesOrder extends Model
             'pending' => 'Menunggu Approval',
             'approved' => 'Disetujui',
             'processed' => 'Diproses',
+            'completed' => 'Selesai',
             'canceled' => 'Dibatalkan'
         ];
 

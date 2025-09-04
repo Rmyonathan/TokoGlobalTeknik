@@ -37,7 +37,8 @@ class UnitConversionService
             ->first();
 
         if (!$conversion) {
-            throw new Exception("Konversi unit '{$fromUnit}' tidak ditemukan untuk barang ini");
+            // Tolerant fallback: treat unknown unit as base unit (no conversion)
+            return $qty;
         }
 
         return $qty * $conversion->nilai_konversi;
@@ -70,7 +71,8 @@ class UnitConversionService
             ->first();
 
         if (!$conversion) {
-            throw new Exception("Konversi unit '{$toUnit}' tidak ditemukan untuk barang ini");
+            // Tolerant fallback: treat unknown unit as base unit (no conversion)
+            return $qty;
         }
 
         return $qty / $conversion->nilai_konversi;
@@ -144,7 +146,7 @@ class UnitConversionService
 
         // Konversi ke unit dasar dulu
         $qtyInBaseUnit = $this->convertToBaseUnit($kodeBarangId, 1, $fromUnit);
-        $hargaPerBaseUnit = $harga / $qtyInBaseUnit;
+        $hargaPerBaseUnit = $harga / max($qtyInBaseUnit, 1e-9);
 
         // Konversi dari unit dasar ke unit target
         $qtyInTargetUnit = $this->convertToBaseUnit($kodeBarangId, 1, $toUnit);

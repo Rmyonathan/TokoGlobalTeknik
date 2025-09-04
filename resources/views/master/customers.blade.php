@@ -59,6 +59,7 @@
                 <th>Telepon</th>
                 <th>Info Kredit</th>
                 <th>Wilayah</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -121,14 +122,43 @@
                             @endif
                         </div>
                     </td>
-                    <td>{{ $customer->wilayah->nama_wilayah }}</td>
+                    <td>{{ $customer->wilayah->nama_wilayah ?? '-' }}</td>
                     <td>
-                        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#editCustomerModal-{{ $customer->id }}">Edit</button>
-                        <form action="{{ route('customers.destroy', $customer) }}" method="POST" style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
-                        </form>
+                        @if($customer->is_active)
+                            <span class="badge badge-success">Aktif</span>
+                        @else
+                            <span class="badge badge-secondary">Nonaktif</span>
+                        @endif
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#editCustomerModal-{{ $customer->id }}" title="Edit">
+                                <i class="fas fa-edit"></i>Edit
+                            </button>
+                            
+                            <form action="{{ route('customers.toggle-status', $customer) }}" method="POST" style="display: inline;">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit"
+                                        class="btn btn-sm {{ $customer->is_active ? 'btn-warning' : 'btn-success' }}" 
+                                        title="{{ $customer->is_active ? 'Nonaktifkan customer' : 'Aktifkan customer' }}"
+                                        onclick="return confirm('Apakah Anda yakin ingin {{ $customer->is_active ? 'menonaktifkan' : 'mengaktifkan' }} customer ini?')">
+                                    @if($customer->is_active)
+                                        <i class="fas fa-ban mr-1"></i> Nonaktifkan
+                                    @else
+                                        <i class="fas fa-check mr-1"></i> Aktifkan
+                                    @endif
+                                </button>
+                            </form>
+                            
+                            <form action="{{ route('customers.destroy', $customer) }}" method="POST" style="display:inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-sm" title="Hapus" onclick="return confirm('Apakah Anda yakin ingin menghapus customer ini?')">
+                                    <i class="fas fa-trash mr-1"></i> Hapus
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
             @endforeach

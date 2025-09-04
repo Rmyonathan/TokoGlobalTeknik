@@ -79,6 +79,12 @@
                                 </div>
                             </div>
                             <div class="col-md-4">
+                                <div class="form-group" id="jatuh_tempo_group" style="display: none;">
+                                    <label for="tanggal_jatuh_tempo">Tanggal Jatuh Tempo</label>
+                                    <input type="date" class="form-control" id="tanggal_jatuh_tempo" name="tanggal_jatuh_tempo">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="tanggal_estimasi">Tanggal Estimasi Pengiriman</label>
                                     <input type="date" class="form-control" id="tanggal_estimasi" name="tanggal_estimasi">
@@ -106,7 +112,8 @@
                                                 @foreach($kodeBarangs as $barang)
                                                     <option value="{{ $barang->id }}" 
                                                         data-harga="{{ $barang->harga_jual }}"
-                                                        data-unit-dasar="{{ $barang->unit_dasar }}">
+                                                        data-unit-dasar="{{ $barang->unit_dasar }}"
+                                                        data-kode="{{ $barang->kode_barang }}">
                                                         {{ $barang->kode_barang }} - {{ $barang->name }}
                                                     </option>
                                                 @endforeach
@@ -121,10 +128,17 @@
                                     </div>
                                     <div class="col-md-2">
                                         <div class="form-group">
-                                            <label>Satuan</label>
-                                            <select class="form-control item-satuan" name="items[0][satuan]" required>
+                                            <label>Satuan Kecil</label>
+                                            <select class="form-control item-satuan-kecil" name="items[0][satuan_kecil]">
                                                 <option value="LBR">LBR</option>
                                             </select>
+                                            <input type="hidden" class="item-satuan" name="items[0][satuan]" value="LBR">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label>Satuan Besar</label>
+                                            <select class="form-control item-satuan-besar" name="items[0][satuan_besar]"></select>
                                         </div>
                                     </div>
                                     <div class="col-md-2">
@@ -133,27 +147,24 @@
                                             <input type="number" class="form-control item-harga" name="items[0][harga]" step="0.01" min="0" required>
                                         </div>
                                     </div>
-                                    <div class="col-md-2">
+                                    <div class="col-md-1">
                                         <div class="form-group">
                                             <label>Total</label>
                                             <input type="number" class="form-control item-total" readonly>
                                         </div>
                                     </div>
-                                    <div class="col-md-1">
-                                        <div class="form-group">
-                                            <label>&nbsp;</label>
-                                            <button type="button" class="btn btn-danger btn-sm remove-item" style="display: none;">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-md-12">
+                                    <div class="col-md-11">
                                         <div class="form-group">
                                             <label>Keterangan</label>
                                             <input type="text" class="form-control" name="items[0][keterangan]">
                                         </div>
+                                    </div>
+                                    <div class="col-md-1 d-flex align-items-end justify-content-end">
+                                        <button type="button" class="btn btn-danger btn-sm remove-item" style="display: none;">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -222,6 +233,20 @@ $(document).ready(function() {
     
     console.log('Sales Order form initialized');
     
+    // Debug: Check if jQuery is loaded
+    if (typeof $ === 'undefined') {
+        console.error('jQuery is not loaded!');
+        return;
+    }
+    
+    // Debug: Check if add-item button exists
+    if ($('#add-item').length === 0) {
+        console.error('Add item button not found!');
+        return;
+    }
+    
+    console.log('Add item button found:', $('#add-item').length);
+    
     // Initialize the first item row
     $('.item-row').first().find('.remove-item').hide();
     
@@ -230,11 +255,28 @@ $(document).ready(function() {
         if ($(this).val() === 'Kredit') {
             $('#hari_tempo_group').show();
             $('#hari_tempo').prop('required', true);
+            $('#jatuh_tempo_group').show();
         } else {
             $('#hari_tempo_group').hide();
             $('#hari_tempo').prop('required', false);
+            $('#jatuh_tempo_group').hide();
+            $('#tanggal_jatuh_tempo').val('');
         }
     });
+
+    function recalcSoJatuhTempo(){
+        const base = $('#tanggal').val();
+        const hari = parseInt($('#hari_tempo').val()||'0',10);
+        if(!base || isNaN(hari)) return;
+        const d = new Date(base);
+        d.setDate(d.getDate()+hari);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        $('#tanggal_jatuh_tempo').val(`${yyyy}-${mm}-${dd}`);
+    }
+    $('#tanggal').on('change', recalcSoJatuhTempo);
+    $('#hari_tempo').on('input', recalcSoJatuhTempo);
 
     // Handle customer change
     $('#customer_id').change(function() {
@@ -252,50 +294,45 @@ $(document).ready(function() {
         const row = $(this).closest('.item-row');
         const selectedOption = $(this).find('option:selected');
         const harga = selectedOption.data('harga') || 0;
-        const unitDasar = selectedOption.data('unit-dasar') || 'LBR';
+        const kodeBarangStr = selectedOption.data('kode');
+        const unitDasarFromOption = selectedOption.data('unit-dasar') || 'LBR';
         
         row.find('.item-harga').val(harga);
         
-        // Get available units for this product
+        // Immediately set small unit from selected item's unit_dasar (like Pembelian)
+        const kecilSelect = row.find('.item-satuan-kecil');
+        const besarSelect = row.find('.item-satuan-besar');
+        kecilSelect.empty();
+        besarSelect.empty();
+        kecilSelect.append('<option value="'+unitDasarFromOption+'">'+unitDasarFromOption+'</option>');
+        row.find('.item-satuan').val(unitDasarFromOption);
+        
+        // Get available units for this product (populate big units)
         const kodeBarangId = $(this).val();
         if (kodeBarangId) {
-            // Fetch available units from server
             $.ajax({
                 url: `{{ route('sales-order.available-units', '') }}/${kodeBarangId}`,
                 method: 'GET',
                 success: function(units) {
-                    const satuanSelect = row.find('.item-satuan');
-                    satuanSelect.empty();
-                    
                     if (Array.isArray(units) && units.length > 0) {
-                        // Add unit dasar first (small unit)
-                        satuanSelect.append(`<option value="${unitDasar}">${unitDasar} (Satuan Kecil)</option>`);
-                        
-                        // Add large units from unit conversion
                         units.forEach(function(unit) {
-                            if (unit !== unitDasar) {
-                                satuanSelect.append(`<option value="${unit}">${unit} (Satuan Besar)</option>`);
+                            if (unit !== unitDasarFromOption) {
+                                besarSelect.append('<option value="'+unit+'">'+unit+'</option>');
                             }
                         });
-                    } else {
-                        // Fallback to default units
-                        satuanSelect.html(`<option value="${unitDasar}">${unitDasar} (Satuan Kecil)</option>`);
                     }
-                    
-                    // Set default to unit dasar
-                    satuanSelect.val(unitDasar);
                     calculateItemTotal(row);
                 },
-                error: function(xhr, status, error) {
-                    console.error('Error fetching units:', error);
-                    // Fallback to default units
-                    const satuanSelect = row.find('.item-satuan');
-                    satuanSelect.html(`<option value="${unitDasar}">${unitDasar} (Satuan Kecil)</option>`);
+                error: function() {
+                    // leave besar empty
+                    calculateItemTotal(row);
                 }
             });
         } else {
             // If no product selected, reset to default
-            row.find('.item-satuan').html('<option value="LBR">LBR (Satuan Kecil)</option>');
+            row.find('.item-satuan-kecil').html('<option value="LBR">LBR</option>');
+            row.find('.item-satuan-besar').html('');
+            row.find('.item-satuan').val('LBR');
         }
         
         calculateItemTotal(row);
@@ -311,22 +348,15 @@ $(document).ready(function() {
         calculateItemTotal($(this).closest('.item-row'));
     });
 
-    // Handle satuan change
-    $(document).on('change', '.item-satuan', function() {
-        const row = $(this).closest('.item-row');
+    function updateSatuanAndHarga(row, unit) {
         const customerId = $('#customer_id').val();
         const kodeBarangId = row.find('.item-barang').val();
-        const satuan = $(this).val();
-        
-        if (customerId && kodeBarangId && satuan) {
+        row.find('.item-satuan').val(unit);
+        if (customerId && kodeBarangId && unit) {
             $.ajax({
                 url: '{{ route("sales-order.customer-price") }}',
                 method: 'GET',
-                data: {
-                    customer_id: customerId,
-                    kode_barang_id: kodeBarangId,
-                    unit: satuan
-                },
+                data: { customer_id: customerId, kode_barang_id: kodeBarangId, unit: unit },
                 success: function(priceInfo) {
                     row.find('.item-harga').val(priceInfo.harga_jual);
                     calculateItemTotal(row);
@@ -336,6 +366,22 @@ $(document).ready(function() {
                 }
             });
         }
+    }
+
+    // Handle satuan kecil change
+    $(document).on('change', '.item-satuan-kecil', function() {
+        const row = $(this).closest('.item-row');
+        const unit = $(this).val();
+        // Clear selection on besar (visual only)
+        row.find('.item-satuan-besar').prop('selectedIndex', -1);
+        updateSatuanAndHarga(row, unit);
+    });
+
+    // Handle satuan besar change
+    $(document).on('change', '.item-satuan-besar', function() {
+        const row = $(this).closest('.item-row');
+        const unit = $(this).val();
+        updateSatuanAndHarga(row, unit);
     });
 
     // Add new item
@@ -362,7 +408,9 @@ $(document).ready(function() {
         // Clear values
         newRow.find('input').val('');
         newRow.find('select').val('');
-        newRow.find('.item-satuan').html('<option value="LBR">LBR (Satuan Kecil)</option>');
+        newRow.find('.item-satuan-kecil').html('<option value="LBR">LBR</option>');
+        newRow.find('.item-satuan-besar').html('');
+        newRow.find('.item-satuan').val('LBR');
         newRow.find('.item-total').val('0');
         newRow.find('.remove-item').show();
         
