@@ -18,7 +18,11 @@ class SuratJalan extends Model{
         'no_transaksi',
         'tanggal_transaksi',
         'titipan_uang',
-        'sisa_piutang'
+        'sisa_piutang',
+        'metode_pembayaran',
+        'cara_bayar',
+        'hari_tempo',
+        'tanggal_jatuh_tempo'
     ];
 
     public function items()

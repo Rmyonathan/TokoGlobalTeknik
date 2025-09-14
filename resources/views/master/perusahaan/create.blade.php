@@ -92,6 +92,22 @@
                             @enderror
                         </div>
 
+                        <!-- PPN Settings -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="ppn_enabled" name="ppn_enabled" value="1" {{ old('ppn_enabled') ? 'checked' : '' }}>
+                                <label class="form-check-label" for="ppn_enabled">Aktifkan PPN</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="ppn_rate" class="form-label">Tarif PPN (%)</label>
+                            <input type="number" step="0.01" min="0" max="100" class="form-control @error('ppn_rate') is-invalid @enderror" id="ppn_rate" name="ppn_rate" value="{{ old('ppn_rate', 11.00) }}">
+                            <small class="text-muted">Masukkan tarif PPN dalam persen (contoh: 11.00 untuk 11%)</small>
+                            @error('ppn_rate')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <div class="mb-3">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active') ? 'checked' : '' }}>

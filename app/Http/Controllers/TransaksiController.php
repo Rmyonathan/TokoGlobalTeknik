@@ -25,6 +25,7 @@ use App\Models\SuratJalanItemSumber;
 use App\Models\TransaksiItemSumber;
 use App\Models\StockBatch;
 use App\Services\AccountingService;
+use App\Services\PpnService;
 
 class TransaksiController extends Controller
 {
@@ -133,7 +134,18 @@ class TransaksiController extends Controller
                 ->find($request->sales_order_id);
         }
 
-        return view('transaksi.penjualan', compact('noTransaksi', 'kodeBarangs', 'salesOrder'));
+        // Cek apakah ada no_suratjalan dari parameter
+        $suratJalan = null;
+        if ($request->has('no_suratjalan')) {
+            $suratJalan = \App\Models\SuratJalan::with(['customer', 'items'])
+                ->where('no_suratjalan', $request->no_suratjalan)
+                ->first();
+        }
+
+        // Get PPN configuration from company settings
+        $ppnConfig = \App\Services\PpnService::getPpnConfig();
+
+        return view('transaksi.penjualan', compact('noTransaksi', 'kodeBarangs', 'salesOrder', 'suratJalan', 'ppnConfig'));
     }
 
     public function getByGroupId($group_id)
@@ -195,7 +207,14 @@ class TransaksiController extends Controller
             // dd($batasKredit);
             DB::beginTransaction();
 
-            $ppn = str_replace(',', '.', $request->ppn);
+            // Calculate PPN using PpnService
+            $ppnCalculation = PpnService::calculateGrandTotal(
+                $request->subtotal,
+                $request->discount ?? 0,
+                $request->disc_rp ?? 0
+            );
+            
+            $ppn = $ppnCalculation['ppn'];
 
             // Generate nomor transaksi baru (auto)
             $prefix = 'KP/WS/';
@@ -233,7 +252,7 @@ class TransaksiController extends Controller
                 'disc_rupiah' => $request->disc_rp ?? 0,
                 'ppn' => $ppn,
                 'dp' => $request->dp ?? 0,
-                'grand_total' => $request->grand_total,
+                'grand_total' => $ppnCalculation['grand_total'],
                 'status' => 'baru',
                 'notes' => $request->notes,
                 'is_edited' => false,
@@ -309,7 +328,7 @@ class TransaksiController extends Controller
                 // Set status piutang untuk transaksi baru ini
                 $transaksi->status_piutang = 'belum_dibayar';
                 $transaksi->total_dibayar = 0;
-                $transaksi->sisa_piutang = $request->grand_total;
+                $transaksi->sisa_piutang = $ppnCalculation['grand_total'];
                 $transaksi->save();
 
                 // Hitung ulang total piutang customer dari transaksi aktif
@@ -414,6 +433,13 @@ class TransaksiController extends Controller
             // Find transaction
             $transaksi = Transaksi::findOrFail($id);
             $noTransaksi = $transaksi->no_transaksi; // Keep the original nota
+            
+            // Calculate PPN using PpnService
+            $ppnCalculation = PpnService::calculateGrandTotal(
+                $request->subtotal,
+                $request->discount ?? 0,
+                $request->disc_rp ?? 0
+            );
             
             // Store original values for kas calculation
             $originalGrandTotal = $transaksi->grand_total;

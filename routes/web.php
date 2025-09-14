@@ -509,6 +509,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/history', [SuratJalanController::class, 'history'])->name('suratjalan.history');
         Route::get('/detail/{id}', [SuratJalanController::class, 'detail'])->name('suratjalan.detail');
         Route::get('/available-stock', [SuratJalanController::class, 'getAvailableStock'])->name('suratjalan.available-stock');
+        Route::get('/available-units/{kodeBarangId}', [SuratJalanController::class, 'getAvailableUnits'])->name('suratjalan.available-units');
         Route::get('/fifo-allocation/{suratJalanItemId}', [SuratJalanController::class, 'getFifoAllocation'])->name('suratjalan.fifo-allocation');
         Route::get('/api/by-no/{no}', [SuratJalanController::class, 'apiByNo'])->name('suratjalan.api.by-no');
     });
@@ -776,6 +777,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/stok/pergerakan/{kodeBarang}', [LaporanController::class, 'detailPergerakanBarang'])->name('laporan.stok.pergerakan');
         Route::get('/piutang', [LaporanController::class, 'laporanPiutang'])->name('laporan.piutang');
         Route::get('/utang-supplier', [LaporanController::class, 'laporanUtangSupplier'])->name('laporan.utang-supplier');
+        Route::get('/penjualan-dan-retur', [LaporanController::class, 'penjualanDanRetur'])->name('laporan.penjualan-dan-retur');
         Route::get('/retur', [App\Http\Controllers\LaporanReturController::class, 'index'])->name('laporan.retur');
     });
 

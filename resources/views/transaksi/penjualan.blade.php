@@ -519,10 +519,28 @@
             loadSalesOrderItems({{ $salesOrder->id }});
         @endif
 
+        // Auto-fill form jika ada data Surat Jalan
+        @if(isset($suratJalan) && $suratJalan)
+            // Set customer data
+            $('#kode_customer').val('{{ $suratJalan->customer->kode_customer }}');
+            $('#customer').val('{{ $suratJalan->customer->kode_customer }} - {{ $suratJalan->customer->nama }}');
+            $('#alamatCustomer').val('{{ $suratJalan->customer->alamat }}');
+            $('#hpCustomer').val('{{ $suratJalan->customer->hp ?? "" }} / {{ $suratJalan->customer->telepon ?? "" }}');
+            
+            // Show tempo groups
+            $('#hariTempoGroup').show();
+            $('#jatuhTempoGroup').show();
+            
+            // Load surat jalan items (this will also set payment and tempo fields)
+            loadSuratJalanItems('{{ $suratJalan->no_suratjalan }}');
+        @endif
+
         // Metode Pembayaran
-        // Force kredit/tempo mode
-        $('#metode_pembayaran').val('Non Tunai');
-        $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+        // Force kredit/tempo mode (only if not coming from surat jalan)
+        @if(!isset($suratJalan) || !$suratJalan)
+            $('#metode_pembayaran').val('Non Tunai');
+            $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+        @endif
         function recalcJatuhTempoPenjualan(){
             const base = $('#tanggal').val();
             const hari = parseInt($('#hari_tempo').val()||'0',10);
@@ -792,6 +810,91 @@
                 error: function (xhr) {
                     console.error('Error loading sales order items:', xhr.responseText);
                     alert('Gagal memuat item Sales Order.');
+                }
+            });
+        }
+
+        // Load Surat Jalan Items
+        function loadSuratJalanItems(noSuratJalan) {
+            $.ajax({
+                url: `{{ url('suratjalan/api/by-no') }}/${noSuratJalan}`,
+                method: "GET",
+                success: function (data) {
+                    console.log('Surat Jalan Items Data:', data);
+                    
+                    // Update payment and tempo fields from surat jalan data
+                    if (data.metode_pembayaran) {
+                        $('#metode_pembayaran').val(data.metode_pembayaran);
+                    }
+                    if (data.cara_bayar) {
+                        if (data.cara_bayar === 'Tunai') {
+                            $('#cara_bayar').html('<option value="Tunai">Tunai</option>').val('Tunai');
+                        } else {
+                            $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+                        }
+                    }
+                    if (data.hari_tempo !== null && data.hari_tempo !== undefined) {
+                        $('#hari_tempo').val(data.hari_tempo);
+                        console.log('Set hari tempo from API:', data.hari_tempo);
+                    }
+                    if (data.tanggal_jatuh_tempo) {
+                        $('#tanggal_jatuh_tempo').val(data.tanggal_jatuh_tempo);
+                        console.log('Set tanggal jatuh tempo from API:', data.tanggal_jatuh_tempo);
+                    }
+                    
+                    // Recalculate jatuh tempo after setting values
+                    setTimeout(() => {
+                        recalcJatuhTempoPenjualan();
+                    }, 100);
+                    
+                    // Clear existing items
+                    items = [];
+                    
+                    // Add items from surat jalan
+                    data.items.forEach(item => {
+                        console.log('Processing surat jalan item:', item);
+                        
+                        // Determine satuan kecil and satuan besar
+                        const unitDasar = item.unit_dasar || 'PCS';
+                        const satuanSJ = item.satuan; // Satuan kecil dari surat jalan
+                        const satuanBesarSJ = item.satuan_besar || ''; // Satuan besar dari surat jalan
+                        
+                        console.log('Unit mapping:', {
+                            unitDasar: unitDasar,
+                            satuanSJ: satuanSJ,
+                            satuanBesarSJ: satuanBesarSJ,
+                            isDifferent: satuanSJ !== unitDasar
+                        });
+                        
+                        // Satuan kecil selalu unit dasar
+                        // Satuan besar dari surat jalan
+                        const newItem = {
+                            kodeBarang: item.kode_barang,
+                            namaBarang: item.nama_barang,
+                            keterangan: item.nama_barang,
+                            harga: item.harga_jual_default || 0,
+                            qty: item.qty,
+                            satuan: unitDasar, // Satuan kecil selalu unit dasar
+                            satuanBesar: satuanBesarSJ, // Satuan besar dari surat jalan
+                            total: (item.qty * item.harga_jual_default) || 0,
+                            diskon: 0,
+                            ongkosKuli: 0
+                        };
+                        
+                        console.log('New item created:', newItem);
+                        items.push(newItem);
+                    });
+                    
+                    // Update items table
+                    renderItems();
+                    calculateTotals();
+                    
+                    // Show success message
+                    alert('Surat Jalan berhasil dimuat! Data transaksi telah diisi otomatis.');
+                },
+                error: function (xhr) {
+                    console.error('Error loading surat jalan items:', xhr.responseText);
+                    alert('Gagal memuat item Surat Jalan.');
                 }
             });
         }
@@ -1239,10 +1342,15 @@
             return new Intl.NumberFormat('id-ID').format(amount);
         }
 
-        // Inject PPN rate from perusahaan default (server-side recommended; placeholder hidden input)
+        // Inject PPN rate from perusahaan default
         if ($('#ppn_rate_hidden').length === 0) {
-            $('body').append('<input type="hidden" id="ppn_rate_hidden" value="11">');
+            $('body').append('<input type="hidden" id="ppn_rate_hidden" value="{{ $ppnConfig['rate'] ?? 11 }}">');
         }
+        
+        // Auto-check PPN if enabled in company settings
+        @if($ppnConfig['enabled'] ?? false)
+            $('#ppn_checkbox').prop('checked', true);
+        @endif
 
         // Save transaction
         $('#saveTransaction').click(function() {

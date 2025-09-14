@@ -820,6 +820,9 @@
                                 <a class="nav-link" href="{{ route('laporan.stok') }}?show_pergerakan=1"><i class="fas fa-exchange-alt"></i> Pergerakan Barang</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.penjualan-dan-retur') }}"><i class="fas fa-chart-pie"></i> Laporan Penjualan & Retur</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="{{ route('laporan.piutang') }}"><i class="fas fa-credit-card"></i> Laporan Piutang Pelanggan</a>
                             </li>
                             <li class="nav-item">

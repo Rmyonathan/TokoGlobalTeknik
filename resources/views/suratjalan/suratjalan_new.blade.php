@@ -34,23 +34,7 @@
                         <div class="form-group">
                             <label for="customer">Customer</label>
                             <div class="input-group">
-                                <select class="form-control" id="customer_display" name="customer_display">
-                                    <option value="">-- Pilih Customer --</option>
-                                    @if(isset($customers) && count($customers) > 0)
-                                        @foreach($customers as $customer)
-                                            <option value="{{ $customer->kode_customer }}" 
-                                                    data-nama="{{ $customer->nama }}"
-                                                    data-alamat="{{ $customer->alamat }}"
-                                                    data-hp="{{ $customer->hp }}"
-                                                    data-telepon="{{ $customer->telepon }}"
-                                                    data-limit-hari-tempo="{{ $customer->limit_hari_tempo }}">
-                                                {{ $customer->kode_customer }} - {{ $customer->nama }}
-                                            </option>
-                                        @endforeach
-                                    @else
-                                        <option value="">Tidak ada data customer</option>
-                                    @endif
-                                </select>
+                                <input type="text" id="customer_display" name="customer_display" class="form-control" placeholder="Masukkan nama customer">
                                 <div class="input-group-append">
                                     <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addCustomerModal" title="Tambah Customer Baru">
                                         <i class="fas fa-plus"></i>
@@ -58,6 +42,7 @@
                                 </div>
                             </div>
                             <input type="hidden" id="kode_customer" name="kode_customer">
+                            <div id="customerDropdown" class="dropdown-menu" style="display: none; position: relative; width: 100%;"></div>
                         </div>
 
                         <div class="form-group">
@@ -78,23 +63,36 @@
 
                     <!-- Kanan -->
                     <div class="col-md-6">
-                        <!-- <div class="form-group">
+                        <div class="form-group">
                             <label for="select_faktur">Pilih Faktur (Opsional)</label>
                             <select class="form-control" id="select_faktur" name="select_faktur">
                                 <option value="">-- Pilih Faktur --</option>
                                 @foreach($availableTransactions as $transaction)
                                     <option value="{{ $transaction->id }}" 
+                                            data-no-transaksi="{{ $transaction->no_transaksi }}"
                                             data-kode-customer="{{ $transaction->kode_customer }}"
                                             data-customer-name="{{ $transaction->customer->nama ?? 'N/A' }}"
                                             data-customer-alamat="{{ $transaction->customer->alamat ?? 'N/A' }}"
                                             data-customer-hp="{{ $transaction->customer->hp ?? 'N/A' }}"
-                                            data-customer-telp="{{ $transaction->customer->telepon ?? 'N/A' }}">
+                                            data-customer-telp="{{ $transaction->customer->telepon ?? 'N/A' }}"
+                                            data-tanggal="{{ $transaction->tanggal }}"
+                                            data-grand-total="{{ $transaction->grand_total }}">
                                         {{ $transaction->no_transaksi }} - {{ $transaction->customer->nama ?? 'N/A' }} ({{ \Carbon\Carbon::parse($transaction->tanggal)->format('d/m/Y') }})
                                     </option>
                                 @endforeach
                             </select>
                             <small class="form-text text-muted">Pilih faktur untuk mengisi otomatis data customer dan items</small>
-                        </div> -->
+                        </div>
+
+                        <div class="form-group">
+                            <label for="no_transaksi">No. Faktur</label>
+                            <input type="text" id="no_transaksi" name="no_transaksi" class="form-control" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tanggal_transaksi">Tanggal Faktur</label>
+                            <input type="date" class="form-control" id="tanggal_transaksi" name="tanggal_transaksi" readonly>
+                        </div>
 
                         <div class="form-group">
                             <label for="titipan_uang">Titipan Uang</label>
@@ -104,32 +102,6 @@
                         <div class="form-group">
                             <label for="sisa_piutang">Sisa Piutang</label>
                             <input type="number" class="form-control" id="sisa_piutang" name="sisa_piutang" value="0" min="0">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="metode_pembayaran">Metode Pembayaran</label>
-                            <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
-                                <option value="Non Tunai" selected>Non Tunai</option>
-                            </select>
-                            <small class="form-text text-muted">Semua pembayaran menggunakan kredit/tempo</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="cara_bayar">Cara Bayar</label>
-                            <select class="form-control" id="cara_bayar" name="cara_bayar">
-                                <option value="Kredit" selected>Kredit</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" id="hariTempoGroup" style="display:block;">
-                            <label for="hari_tempo">Hari Tempo</label>
-                            <input type="number" class="form-control" id="hari_tempo" name="hari_tempo" min="0" value="0">
-                            <small class="form-text text-muted">Isi 0 jika tanpa tempo</small>
-                        </div>
-
-                        <div class="form-group" id="jatuhTempoGroup" style="display:block;">
-                            <label for="tanggal_jatuh_tempo">Tanggal Jatuh Tempo</label>
-                            <input type="date" class="form-control" id="tanggal_jatuh_tempo" name="tanggal_jatuh_tempo">
                         </div>
                     </div>
                 </div>
@@ -258,48 +230,6 @@
                 </table>
             </div>
             
-            <!-- Summary Total -->
-            <div class="row mt-4">
-                <div class="col-md-6"></div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-title">Ringkasan Total</h6>
-                            <div class="row">
-                                <div class="col-6">
-                                    <label>Subtotal:</label>
-                                </div>
-                                <div class="col-6 text-right">
-                                    <span id="summary_subtotal">Rp 0</span>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="ppn_checkbox_sj">
-                                        <label class="form-check-label" for="ppn_checkbox_sj">
-                                            PPN ({{ $ppnConfig['rate'] ?? 11 }}%)
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-6 text-right">
-                                    <span id="summary_ppn">Rp 0</span>
-                                </div>
-                            </div>
-                            <hr>
-                            <div class="row">
-                                <div class="col-6">
-                                    <strong>Grand Total:</strong>
-                                </div>
-                                <div class="col-6 text-right">
-                                    <strong><span id="summary_grand_total">Rp 0</span></strong>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <div class="form-group text-right mt-4">
                 <button type="button" class="btn btn-success" id="saveSuratJalan">
                     <i class="fas fa-save"></i> Simpan Surat Jalan
@@ -324,37 +254,12 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-// Handle customer selection change
-$('#customer_display').on('change', function() {
-    const selectedOption = $(this).find('option:selected');
-    if (selectedOption.val()) {
-        $('#kode_customer').val(selectedOption.val());
-        $('#alamatCustomer').val(selectedOption.data('alamat') || '');
-        $('#hpCustomer').val(`${selectedOption.data('hp') || ''} / ${selectedOption.data('telepon') || ''}`);
-        $('#alamat_suratjalan').val(selectedOption.data('alamat') || '');
-        
-        // Auto-fill hari tempo from customer data
-        const hariTempo = selectedOption.data('limit-hari-tempo') || 0;
-        $('#hari_tempo').val(hariTempo);
-        
-        // Recalculate jatuh tempo
-        recalcJatuhTempo();
-    } else {
-        $('#kode_customer').val('');
-        $('#alamatCustomer').val('');
-        $('#hpCustomer').val('');
-        $('#alamat_suratjalan').val('');
-        $('#hari_tempo').val(0);
-        $('#tanggal_jatuh_tempo').val('');
-    }
-});
-
 // Handle kode barang selection change
 $('#newKodeBarang').on('change', function() {
     const selectedOption = $(this).find('option:selected');
     const harga = selectedOption.data('harga') || 0;
     const unitDasar = selectedOption.data('unit-dasar') || 'PCS';
-    const kodeBarangId = $(this).val();
+    const unitTurunan = selectedOption.data('unit-turunan') || '';
     
     // Set harga
     $('#newHarga').val(harga);
@@ -363,79 +268,20 @@ $('#newKodeBarang').on('change', function() {
     $('#newSatuanKecil').empty().append(`<option value="${unitDasar}">${unitDasar}</option>`);
     $('#newSatuan').val(unitDasar);
     
-    // Set satuan besar options using API
+    // Set satuan besar options
     $('#newSatuanBesar').empty();
-    $('#newSatuanBesar').append(`<option value="">-- Pilih Satuan Besar --</option>`);
-    
-    if (kodeBarangId) {
-        $.ajax({
-            url: `{{ route('suratjalan.available-units', '') }}/${kodeBarangId}`,
-            method: 'GET',
-            success: function(units) {
-                if (Array.isArray(units) && units.length > 0) {
-                    let hasOtherUnits = false;
-                    units.forEach(function(unit) {
-                        if (unit !== unitDasar) {
-                            $('#newSatuanBesar').append(`<option value="${unit}">${unit}</option>`);
-                            hasOtherUnits = true;
-                        }
-                    });
-                    
-                    // Auto-select first available unit (excluding unit dasar)
-                    if (hasOtherUnits) {
-                        const firstUnit = units.find(unit => unit !== unitDasar);
-                        if (firstUnit) {
-                            $('#newSatuanBesar').val(firstUnit);
-                        }
-                    } else {
-                        // Only show unit dasar as option if there are no other units
-                        $('#newSatuanBesar').append(`<option value="${unitDasar}">${unitDasar}</option>`);
-                        $('#newSatuanBesar').val(unitDasar);
-                    }
-                } else {
-                    // Fallback: show unit dasar
-                    $('#newSatuanBesar').append(`<option value="${unitDasar}">${unitDasar}</option>`);
-                    $('#newSatuanBesar').val(unitDasar);
-                }
-                calculateNewItemTotal();
-            },
-            error: function() {
-                // Fallback: show unit dasar as option
-                $('#newSatuanBesar').append(`<option value="${unitDasar}">${unitDasar}</option>`);
-                $('#newSatuanBesar').val(unitDasar);
-                calculateNewItemTotal();
-            }
-        });
-    } else {
-        // Reset to empty if no product
-        $('#newSatuanKecil').html('<option value=""></option>');
-        $('#newSatuanBesar').html('<option value="">-- Pilih Satuan Besar --</option>');
-        $('#newSatuan').val('');
-        calculateNewItemTotal();
+    if (unitTurunan && unitTurunan !== unitDasar) {
+        $('#newSatuanBesar').append(`<option value="${unitTurunan}">${unitTurunan}</option>`);
     }
+    
+    // Calculate total
+    calculateNewItemTotal();
 });
 
 // Handle qty and harga changes for total calculation
 $('#newQty, #newHarga, #newDiskon').on('input', function() {
     calculateNewItemTotal();
 });
-
-// Calculate jatuh tempo
-function recalcJatuhTempo() {
-    const base = $('#tanggal').val();
-    const hari = parseInt($('#hari_tempo').val() || '0', 10);
-    if (!base || isNaN(hari)) return;
-    const d = new Date(base);
-    d.setDate(d.getDate() + hari);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    $('#tanggal_jatuh_tempo').val(`${yyyy}-${mm}-${dd}`);
-}
-
-// Event listeners for jatuh tempo calculation
-$('#tanggal').on('change', recalcJatuhTempo);
-$('#hari_tempo').on('input', recalcJatuhTempo);
 
 // Calculate total for new item
 function calculateNewItemTotal() {
@@ -516,7 +362,6 @@ function updateItemsTable() {
     
     if (items.length === 0) {
         tbody.append('<tr><td colspan="10" class="text-center text-muted">Tidak ada barang</td></tr>');
-        updateSummaryTotal();
         return;
     }
     
@@ -544,33 +389,6 @@ function updateItemsTable() {
         `;
         tbody.append(row);
     });
-    
-    updateSummaryTotal();
-}
-
-// Update summary total with PPN calculation
-function updateSummaryTotal() {
-    let subtotal = 0;
-    
-    // Calculate subtotal from all items
-    items.forEach(item => {
-        subtotal += parseFloat(item.total || 0);
-    });
-    
-    // Calculate PPN
-    let ppnAmount = 0;
-    if ($('#ppn_checkbox_sj').is(':checked')) {
-        const ppnRate = {{ $ppnConfig['rate'] ?? 11 }};
-        ppnAmount = (subtotal * ppnRate) / 100;
-    }
-    
-    // Calculate grand total
-    const grandTotal = subtotal + ppnAmount;
-    
-    // Update display
-    $('#summary_subtotal').text('Rp ' + formatCurrency(subtotal));
-    $('#summary_ppn').text('Rp ' + formatCurrency(ppnAmount));
-    $('#summary_grand_total').text('Rp ' + formatCurrency(grandTotal));
 }
 
 // Remove item button handler
@@ -582,29 +400,18 @@ $(document).on('click', '.remove-item', function() {
     }
 });
 
-// PPN checkbox change handler
-$('#ppn_checkbox_sj').on('change', function() {
-    updateSummaryTotal();
-});
-
-// Auto-check PPN if enabled in company settings
-@if($ppnConfig['enabled'] ?? false)
-    $('#ppn_checkbox_sj').prop('checked', true);
-@endif
-
 // Handle faktur selection
 $('#select_faktur').on('change', function() {
     const selectedOption = $(this).find('option:selected');
     if (selectedOption.val()) {
-        // Fill customer data using dropdown
-        $('#customer_display').val(selectedOption.data('kode-customer'));
+        // Fill customer data
+        $('#customer_display').val(`${selectedOption.data('kode-customer')} - ${selectedOption.data('customer-name')}`);
         $('#kode_customer').val(selectedOption.data('kode-customer'));
         $('#alamatCustomer').val(selectedOption.data('customer-alamat'));
         $('#hpCustomer').val(`${selectedOption.data('customer-hp')} / ${selectedOption.data('customer-telp')}`);
         $('#alamat_suratjalan').val(selectedOption.data('customer-alamat'));
-        
-        // Trigger customer change event to auto-fill hari tempo
-        $('#customer_display').trigger('change');
+        $('#no_transaksi').val(selectedOption.data('no-transaksi'));
+        $('#tanggal_transaksi').val(selectedOption.data('tanggal'));
         
         // Load transaction items
         loadTransactionItems(selectedOption.val());
@@ -615,8 +422,8 @@ $('#select_faktur').on('change', function() {
         $('#alamatCustomer').val('');
         $('#hpCustomer').val('');
         $('#alamat_suratjalan').val('');
-        $('#hari_tempo').val(0);
-        $('#tanggal_jatuh_tempo').val('');
+        $('#no_transaksi').val('');
+        $('#tanggal_transaksi').val('');
         
         // Clear items
         items = [];
@@ -669,12 +476,10 @@ $('#saveSuratJalan').on('click', function() {
         tanggal: $('#tanggal').val(),
         kode_customer: $('#kode_customer').val(),
         alamat_suratjalan: $('#alamat_suratjalan').val(),
+        no_transaksi: $('#no_transaksi').val(),
+        tanggal_transaksi: $('#tanggal_transaksi').val(),
         titipan_uang: $('#titipan_uang').val(),
         sisa_piutang: $('#sisa_piutang').val(),
-        metode_pembayaran: $('#metode_pembayaran').val(),
-        cara_bayar: $('#cara_bayar').val(),
-        hari_tempo: parseInt($('#hari_tempo').val() || '0', 10),
-        tanggal_jatuh_tempo: $('#tanggal_jatuh_tempo').val(),
         items: items,
         _token: $('meta[name="csrf-token"]').attr('content')
     };
@@ -685,10 +490,10 @@ $('#saveSuratJalan').on('click', function() {
         data: formData,
         success: function(response) {
             if (response.success) {
-                alert(response.message || 'Surat Jalan berhasil disimpan!');
+                alert('Surat Jalan berhasil disimpan!');
                 window.location.href = "{{ route('suratjalan.history') }}";
             } else {
-                alert('Gagal menyimpan Surat Jalan: ' + (response.message || response.error || 'Unknown error'));
+                alert('Gagal menyimpan Surat Jalan: ' + (response.message || 'Unknown error'));
             }
         },
         error: function(xhr, status, error) {

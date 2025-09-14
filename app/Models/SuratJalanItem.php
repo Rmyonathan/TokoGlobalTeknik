@@ -17,6 +17,8 @@ class SuratJalanItem extends Model{
         'kode_barang',
         'nama_barang',
         'qty',
+        'satuan',
+        'satuan_besar',
     ];
 
     public function suratJalan()

@@ -49,7 +49,16 @@ class SuratJalanController extends Controller
         $transaksi = $noTransaksi ? Transaksi::with(['items', 'customer'])->where('no_transaksi', $noTransaksi)->first() : null;
         $transaksiItems = $transaksi ? $transaksi->items : collect();
 
-        return view('suratjalan.suratjalan', compact('noSuratJalan', 'availableTransactions', 'transaksi', 'transaksiItems'));
+        // Get kode barangs for manual item addition
+        $kodeBarangs = KodeBarang::orderBy('kode_barang')->get();
+        
+        // Get customers for dropdown
+        $customers = Customer::orderBy('nama')->get();
+        
+        // Get PPN configuration from company settings
+        $ppnConfig = \App\Services\PpnService::getPpnConfig();
+
+        return view('suratjalan.suratjalan', compact('noSuratJalan', 'availableTransactions', 'transaksi', 'transaksiItems', 'kodeBarangs', 'customers', 'ppnConfig'));
     }
 
     public function store(Request $request){
@@ -61,19 +70,23 @@ class SuratJalanController extends Controller
         ]);
         
         try {
-            $request->validate([
-                'no_suratjalan' => 'required|unique:surat_jalan,no_suratjalan',
-                'tanggal' => 'required|date',
-                'kode_customer' => 'required|exists:customers,kode_customer',
-                'alamat_suratjalan' => 'nullable|string',
-                // Untuk alur SJ -> Faktur, no_transaksi boleh kosong
-                'no_transaksi' => 'nullable|string',
-                'tanggal_transaksi' => 'nullable|date',
-                'titipan_uang' => 'nullable|numeric',
-                'sisa_piutang' => 'nullable|numeric',
-                'items' => 'required|array|min:1',
-                // Tidak wajib refer ke transaksi saat SJ dibuat lebih dulu
-                'items.*.kode_barang' => 'required|string',
+        $request->validate([
+            'no_suratjalan' => 'required|unique:surat_jalan,no_suratjalan',
+            'tanggal' => 'required|date',
+            'kode_customer' => 'required|exists:customers,kode_customer',
+            'alamat_suratjalan' => 'nullable|string',
+            // Untuk alur SJ -> Faktur, no_transaksi boleh kosong
+            'no_transaksi' => 'nullable|string',
+            'tanggal_transaksi' => 'nullable|date',
+            'titipan_uang' => 'nullable|numeric',
+            'sisa_piutang' => 'nullable|numeric',
+            'metode_pembayaran' => 'nullable|string',
+            'cara_bayar' => 'nullable|string',
+            'hari_tempo' => 'nullable|integer|min:0',
+            'tanggal_jatuh_tempo' => 'nullable|date',
+            'items' => 'required|array|min:1',
+            // Tidak wajib refer ke transaksi saat SJ dibuat lebih dulu
+            'items.*.kode_barang' => 'required|string',
                 'items.*.nama_barang' => 'required|string',
                 'items.*.qty' => 'required|numeric|min:0.01',
                 'items.*.satuan' => 'required|string',
@@ -103,6 +116,10 @@ class SuratJalanController extends Controller
                 'tanggal_transaksi' => $request->tanggal_transaksi ?? $request->tanggal,
                 'titipan_uang' => $request->titipan_uang ?? 0,
                 'sisa_piutang' => $request->sisa_piutang ?? 0,
+                'metode_pembayaran' => $request->metode_pembayaran ?? 'Non Tunai',
+                'cara_bayar' => $request->cara_bayar ?? 'Kredit',
+                'hari_tempo' => $request->hari_tempo ?? 0,
+                'tanggal_jatuh_tempo' => $request->tanggal_jatuh_tempo,
             ]);
 
             foreach ($request->items as $item) {
@@ -132,7 +149,9 @@ class SuratJalanController extends Controller
                     'transaksi_id' => $item['transaksi_id'] ?? null,
                     'kode_barang' => $item['kode_barang'],
                     'nama_barang' => $item['nama_barang'],
-                    'qty' => $item['qty']
+                    'qty' => $item['qty'],
+                    'satuan' => $item['satuan'],
+                    'satuan_besar' => $item['satuan_besar'] ?? null
                 ]);
 
                 // Lakukan alokasi FIFO untuk Surat Jalan
@@ -161,6 +180,7 @@ class SuratJalanController extends Controller
             DB::commit();
 
             return response()->json([
+                'success' => true,
                 'message' => 'Surat Jalan berhasil disimpan dengan alokasi FIFO!', 
                 'id' => $suratJalan->id,
                 'no_suratjalan'=> $suratJalan->no_suratjalan,
@@ -268,6 +288,19 @@ class SuratJalanController extends Controller
     }
 
     /**
+     * Get available units for a specific product
+     */
+    public function getAvailableUnits($kodeBarangId)
+    {
+        try {
+            $units = $this->unitService->getAvailableUnits($kodeBarangId);
+            return response()->json($units);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
      * Get FIFO allocation details for a specific Surat Jalan Item
      */
     public function getFifoAllocation($suratJalanItemId)
@@ -318,7 +351,8 @@ class SuratJalanController extends Controller
                 'kode_barang' => $it->kode_barang,
                 'nama_barang' => $it->nama_barang,
                 'qty' => $it->qty,
-                'satuan' => $kb?->unit_dasar ?? 'PCS',
+                'satuan' => $it->satuan ?? $kb?->unit_dasar ?? 'PCS', // Satuan kecil dari surat jalan
+                'satuan_besar' => $it->satuan_besar ?? '', // Satuan besar dari surat jalan
                 'harga_jual_default' => (float) ($kb?->harga_jual ?? 0),
                 'unit_dasar' => $kb?->unit_dasar ?? 'PCS',
                 'kode_barang_id' => $kb?->id,
@@ -330,6 +364,10 @@ class SuratJalanController extends Controller
             'no_suratjalan' => $sj->no_suratjalan,
             'no_transaksi' => $sj->no_transaksi,
             'tanggal' => $sj->tanggal,
+            'metode_pembayaran' => $sj->metode_pembayaran,
+            'cara_bayar' => $sj->cara_bayar,
+            'hari_tempo' => $sj->hari_tempo,
+            'tanggal_jatuh_tempo' => $sj->tanggal_jatuh_tempo,
             'customer' => [
                 'kode_customer' => $sj->kode_customer,
                 'nama' => $sj->customer->nama ?? null,
