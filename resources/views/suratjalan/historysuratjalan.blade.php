@@ -57,6 +57,9 @@
                         target="_blank">
                             <i class="fas fa-print"></i> Print
                         </a>
+                        <a href="{{ route('transaksi.penjualan', ['no_suratjalan' => $sj->no_suratjalan]) }}" class="btn btn-success btn-sm">
+                            <i class="fas fa-file-invoice"></i> Buat Faktur
+                        </a>
                     </td>
                 </tr>
             @endforeach

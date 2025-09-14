@@ -13,6 +13,7 @@ use App\Models\Panel;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\StockBatch;
+use App\Services\AccountingService;
 
 
 class PembelianController extends Controller
@@ -226,6 +227,13 @@ class PembelianController extends Controller
             }
             
             DB::commit();
+
+            // Create accounting journal for purchase (DR Persediaan, DR Piutang PPN, CR Kas/Utang Usaha)
+            try {
+                app(AccountingService::class)->createJournalFromPurchase($pembelian);
+            } catch (\Exception $e) {
+                Log::warning('Accounting journal for purchase failed', ['message' => $e->getMessage(), 'nota' => $pembelian->nota]);
+            }
 
             return response()->json([
                 'id' => $pembelian->id,

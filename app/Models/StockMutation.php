@@ -32,4 +32,12 @@ class StockMutation extends Model
         'minus' => 'float',
         'total' => 'float',
     ];
+
+    /**
+     * Get the kode barang that owns the stock mutation.
+     */
+    public function kodeBarang()
+    {
+        return $this->belongsTo(KodeBarang::class, 'kode_barang', 'kode_barang');
+    }
 }

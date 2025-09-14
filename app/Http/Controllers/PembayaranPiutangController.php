@@ -14,6 +14,7 @@ use App\Models\Customer;
 use App\Models\Kas;
 use App\Models\NotaKredit;
 use Carbon\Carbon;
+use App\Services\AccountingService;
 
 class PembayaranPiutangController extends Controller
 {
@@ -378,6 +379,13 @@ class PembayaranPiutangController extends Controller
             }
 
             DB::commit();
+
+            // Create accounting journal (DR Kas/Bank, CR Piutang Usaha)
+            try {
+                app(AccountingService::class)->createJournalFromPaymentAR($pembayaran);
+            } catch (\Exception $e) {
+                Log::warning('Accounting journal for AR payment failed', ['message' => $e->getMessage(), 'no_pembayaran' => $pembayaran->no_pembayaran]);
+            }
 
             if ($request->wantsJson()) {
                 return response()->json([

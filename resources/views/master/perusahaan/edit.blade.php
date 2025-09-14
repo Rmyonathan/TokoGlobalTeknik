@@ -101,6 +101,17 @@
                         @error('catatan_surat_jalan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <div class="form-check form-switch mt-3">
+                            <input class="form-check-input" type="checkbox" id="ppn_enabled" name="ppn_enabled" value="1" {{ old('ppn_enabled', $perusahaan->ppn_enabled) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="ppn_enabled">Aktifkan PPN</label>
+                        </div>
+                        <div class="mt-2">
+                            <label for="ppn_rate" class="form-label">Tarif PPN (%)</label>
+                            <input type="number" step="0.01" min="0" class="form-control @error('ppn_rate') is-invalid @enderror" id="ppn_rate" name="ppn_rate" value="{{ old('ppn_rate', $perusahaan->ppn_rate ?? 11.00) }}">
+                            @error('ppn_rate')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
                 </div>
                 

@@ -31,6 +31,10 @@ class DatabaseSeeder extends Seeder
         
         // Create sample data
         $this->createSampleData();
+
+        // Accounting seeders
+        $this->call(AccountingPeriodSeeder::class);
+        $this->call(ChartOfAccountsSeeder::class);
     }
     
     /**

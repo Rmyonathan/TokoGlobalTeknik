@@ -97,8 +97,10 @@
                                                 data-harga="{{ $barang->cost }}"
                                                 data-unit-dasar="{{ $barang->unit_dasar }}"
                                                 data-kode="{{ $barang->kode_barang }}"
-                                                data-nama="{{ $barang->name }}">
-                                                {{ $barang->kode_barang }} - {{ $barang->name }}
+                                                data-nama="{{ $barang->name }}"
+                                                data-merek="{{ $barang->merek }}"
+                                                data-ukuran="{{ $barang->ukuran }}">
+                                                {{ $barang->kode_barang }} - {{ $barang->name }}@if($barang->merek || $barang->ukuran) ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})@endif
                                             </option>
                                         @endforeach
                                     @else

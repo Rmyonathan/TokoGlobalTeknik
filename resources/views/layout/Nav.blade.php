@@ -13,6 +13,8 @@
 
     <!-- Bootstrap JS -->
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Bootstrap 5 for toast notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
@@ -503,21 +505,17 @@
 
             <div class="collapse navbar-collapse" id="navbarTop">
                 <ul class="navbar-nav ml-auto">
-                    @if(config('database.available_databases'))
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="dbSwitchDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <i class="bi bi-building"></i>
-                            {{ ucfirst(session('selected_database', array_key_first(config('database.available_databases')))) }}
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dbSwitchDropdown">
-                            @foreach(config('database.available_databases') as $key => $dbName)
-                                <form action="/switchDatabase" method="POST" class="px-3 py-1">
-                                    @csrf
-                                    <input type="hidden" name="database" value="{{ $key }}">
-                                    <button type="submit" class="btn btn-link p-0 {{ session('selected_database') === $key ? 'font-weight-bold' : '' }}">{{ ucfirst($key) }}</button>
-                                </form>
-                            @endforeach
-                        </div>
+                    @if(!auth()->guard()->guest())
+                    <li class="nav-item">
+                        @php
+                            $databaseService = app(\App\Services\DatabaseSwitchService::class);
+                            $currentDb = $databaseService->getCurrentDatabaseInfo();
+                            $availableDbs = $databaseService->getDatabaseStatus();
+                        @endphp
+                        <x-navbar-database-switcher 
+                            :currentDatabase="$currentDb" 
+                            :availableDatabases="$availableDbs" 
+                        />
                     </li>
                     @endif
                     <li class="nav-item">
@@ -580,6 +578,20 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('grup_barang.index')); ?>"><i class="fas fa-tags"></i> Grup Barang</a>
                             </li>
+                            @canany(['view chart of accounts','create chart of accounts','edit chart of accounts','delete chart of accounts'])
+                            <li class="nav-item">
+                                @if(Route::has('chart-of-accounts.index'))
+                                <a class="nav-link" href="{{ route('chart-of-accounts.index') }}"><i class="fas fa-book"></i> Chart of Accounts</a>
+                                @else
+                                <a class="nav-link" href="#" title="Belum tersedia"><i class="fas fa-book"></i> Chart of Accounts</a>
+                                @endif
+                            </li>
+                            @endcanany
+                            @can('manage accounting')
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('database-switch.index') }}"><i class="fas fa-database"></i> Database Switch</a>
+                            </li>
+                            @endcan
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('code.view-code')); ?>"><i class="fas fa-barcode"></i> Kode Barang</a>
                             </li>
@@ -624,6 +636,9 @@
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('suratjalan.create') }}"><i class="fas fa-truck"></i> Surat Jalan</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('suratjalan.history') }}"><i class="fas fa-history"></i> History Surat Jalan</a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('transaksi.penjualan')); ?>"><i class="fas fa-file-invoice"></i> Faktur Penjualan</a>
@@ -734,6 +749,46 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/viewKas"><i class="fas fa-money-bill-wave mr-2"></i>Kas</a>
                 </li>
+
+                @canany(['view general journal','view accounting reports','view year end closing'])
+                <!-- Accounting Section -->
+                <li class='nav-item'>
+                    <a class="nav-link" data-toggle="collapse" href="#accountingMenu" role="button" aria-expanded="false" aria-controls="accountingMenu">
+                        <i class="fas fa-calculator"></i> Accounting
+                        <i class="fas fa-chevron-down ml-auto"></i>
+                    </a>
+                    <div class="collapse bg-dark border-0" id="accountingMenu">
+                        <ul class="nav flex-column ml-3">
+                            @canany(['view general journal','create general journal','edit general journal','delete general journal'])
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('accounting.general-journal.index') }}"><i class="fas fa-book"></i> General Journal</a>
+                            </li>
+                            @endcanany
+                            @can('view accounting reports')
+                            <li class='nav-item'>
+                                <a class="nav-link" data-toggle="collapse" href="#accReports" role="button" aria-expanded="false" aria-controls="accReports">
+                                    <i class="fas fa-chart-line"></i> Accounting Reports
+                                    <i class="fas fa-chevron-down ml-auto"></i>
+                                </a>
+                                <div class="collapse bg-dark border-0" id="accReports">
+                                    <ul class="nav flex-column ml-3">
+                                        <li class="nav-item"><a class="nav-link" href="{{ route('accounting.reports.gl') }}"><i class="fas fa-book"></i> Buku Besar</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="{{ route('accounting.reports.trial_balance') }}"><i class="fas fa-balance-scale"></i> Neraca Saldo</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="{{ route('accounting.reports.income_statement') }}"><i class="fas fa-file-invoice-dollar"></i> Laba Rugi</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="{{ route('accounting.reports.balance_sheet') }}"><i class="fas fa-landmark"></i> Neraca</a></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            @endcan
+                            @canany(['view year end closing','create year end closing'])
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('accounting.year-end.index') }}"><i class="fas fa-calendar-check"></i> Tutup Buku Tahunan</a>
+                            </li>
+                            @endcanany
+                        </ul>
+                    </div>
+                </li>
+                @endcanany
 
                 <!-- Laporan Section -->
                 <li class='nav-item'>
@@ -858,6 +913,7 @@
         // Additional listener for orientation changes (important for mobile devices)
         window.addEventListener('orientationchange', adjustLayout);
     });
+
 
     </script>
 

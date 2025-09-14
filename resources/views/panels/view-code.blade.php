@@ -27,6 +27,7 @@
                                 <th style="border: 1px solid #000;">Nama Barang</th>
                                 <th style="border: 1px solid #000;">Satuan Kecil</th>
                                 <th style="border: 1px solid #000;">Satuan Besar</th>
+                                <th style="border: 1px solid #000;">Stok Tersedia</th>
                                 <th style="border: 1px solid #000;">Status</th>
                                 <th style="border: 1px solid #000;">Aksi</th>
                             </tr>
@@ -50,6 +51,11 @@
                                                 </span>
                                             @endforeach
                                         @endif
+                                    </td>
+                                    <td style="border: 1px solid #000; text-align: center;">
+                                        <span class="badge {{ ($code->available_stock ?? 0) > 0 ? 'badge-success' : 'badge-warning' }}">
+                                            {{ number_format($code->available_stock ?? 0, 0, ',', '.') }} {{ $code->stock_unit ?? 'PCS' }}
+                                        </span>
                                     </td>
                                     <td style="border: 1px solid #000;">{{ $code->status }}</td>
                                     <td style="border: 1px solid #000;">

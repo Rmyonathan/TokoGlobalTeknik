@@ -109,6 +109,26 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        // Database kedua untuk switching
+        'mysql_second' => [
+            'driver' => 'mysql',
+            'url' => env('DB_URL'),
+            'host' => env('DB_HOST_2', '127.0.0.1'),
+            'port' => env('DB_PORT_2', '3307'),
+            'database' => env('DB_DATABASE_2', 'laravel_second'),
+            'username' => env('DB_USERNAME_2', 'root'),
+            'password' => env('DB_PASSWORD_2', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_0900_ai_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
 
     ],
 
@@ -168,10 +188,17 @@ return [
 
     ],
 
-    // 'available_databases' => [
-    //     'first' => 'first_database',
-    //     'second' => 'second_database',
-    //     'third' => 'third_database',
-    // ],
+    'available_databases' => [
+        'primary' => [
+            'name' => 'Database Utama',
+            'connection' => 'mysql',
+            'description' => 'Database utama untuk operasi normal'
+        ],
+        'secondary' => [
+            'name' => 'Database Kedua',
+            'connection' => 'mysql_second',
+            'description' => 'Database kedua untuk backup atau testing'
+        ],
+    ],
 
 ];

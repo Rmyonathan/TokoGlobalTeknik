@@ -65,14 +65,14 @@ class SuratJalanController extends Controller
                 'no_suratjalan' => 'required|unique:surat_jalan,no_suratjalan',
                 'tanggal' => 'required|date',
                 'kode_customer' => 'required|exists:customers,kode_customer',
-                'alamat_suratjalan' => 'required|string',
-                'no_transaksi' => 'required|exists:transaksi,no_transaksi',
-                'tanggal_transaksi' => 'required|date',
+                'alamat_suratjalan' => 'nullable|string',
+                // Untuk alur SJ -> Faktur, no_transaksi boleh kosong
+                'no_transaksi' => 'nullable|string',
+                'tanggal_transaksi' => 'nullable|date',
                 'titipan_uang' => 'nullable|numeric',
                 'sisa_piutang' => 'nullable|numeric',
-                'items' => 'required|array',
-                            'items.*.transaksi_id' => 'required|integer|exists:transaksi,id',
-                'items.*.no_transaksi' => 'required|exists:transaksi,no_transaksi',
+                'items' => 'required|array|min:1',
+                // Tidak wajib refer ke transaksi saat SJ dibuat lebih dulu
                 'items.*.kode_barang' => 'required|string',
                 'items.*.nama_barang' => 'required|string',
                 'items.*.qty' => 'required|numeric|min:0.01',
@@ -98,8 +98,9 @@ class SuratJalanController extends Controller
                 'tanggal' => $request->tanggal ?? now(),
                 'kode_customer' => $request->kode_customer,
                 'alamat_suratjalan' => $request->alamat_suratjalan ?? "default",
+                // Boleh null pada alur SJ -> Faktur
                 'no_transaksi' => $request->no_transaksi,
-                'tanggal_transaksi' => $request->tanggal_transaksi,
+                'tanggal_transaksi' => $request->tanggal_transaksi ?? $request->tanggal,
                 'titipan_uang' => $request->titipan_uang ?? 0,
                 'sisa_piutang' => $request->sisa_piutang ?? 0,
             ]);
@@ -109,15 +110,6 @@ class SuratJalanController extends Controller
                 $kodeBarang = KodeBarang::where('kode_barang', $item['kode_barang'])->first();
                 if (!$kodeBarang) {
                     throw new Exception("Kode barang {$item['kode_barang']} tidak ditemukan");
-                }
-
-                // Cari transaksi item yang sesuai
-                $transaksiItem = TransaksiItem::where('transaksi_id', $item['transaksi_id'])
-                    ->where('kode_barang', $item['kode_barang'])
-                    ->first();
-                
-                if (!$transaksiItem) {
-                    throw new Exception("Transaksi item tidak ditemukan untuk {$item['kode_barang']}");
                 }
 
                 // Konversi qty ke unit dasar untuk validasi stok
@@ -133,10 +125,11 @@ class SuratJalanController extends Controller
                     throw new Exception("Stok tidak mencukupi untuk {$item['nama_barang']}. Tersedia: {$stokTersedia}, Dibutuhkan: {$qtyInBaseUnit}");
                 }
 
-                // Buat Surat Jalan Item dengan transaksi_item_id yang benar
+                // Buat Surat Jalan Item tanpa keterikatan wajib ke transaksi item
                 $suratJalanItem = SuratJalanItem::create([
                     'no_suratjalan' => $suratJalan->no_suratjalan,
-                    'transaksi_id' => $transaksiItem->id, // Ini harus ID dari transaksi_items, bukan transaksi
+                    // transaksi_id boleh null untuk alur SJ -> Faktur
+                    'transaksi_id' => $item['transaksi_id'] ?? null,
                     'kode_barang' => $item['kode_barang'],
                     'nama_barang' => $item['nama_barang'],
                     'qty' => $item['qty']
@@ -304,6 +297,49 @@ class SuratJalanController extends Controller
         }
     }
 
+    /**
+     * API: Get Surat Jalan by number, including items and default prices
+     */
+    public function apiByNo(string $no)
+    {
+        $sj = SuratJalan::with(['items', 'customer'])
+            ->where('no_suratjalan', $no)
+            ->first();
+
+        if (!$sj) {
+            return response()->json(['error' => 'Surat Jalan tidak ditemukan'], 404);
+        }
+
+        $items = [];
+        foreach ($sj->items as $it) {
+            $kb = KodeBarang::where('kode_barang', $it->kode_barang)->first();
+            $items[] = [
+                'surat_jalan_item_id' => $it->id,
+                'kode_barang' => $it->kode_barang,
+                'nama_barang' => $it->nama_barang,
+                'qty' => $it->qty,
+                'satuan' => $kb?->unit_dasar ?? 'PCS',
+                'harga_jual_default' => (float) ($kb?->harga_jual ?? 0),
+                'unit_dasar' => $kb?->unit_dasar ?? 'PCS',
+                'kode_barang_id' => $kb?->id,
+            ];
+        }
+
+        return response()->json([
+            'id' => $sj->id,
+            'no_suratjalan' => $sj->no_suratjalan,
+            'no_transaksi' => $sj->no_transaksi,
+            'tanggal' => $sj->tanggal,
+            'customer' => [
+                'kode_customer' => $sj->kode_customer,
+                'nama' => $sj->customer->nama ?? null,
+                'alamat' => $sj->customer->alamat ?? null,
+                'hp' => $sj->customer->hp ?? null,
+                'telepon' => $sj->customer->telepon ?? null,
+            ],
+            'items' => $items,
+        ]);
+    }
     /**
      * Batalkan Surat Jalan: rollback alokasi FIFO, kurangi qty_terkirim SO, dan set status canceled
      */

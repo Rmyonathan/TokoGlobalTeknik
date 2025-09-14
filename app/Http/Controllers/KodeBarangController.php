@@ -42,8 +42,13 @@ class KodeBarangController extends Controller
             // 'cost' dihapus dari form, akan diset default 0
             'price' => 'nullable|numeric|min:0',
             'attribute' => 'required|string|max:255',
+            'merek' => 'nullable|string|max:255',
+            'ukuran' => 'nullable|string|max:100',
             'kode_barang' => 'required|string|max:255',
             'unit_dasar' => 'required|string|max:20',
+            'satuan_dasar' => 'nullable|string|max:50',
+            'satuan_besar' => 'nullable|string|max:50',
+            'nilai_konversi' => 'nullable|integer|min:1',
             'harga_jual' => 'nullable|numeric|min:0',
             'ongkos_kuli_default' => 'nullable|numeric|min:0',
             // 'length' => 'required|numeric|min:0.1',
@@ -87,6 +92,12 @@ class KodeBarangController extends Controller
         
         // Set default values if not provided
         $validated['unit_dasar'] = $validated['unit_dasar'] ?? 'LBR';
+        // Default conversion: PCS -> LUSIN (12) if unit dasar PCS
+        if (($validated['unit_dasar'] ?? '') === 'PCS') {
+            $validated['satuan_dasar'] = 'PCS';
+            $validated['satuan_besar'] = 'LUSIN';
+            $validated['nilai_konversi'] = $validated['nilai_konversi'] ?? 12;
+        }
         $validated['price'] = $validated['price'] ?? 0;
         $validated['harga_jual'] = $validated['harga_jual'] ?? $validated['price'];
         $validated['ongkos_kuli_default'] = $validated['ongkos_kuli_default'] ?? 0;
@@ -99,6 +110,18 @@ class KodeBarangController extends Controller
 
         // Create the new KodeBarang
         $kodeBarang = KodeBarang::create($validated);
+
+        // Auto-create default conversion when unit dasar is PCS
+        if (($validated['unit_dasar'] ?? '') === 'PCS') {
+            $defaultSatuanBesar = $validated['satuan_besar'] ?? 'LUSIN';
+            $defaultNilai = (int) ($validated['nilai_konversi'] ?? 12);
+            if ($defaultSatuanBesar && $defaultNilai > 0) {
+                \App\Models\UnitConversion::updateOrCreate(
+                    [ 'kode_barang_id' => $kodeBarang->id, 'unit_turunan' => strtoupper($defaultSatuanBesar) ],
+                    [ 'nilai_konversi' => $defaultNilai, 'is_active' => true ]
+                );
+            }
+        }
 
         // Handle inline unit conversions payload (JSON array)
         $ucPayload = $request->input('unit_conversions');
@@ -165,6 +188,8 @@ class KodeBarangController extends Controller
         $validated = $request->validate([
             'grup_barang_id' => 'required|string|max:255',
             'attribute' => 'required|string|max:255',
+            'merek' => 'nullable|string|max:255',
+            'ukuran' => 'nullable|string|max:100',
             'kode_barang' => 'required|string|max:255',
             'unit_dasar' => 'required|string|max:20',
             'harga_jual' => 'required|numeric|min:0',
@@ -211,6 +236,18 @@ class KodeBarangController extends Controller
         
         $code->update($validated);
 
+        // Sync default conversion if unit dasar is PCS
+        if (($validated['unit_dasar'] ?? $code->unit_dasar) === 'PCS') {
+            $defaultSatuanBesar = $validated['satuan_besar'] ?? $code->satuan_besar ?? 'LUSIN';
+            $defaultNilai = (int) ($validated['nilai_konversi'] ?? $code->nilai_konversi ?? 12);
+            if ($defaultSatuanBesar && $defaultNilai > 0) {
+                \App\Models\UnitConversion::updateOrCreate(
+                    [ 'kode_barang_id' => $code->id, 'unit_turunan' => strtoupper($defaultSatuanBesar) ],
+                    [ 'nilai_konversi' => $defaultNilai, 'is_active' => true ]
+                );
+            }
+        }
+
         return redirect()->route('code.view-code')
             ->with('success', "Successfully updated code!");
     }
@@ -249,7 +286,21 @@ class KodeBarangController extends Controller
             ->limit(10)
             ->get();
 
-        return response()->json($kodeBarang);
+        // Transform data to match frontend expectations
+        $transformedData = $kodeBarang->map(function($item) {
+            return [
+                'kode_barang' => $item->kode_barang,
+                'nama_barang' => $item->name, // Map 'name' to 'nama_barang'
+                'attribute' => $item->attribute,
+                'merek' => $item->merek,
+                'ukuran' => $item->ukuran,
+                'satuan_dasar' => $item->satuan_dasar,
+                'satuan_besar' => $item->satuan_besar,
+                'unit_dasar' => $item->unit_dasar
+            ];
+        });
+
+        return response()->json($transformedData);
     }
 
     /**

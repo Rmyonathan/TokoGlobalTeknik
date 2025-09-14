@@ -130,6 +130,16 @@ class FifoService
                 throw new Exception("Stok tidak mencukupi. Kekurangan: {$qtyTersisa}");
             }
 
+            // Update tabel stocks untuk sinkronisasi dengan master barang
+            $kodeBarang = \App\Models\KodeBarang::find($kodeBarangId);
+            if ($kodeBarang) {
+                $stock = \App\Models\Stock::where('kode_barang', $kodeBarang->kode_barang)->first();
+                if ($stock) {
+                    $stock->good_stock -= $qtyDibutuhkan;
+                    $stock->save();
+                }
+            }
+
             DB::commit();
 
             return [

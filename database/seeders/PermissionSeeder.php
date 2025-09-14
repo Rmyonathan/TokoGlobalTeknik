@@ -31,6 +31,10 @@ class PermissionSeeder extends Seeder
         $this->createReturPenjualanPermissions();
         $this->createReturPembelianPermissions();
         $this->createPembayaranUtangSupplierPermissions();
+        $this->createAccountingPermissions();
+        $this->createGeneralJournalPermissions();
+        $this->createAccountingReportPermissions();
+        $this->createYearEndClosingPermissions();
 
 
         // Create roles and assign permissions
@@ -167,6 +171,39 @@ class PermissionSeeder extends Seeder
     }
 
     /**
+     * Create Accounting (COA) permissions
+     */
+    private function createAccountingPermissions()
+    {
+        // Section gate for all accounting routes
+        $this->createPermissionIfNotExists('manage accounting');
+        $this->createPermissionIfNotExists('view chart of accounts');
+        $this->createPermissionIfNotExists('create chart of accounts');
+        $this->createPermissionIfNotExists('edit chart of accounts');
+        $this->createPermissionIfNotExists('delete chart of accounts');
+    }
+
+    private function createGeneralJournalPermissions()
+    {
+        $this->createPermissionIfNotExists('view general journal');
+        $this->createPermissionIfNotExists('create general journal');
+        $this->createPermissionIfNotExists('edit general journal');
+        $this->createPermissionIfNotExists('delete general journal');
+    }
+
+    private function createAccountingReportPermissions()
+    {
+        $this->createPermissionIfNotExists('view accounting reports');
+        $this->createPermissionIfNotExists('save accounting reports');
+    }
+
+    private function createYearEndClosingPermissions()
+    {
+        $this->createPermissionIfNotExists('view year end closing');
+        $this->createPermissionIfNotExists('create year end closing');
+    }
+
+    /**
      * Create Report permissions
      */
     private function createReportPermissions()
@@ -236,6 +273,8 @@ class PermissionSeeder extends Seeder
             'view dashboard',
             'view users',
             'view master data',
+            // Accounting section access
+            'manage accounting',
             'manage customers',
             'edit customers',
             'manage suppliers',
@@ -281,7 +320,12 @@ class PermissionSeeder extends Seeder
             'access sales report',
             'access purchase report',
             'access inventory report',
-            'access finance report'
+            'access finance report',
+            // COA
+            'view chart of accounts',
+            'create chart of accounts',
+            'edit chart of accounts',
+            'delete chart of accounts'
         ];
         
         $salesPermissions = [
@@ -330,6 +374,8 @@ class PermissionSeeder extends Seeder
             'view dashboard',
             'view master data',
             'view transactions',
+            // Accounting section access
+            'manage accounting',
             'view kas',
             'manage kas',
             'edit kas',
@@ -343,7 +389,12 @@ class PermissionSeeder extends Seeder
             'edit pembayaran piutang',
             'manage pembayaran piutang',
             'view laporan',
-            'access finance report'
+            'access finance report',
+            // COA
+            'view chart of accounts',
+            'create chart of accounts',
+            'edit chart of accounts',
+            'delete chart of accounts'
         ];
         
         // Senior roles with cancel permissions

@@ -14,6 +14,7 @@ use App\Models\PembelianItem;
 use App\Models\Supplier;
 use App\Models\NotaDebit;
 use App\Services\FifoService;
+use App\Services\AccountingService;
 
 class ReturPembelianController extends Controller
 {
@@ -120,6 +121,13 @@ class ReturPembelianController extends Controller
             $returPembelian->update(['total_retur' => $totalRetur]);
 
             DB::commit();
+
+            // Create accounting journal (DR Utang Usaha, CR Persediaan)
+            try {
+                app(AccountingService::class)->createJournalFromPurchaseReturn($returPembelian);
+            } catch (\Exception $e) {
+                Log::warning('Accounting journal for purchase return failed', ['message' => $e->getMessage(), 'no_retur' => $returPembelian->no_retur]);
+            }
 
             return redirect()->route('retur-pembelian.index')
                 ->with('success', 'Retur pembelian berhasil dibuat dengan nomor: ' . $noRetur);

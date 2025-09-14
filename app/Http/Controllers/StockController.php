@@ -450,4 +450,56 @@ class StockController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Check stock availability for a specific product
+     */
+    public function checkStock(Request $request)
+    {
+        try {
+            $kodeBarang = $request->input('kode_barang');
+            $qty = $request->input('qty', 0);
+            $satuan = $request->input('satuan', 'PCS');
+
+            if (!$kodeBarang) {
+                return response()->json([
+                    'available' => false,
+                    'available_stock' => 0,
+                    'stock_unit' => $satuan,
+                    'message' => 'Kode barang tidak ditemukan'
+                ]);
+            }
+
+            // Get stock from Stock table (Available Quantity)
+            $stockRecord = Stock::where('kode_barang', $kodeBarang)->first();
+            $availableStock = $stockRecord ? $stockRecord->good_stock : 0;
+            $stockUnit = $stockRecord ? $stockRecord->satuan : $satuan;
+
+            // Check if stock is available
+            $isAvailable = $availableStock >= $qty;
+
+            return response()->json([
+                'available' => $isAvailable,
+                'available_stock' => max(0, $availableStock), // Ensure non-negative
+                'stock_unit' => $stockUnit,
+                'requested_qty' => $qty,
+                'requested_unit' => $satuan,
+                'message' => $isAvailable ? 'Stok tersedia' : 'Stok tidak cukup'
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Error checking stock:', [
+                'message' => $e->getMessage(),
+                'kode_barang' => $request->input('kode_barang'),
+                'qty' => $request->input('qty')
+            ]);
+
+            return response()->json([
+                'available' => false,
+                'available_stock' => 0,
+                'stock_unit' => $request->input('satuan', 'PCS'),
+                'message' => 'Error checking stock: ' . $e->getMessage()
+            ]);
+        }
+    }
 }

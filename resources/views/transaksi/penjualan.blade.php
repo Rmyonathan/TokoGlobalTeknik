@@ -150,8 +150,10 @@
                                                 data-harga="{{ $barang->harga_jual }}"
                                                 data-unit-dasar="{{ $barang->unit_dasar }}"
                                                 data-kode="{{ $barang->kode_barang }}"
-                                                data-nama="{{ $barang->name }}">
-                                                {{ $barang->kode_barang }} - {{ $barang->name }}
+                                                data-nama="{{ $barang->name }}"
+                                                data-merek="{{ $barang->merek }}"
+                                                data-ukuran="{{ $barang->ukuran }}">
+                                                {{ $barang->kode_barang }} - {{ $barang->name }}@if($barang->merek || $barang->ukuran) ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})@endif
                                             </option>
                                         @endforeach
                                     @else
@@ -434,6 +436,45 @@
         // Initialize variables
         let items = [];
         let grandTotal = 0;
+        // Auto-load from Surat Jalan if URL has ?no_suratjalan=...
+        const urlParams = new URLSearchParams(window.location.search);
+        const noSj = urlParams.get('no_suratjalan');
+        let suratJalanId = null;
+        if (noSj) {
+            $.get(`{{ route('suratjalan.api.by-no', '') }}/${encodeURIComponent(noSj)}`)
+                .done(function(res){
+                    suratJalanId = res.id || null;
+                    if(res.customer){
+                        $('#kode_customer').val(res.customer.kode_customer);
+                        $('#customer').val(`${res.customer.kode_customer} - ${res.customer.nama || ''}`);
+                        $('#alamatCustomer').val(res.customer.alamat || '');
+                        $('#hpCustomer').val(`${res.customer.hp || ''} / ${res.customer.telepon || ''}`);
+                    }
+                    // Fill items
+                    items = [];
+                    (res.items||[]).forEach(function(it){
+                        const total = (parseFloat(it.harga_jual_default||0) * parseFloat(it.qty||0));
+                        items.push({
+                            surat_jalan_item_id: it.surat_jalan_item_id || null,
+                            kodeBarang: it.kode_barang,
+                            namaBarang: it.nama_barang,
+                            keterangan: '',
+                            harga: parseFloat(it.harga_jual_default||0),
+                            qty: parseFloat(it.qty||0),
+                            satuan: it.satuan || it.unit_dasar || 'PCS',
+                            satuanBesar: '',
+                            diskon: 0,
+                            ongkosKuli: 0,
+                            total: total
+                        });
+                    });
+                    renderItems();
+                    calculateTotals();
+                })
+                .fail(function(){
+                    console.warn('Gagal load Surat Jalan');
+                });
+        }
 
         // Auto-fill form jika ada data Sales Order
         @if(isset($salesOrder) && $salesOrder)
@@ -1055,6 +1096,11 @@
             
             const kodeBarang = selectedOption.data('kode') || selectedOption.text().split(' - ')[0];
             const namaBarang = selectedOption.data('nama') || selectedOption.text().split(' - ')[1];
+            const merek = (selectedOption.data('merek') || '').toString().trim();
+            const ukuran = (selectedOption.data('ukuran') || '').toString().trim();
+            const composedNama = (merek || ukuran)
+                ? `${namaBarang} (${merek || '-'}${merek && ukuran ? ', ' : ''}${ukuran || '-'})`
+                : namaBarang;
             const kodeBarangId = kodeBarangSelect.val();
             const keterangan = row.find('#keterangan').val();
             const harga = parseFloat(row.find('.item-harga').val()) || 0;
@@ -1089,7 +1135,7 @@
 
             const newItem = {
                 kodeBarang,
-                namaBarang,
+                namaBarang: composedNama,
                 keterangan,
                 harga: harga,
                 qty,
@@ -1172,7 +1218,8 @@
             // Calculate PPN
             let ppnAmount = 0;
             if ($('#ppn_checkbox').is(':checked')) {
-                ppnAmount = ((subtotal - discountAmount - discRp) * 0.11); // Using 11% for PPN
+                const ppnRate = parseFloat($('#ppn_rate_hidden').val()||'11');
+                ppnAmount = ((subtotal - discountAmount - discRp) * (ppnRate/100));
             }
             $('#ppn_amount').val(formatCurrency(ppnAmount));
 
@@ -1190,6 +1237,11 @@
         // Format currency
         function formatCurrency(amount) {
             return new Intl.NumberFormat('id-ID').format(amount);
+        }
+
+        // Inject PPN rate from perusahaan default (server-side recommended; placeholder hidden input)
+        if ($('#ppn_rate_hidden').length === 0) {
+            $('body').append('<input type="hidden" id="ppn_rate_hidden" value="11">');
         }
 
         // Save transaction
@@ -1227,11 +1279,53 @@
 
         showLoading();
 
-        // Simpan transaksi ke backend
+        // Simpan transaksi ke backend (khusus dari Surat Jalan pakai endpoint khusus agar transfer FIFO)
+        const isFromSuratJalan = !!noSj;
+        let ajaxUrl = "{{ route('transaksi.store') }}";
+        let ajaxMethod = "POST";
+        let ajaxData = transactionData;
+        if (isFromSuratJalan) {
+            // Siapkan payload untuk storeFromSuratJalan
+            ajaxUrl = "{{ route('api.transaksi.store-from-sj') }}";
+            ajaxMethod = "POST";
+            const itemsForSj = items.map(function(it){
+                return {
+                    surat_jalan_item_id: it.surat_jalan_item_id,
+                    kode_barang: it.kodeBarang,
+                    nama_barang: it.namaBarang,
+                    qty: it.qty,
+                    satuan: it.satuan || 'LBR',
+                    harga: it.harga,
+                    ongkos_kuli: it.ongkosKuli || 0,
+                    total: it.total,
+                    diskon: it.diskon || 0,
+                    keterangan: it.keterangan || ''
+                };
+            });
+            ajaxData = {
+                no_transaksi: $('#no_transaksi').val() || '',
+                tanggal: transactionData.tanggal,
+                kode_customer: transactionData.kode_customer,
+                sales: transactionData.sales,
+                pembayaran: transactionData.pembayaran,
+                cara_bayar: transactionData.cara_bayar,
+                tanggal_jadi: transactionData.tanggal_jadi,
+                subtotal: parseFloat((transactionData.subtotal||'0').toString().replace(/\./g, '')) || 0,
+                discount: transactionData.discount,
+                disc_rupiah: transactionData.disc_rp,
+                ppn: transactionData.ppn,
+                dp: transactionData.dp,
+                grand_total: transactionData.grand_total,
+                notes: transactionData.notes,
+                surat_jalan_id: suratJalanId,
+                items: itemsForSj
+            };
+        }
+
         $.ajax({
-            url: "{{ route('transaksi.store') }}",
-            method: "POST",
-            data: transactionData,
+            url: ajaxUrl,
+            method: ajaxMethod,
+            data: ajaxData,
             success: function(response) {
                 hideLoading();
                 // Tampilkan modal invoice

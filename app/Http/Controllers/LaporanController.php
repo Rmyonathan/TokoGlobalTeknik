@@ -654,20 +654,20 @@ class LaporanController extends Controller
         $jenisPergerakan = $request->get('jenis_pergerakan');
 
         try {
-            $query = StockBatch::with(['kodeBarang'])
-                ->where('qty_sisa', '>', 0);
+            // FIX: Use StockMutation instead of StockBatch for more accurate stock data
+            $query = StockMutation::with(['kodeBarang'])
+                ->where(function($q) {
+                    $q->where('plus', '>', 0)
+                      ->orWhere('minus', '>', 0);
+                });
 
             // Apply filters using when() for dynamic query building
             $query->when($kodeBarang, function($q) use ($kodeBarang) {
-                return $q->whereHas('kodeBarang', function($subQ) use ($kodeBarang) {
-                    $subQ->where('kode_barang', 'like', "%{$kodeBarang}%");
-                });
+                return $q->where('kode_barang', 'like', "%{$kodeBarang}%");
             });
 
             $query->when($namaBarang, function($q) use ($namaBarang) {
-                return $q->whereHas('kodeBarang', function($subQ) use ($namaBarang) {
-                    $subQ->where('name', 'like', "%{$namaBarang}%");
-                });
+                return $q->where('nama_barang', 'like', "%{$namaBarang}%");
             });
 
             $query->when($grupBarangId, function($q) use ($grupBarangId) {
@@ -676,7 +676,7 @@ class LaporanController extends Controller
                 });
             });
 
-            $stockBatches = $query->orderBy('tanggal_masuk', 'asc')->get();
+            $stockMutations = $query->orderBy('tanggal', 'asc')->get();
 
             // Handle pergerakan barang jika diminta
             $laporanData = collect([]);
@@ -773,36 +773,37 @@ class LaporanController extends Controller
                     'jenis_barang_terlibat' => $pergerakanData->pluck('kode_barang')->unique()->count()
                 ];
             } else {
-                // Original stock report logic
+                // Original stock report logic - FIX: Use StockMutation data
                 if ($showBatches) {
-                    $laporanData = $stockBatches->map(function($batch) {
+                    $laporanData = $stockMutations->map(function($mutation) {
                         return [
-                            'kode_barang' => $batch->kodeBarang->kode_barang,
-                            'nama_barang' => $batch->kodeBarang->name,
-                            'batch_id' => $batch->id,
-                            'tanggal_masuk' => optional($batch->tanggal_masuk)->format('d/m/Y'),
-                            'qty_masuk' => $batch->qty_masuk,
-                            'qty_sisa' => $batch->qty_sisa,
-                            'harga_beli' => $batch->harga_beli,
-                            'total_nilai_sisa' => $batch->qty_sisa * $batch->harga_beli,
-                            'action_pergerakan' => route('laporan.stok.pergerakan', $batch->kodeBarang->kode_barang),
+                            'kode_barang' => $mutation->kode_barang,
+                            'nama_barang' => $mutation->nama_barang,
+                            'batch_id' => $mutation->id,
+                            'tanggal_masuk' => optional($mutation->tanggal)->format('d/m/Y'),
+                            'qty_masuk' => $mutation->plus,
+                            'qty_sisa' => $mutation->plus - $mutation->minus, // Calculate remaining stock
+                            'harga_beli' => 0, // StockMutation doesn't have harga_beli
+                            'total_nilai_sisa' => 0, // Can't calculate without harga_beli
+                            'action_pergerakan' => route('laporan.stok.pergerakan', $mutation->kode_barang),
                         ];
                     });
                 } else {
-                    $groupedByBarang = $stockBatches->groupBy('kode_barang_id');
-                    $laporanData = $groupedByBarang->map(function($batches) {
-                        $first = $batches->first();
-                        $totalQtySisa = $batches->sum('qty_sisa');
-                        $totalNilai = $batches->sum(function($b) { return $b->qty_sisa * $b->harga_beli; });
+                    $groupedByBarang = $stockMutations->groupBy('kode_barang');
+                    $laporanData = $groupedByBarang->map(function($mutations) {
+                        $first = $mutations->first();
+                        $totalQtyMasuk = $mutations->sum('plus');
+                        $totalQtyKeluar = $mutations->sum('minus');
+                        $totalQtySisa = $totalQtyMasuk - $totalQtyKeluar;
                         return [
-                            'kode_barang' => $first->kodeBarang->kode_barang,
-                            'nama_barang' => $first->kodeBarang->name,
-                            'attribute' => $first->kodeBarang->attribute,
+                            'kode_barang' => $first->kode_barang,
+                            'nama_barang' => $first->nama_barang,
+                            'attribute' => $first->kodeBarang ? $first->kodeBarang->attribute : 'N/A',
                             'total_qty_sisa' => $totalQtySisa,
-                            'jumlah_batch' => $batches->count(),
-                            'total_nilai_stok' => $totalNilai,
-                            'rata_harga_beli' => $totalQtySisa > 0 ? $totalNilai / $totalQtySisa : 0,
-                            'action_pergerakan' => route('laporan.stok.pergerakan', $first->kodeBarang->kode_barang),
+                            'jumlah_batch' => $mutations->count(),
+                            'total_nilai_stok' => 0, // Can't calculate without harga_beli
+                            'rata_harga_beli' => 0, // Can't calculate without harga_beli
+                            'action_pergerakan' => route('laporan.stok.pergerakan', $first->kode_barang),
                         ];
                     })->values();
                 }
@@ -810,17 +811,17 @@ class LaporanController extends Controller
 
             $summary = [
                 'tanggal' => $tanggalPergerakan,
-                'total_transaksi' => $stockBatches->count(),
+                'total_transaksi' => $stockMutations->count(),
                 'total_masuk' => 0,
                 'total_keluar' => 0,
                 'total_qty_masuk' => 0,
                 'total_qty_keluar' => 0,
                 'selisih_qty' => 0,
                 'jenis_barang_terlibat' => 0,
-                'total_jenis_barang' => $showBatches ? $stockBatches->pluck('kode_barang_id')->unique()->count() : $laporanData->count(),
-                'total_batch' => $stockBatches->count(),
-                'grand_total_qty' => $stockBatches->sum('qty_sisa'),
-                'grand_total_nilai' => $stockBatches->sum(function($b){ return $b->qty_sisa * $b->harga_beli; }),
+                'total_jenis_barang' => $showBatches ? $stockMutations->pluck('kode_barang')->unique()->count() : $laporanData->count(),
+                'total_batch' => $stockMutations->count(),
+                'grand_total_qty' => $stockMutations->sum('plus') - $stockMutations->sum('minus'),
+                'grand_total_nilai' => 0, // Can't calculate without harga_beli
             ];
 
             if ($request->wantsJson()) {

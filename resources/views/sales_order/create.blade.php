@@ -112,8 +112,10 @@
                                                     <option value="{{ $barang->id }}" 
                                                         data-harga="{{ $barang->harga_jual }}"
                                                         data-unit-dasar="{{ $barang->unit_dasar }}"
-                                                        data-kode="{{ $barang->kode_barang }}">
-                                                        {{ $barang->kode_barang }} - {{ $barang->name }}
+                                                        data-kode="{{ $barang->kode_barang }}"
+                                                        data-merek="{{ $barang->merek }}"
+                                                        data-ukuran="{{ $barang->ukuran }}">
+                                                        {{ $barang->kode_barang }} - {{ $barang->name }}@if($barang->merek || $barang->ukuran) ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})@endif
                                                     </option>
                                                 @endforeach
                                             </select>

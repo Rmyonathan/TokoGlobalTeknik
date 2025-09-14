@@ -64,8 +64,14 @@
             <!-- Step 1: Pilih Faktur -->
             <div id="step1" class="step-content">
                 <div class="alert alert-info">
-                    <h5><i class="fas fa-info-circle"></i> Langkah 1: Pilih Faktur</h5>
-                    <p class="mb-0">Pilih faktur yang akan dibuatkan Surat Jalan. Hanya faktur yang belum memiliki Surat Jalan yang ditampilkan.</p>
+                    <h5><i class="fas fa-info-circle"></i> Langkah 1: Pilih Faktur (Opsional)</h5>
+                    <p class="mb-2">Anda dapat melewati langkah ini untuk alur Surat Jalan → Faktur.</p>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="mode_tanpa_faktur">
+                        <label class="form-check-label" for="mode_tanpa_faktur">
+                            Buat Surat Jalan tanpa memilih faktur (isi customer dan barang secara manual)
+                        </label>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -135,10 +141,13 @@
 
                         <!-- Kanan -->
                         <div class="col-md-6">
-                            <div class="form-group">
+                            <div class="form-group position-relative">
                                 <label for="customer_display">Customer</label>
                                 <input type="text" id="customer_display" name="customer_display" class="form-control" readonly>
                                 <input type="hidden" id="kode_customer" name="kode_customer">
+                                <div class="dropdown-menu" id="customerDropdown" style="display: none;">
+                                    <!-- Customer options will be populated here -->
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -151,12 +160,12 @@
                                 <input type="text" id="hpCustomer" name="customer-hp" class="form-control" readonly>
                             </div>
 
-                            <div class="form-group">
+                            <!-- <div class="form-group">
                                 <label for="no_transaksi_display">No Faktur</label>
                                 <input type="text" id="no_transaksi_display" name="no_transaksi_display" class="form-control" readonly>
                                 <input type="hidden" id="no_transaksi" name="no_transaksi">
                                 <input type="hidden" id="transaksi_id" name="transaksi_id">
-                            </div>
+                            </div> -->
 
                             <div class="form-group">
                                 <label for="tanggal_transaksi">Tanggal Transaksi</label>
@@ -201,12 +210,55 @@
                                 <th>Nama Barang</th>
                                 <th>Qty</th>
                                 <th>Satuan</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="itemsList">
                             <!-- Dynamic items will be added here -->
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- Form untuk menambah barang (mode tanpa faktur) -->
+                <div id="addItemForm" class="mt-3" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Tambah Barang</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="position-relative">
+                                        <input type="text" id="newKodeBarang" class="form-control" placeholder="Kode Barang">
+                                        <div class="dropdown-menu" id="kodeBarangDropdown" style="display: none;">
+                                            <!-- Kode barang options will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="position-relative">
+                                        <input type="text" id="newNamaBarang" class="form-control" placeholder="Nama Barang">
+                                        <div class="dropdown-menu" id="namaBarangDropdown" style="display: none;">
+                                            <!-- Nama barang options will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" id="newQty" class="form-control" placeholder="Qty" min="0.01" step="0.01">
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="newSatuan" class="form-control">
+                                        <option value="">Pilih Satuan</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="button" id="addItemBtn" class="btn btn-success btn-sm">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="form-group text-right mt-4">
@@ -303,6 +355,23 @@ $(document).ready(function() {
         }
     }
 
+    // Toggle mode tanpa faktur
+    $('#mode_tanpa_faktur').on('change', function(){
+        const tanpaFaktur = $(this).is(':checked');
+        if (tanpaFaktur) {
+            // Izinkan lanjut tanpa memilih faktur
+            $('#nextToStep2').prop('disabled', false);
+            selectedTransaction = null;
+            // Setup customer search untuk mode tanpa faktur
+            setupCustomerSearch();
+        } else {
+            // Kembali wajib pilih faktur
+            $('#nextToStep2').prop('disabled', !$('#select_faktur').val());
+            // Disable customer search
+            $('#customer_display').off('input.customerSearch');
+        }
+    });
+
     // Step 1: Handle faktur selection
     $('#select_faktur').on('change', function() {
         const selectedOption = $(this).find('option:selected');
@@ -330,6 +399,7 @@ $(document).ready(function() {
 
     // Step 1 to Step 2 navigation
     $('#nextToStep2').on('click', function() {
+        const tanpaFaktur = $('#mode_tanpa_faktur').is(':checked');
         if (selectedTransaction) {
             // Fill form data
             $('#customer_display').val(`${selectedTransaction.kode_customer} - ${selectedTransaction.customer_name}`);
@@ -345,6 +415,20 @@ $(document).ready(function() {
             // Show step 2
             $('#step1').hide();
             $('#step2').show();
+        } else if (tanpaFaktur) {
+            // Mode tanpa faktur: kosongkan kolom faktur, aktifkan input customer manual
+            $('#customer_display').prop('readonly', false).attr('placeholder','Ketik kode/nama customer');
+            $('#no_transaksi_display').val('');
+            $('#no_transaksi').val('');
+            $('#transaksi_id').val('');
+            $('#tanggal_transaksi').val(formatDateForInput(new Date()));
+
+            // Setup customer search untuk mode tanpa faktur
+            setupCustomerSearch();
+
+            // Tampilkan Step 2
+            $('#step1').hide();
+            $('#step2').show();
         }
     });
 
@@ -356,11 +440,18 @@ $(document).ready(function() {
 
     // Step 2 to Step 3 navigation
     $('#nextToStep3').on('click', function() {
+        const tanpaFaktur = $('#mode_tanpa_faktur').is(':checked');
         if (selectedTransaction) {
-            // Load transaction items
+            // Load transaction items dari faktur
             loadTransactionItems(selectedTransaction.id);
-            
-            // Show step 3
+            $('#step2').hide();
+            $('#step3').show();
+        } else if (tanpaFaktur) {
+            // Tanpa faktur: user isi items manual placeholder (kosong dulu), user bisa edit nama di Step 3
+            items = [];
+            updateItemsTable();
+            // Tampilkan form tambah barang untuk mode tanpa faktur
+            $('#addItemForm').show();
             $('#step2').hide();
             $('#step3').show();
         }
@@ -383,10 +474,10 @@ $(document).ready(function() {
                 items = data.map(item => {
                     console.log('Raw item from API:', item);
                     return {
-                        kodeBarang: item.kode_barang,
-                        namaBarang: item.nama_barang,
+                        kode_barang: item.kode_barang,
+                        nama_barang: item.nama_barang,
                         qty: item.qty,
-                        satuan: 'Pcs', // Default satuan untuk Surat Jalan
+                        satuan: 'PCS', // Default satuan untuk Surat Jalan
                         total: 0 // No price in Surat Jalan
                     };
                 });
@@ -406,7 +497,7 @@ $(document).ready(function() {
         tbody.empty();
         
         if (items.length === 0) {
-            tbody.append('<tr><td colspan="5" class="text-center text-muted">Tidak ada barang</td></tr>');
+            tbody.append('<tr><td colspan="6" class="text-center text-muted">Tidak ada barang</td></tr>');
             return;
         }
         
@@ -414,10 +505,15 @@ $(document).ready(function() {
             const row = `
                 <tr>
                     <td class="text-center">${index + 1}</td>
-                    <td>${item.kodeBarang}</td>
-                    <td>${item.namaBarang}</td>
-                    <td class="text-center">${item.qty}</td>
-                    <td class="text-center">${item.satuan}</td>
+                    <td>${item.kode_barang || 'N/A'}</td>
+                    <td>${item.nama_barang || 'N/A'}</td>
+                    <td class="text-center">${item.qty || 0}</td>
+                    <td class="text-center">${item.satuan || 'PCS'}</td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-danger btn-sm remove-item" data-index="${index}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
                 </tr>
             `;
             tbody.append(row);
@@ -453,6 +549,7 @@ $(document).ready(function() {
         // Go back to step 1
         $('#step2').hide();
         $('#step3').hide();
+        $('#addItemForm').hide();
         $('#step1').show();
     }
 
@@ -463,6 +560,46 @@ $(document).ready(function() {
         }
     });
 
+    // Function to setup customer search
+    function setupCustomerSearch() {
+        // Remove previous event handlers to avoid duplicates
+        $('#customer_display').off('input.customerSearch');
+        
+        $('#customer_display').on('input.customerSearch', function() {
+            const keyword = $(this).val();
+            
+            if (keyword.length > 0) {
+                $.ajax({
+                    url: "{{ route('api.customers.search') }}",
+                    method: "GET",
+                    data: { keyword },
+                    success: function (data) {
+                        let dropdown = '';
+                        if (data.length > 0) {
+                            data.forEach(customer => {
+                                dropdown += `<a class="dropdown-item customer-item" 
+                                    data-kode="${customer.kode_customer}" 
+                                    data-name="${customer.nama}"
+                                    data-alamat="${customer.alamat}"
+                                    data-hp="${customer.hp}"
+                                    data-telp="${customer.telepon}">
+                                ${customer.kode_customer} - ${customer.nama} - ${customer.alamat} - ${customer.hp}</a>`;
+                            });
+                        } else {
+                            dropdown = '<a class="dropdown-item disabled">Tidak ada customer ditemukan</a>';
+                        }
+                        $('#customerDropdown').html(dropdown).show();
+                    },
+                    error: function () {
+                        alert('Terjadi kesalahan saat mencari customer.');
+                    }
+                });
+            } else {
+                $('#customerDropdown').hide();
+            }
+        });
+    }
+
     // Select customer from dropdown
     $(document).on('click', '.customer-item', function(e) {
         e.preventDefault();
@@ -472,7 +609,7 @@ $(document).ready(function() {
         const hpCustomer = $(this).data('hp');
         const telpCustomer = $(this).data('telp');
         
-        $('#customer').val(`${kodeCustomer} - ${namaCustomer}`);
+        $('#customer_display').val(`${kodeCustomer} - ${namaCustomer}`);
         $('#kode_customer').val(kodeCustomer);
         $('#alamatCustomer').val(alamatCustomer);
         $('#hpCustomer').val(`${hpCustomer} / ${telpCustomer}`);
@@ -665,7 +802,8 @@ $(document).ready(function() {
     $('#saveSuratJalan').click(function(){
         if (confirm('Apakah anda yakin ingin menyimpan surat jalan ini?')){
             // Validation
-            if(!$('#no_suratjalan').val() || !$('#kode_customer').val() || !$('#no_transaksi').val()) {
+            const tanpaFaktur = $('#mode_tanpa_faktur').is(':checked');
+            if(!$('#no_suratjalan').val() || !$('#kode_customer').val() || (!tanpaFaktur && !$('#no_transaksi').val())) {
                 alert('Silakan lengkapi semua field yang diperlukan.');
                 return;
             }
@@ -677,15 +815,16 @@ $(document).ready(function() {
 
             const formattedItems = items.map(item => {
                 console.log('Processing item:', item);
-                console.log('item.kodeBarang type:', typeof item.kodeBarang, 'value:', item.kodeBarang);
+                console.log('item.kode_barang:', item.kode_barang);
+                console.log('item.nama_barang:', item.nama_barang);
                 
                 const formattedItem = {
-                    transaksi_id: parseInt($('#transaksi_id').val()),
-                    no_transaksi: $('#no_transaksi').val(),
-                    kode_barang: item.kodeBarang,
-                    nama_barang: item.namaBarang,
-                    qty: parseFloat(item.qty),
-                    satuan: item.satuan
+                    transaksi_id: $('#transaksi_id').val() ? parseInt($('#transaksi_id').val()) : null,
+                    no_transaksi: $('#no_transaksi').val() || null,
+                    kode_barang: item.kode_barang,
+                    nama_barang: item.nama_barang,
+                    qty: parseFloat(item.qty || 0),
+                    satuan: item.satuan || 'PCS'
                 };
                 
                 console.log('Formatted item:', formattedItem);
@@ -697,10 +836,10 @@ $(document).ready(function() {
                 tanggal: $('#tanggal').val(),
                 kode_customer: $('#kode_customer').val(),
                 alamat_suratjalan: $('#alamat_suratjalan').val() || 'default',
-                no_transaksi: $('#no_transaksi').val(),
-                tanggal_transaksi: $('#tanggal_transaksi').val(),
-                titipan_uang: $('#titipan_uang').val(),
-                sisa_piutang: $('#sisa_piutang').val(),
+                no_transaksi: $('#no_transaksi').val() || null,
+                tanggal_transaksi: $('#tanggal_transaksi').val() || $('#tanggal').val(),
+                titipan_uang: $('#titipan_uang').val() || 0,
+                sisa_piutang: $('#sisa_piutang').val() || 0,
                 items: formattedItems
             };
 
@@ -783,6 +922,243 @@ $(document).ready(function() {
         if (!$(e.target).closest('.position-relative').length) {
             $('.dropdown-menu').hide();
         }
+    });
+
+    // Initialize customer search on page load for mode tanpa faktur
+    setupCustomerSearch();
+
+    // Function to update satuan options based on selected barang
+    function updateSatuanOptions(satuanDasar, satuanBesar, unitDasar) {
+        const $satuanSelect = $('#newSatuan');
+        
+        // Clear existing options
+        $satuanSelect.empty();
+        
+        // Add default option
+        $satuanSelect.append('<option value="">Pilih Satuan</option>');
+        
+        // Add options based on barang data ONLY - no hardcoded options
+        const satuanOptions = [];
+        
+        // Add satuan_dasar first (most important)
+        if (satuanDasar) {
+            satuanOptions.push({ value: satuanDasar, text: satuanDasar + ' (Dasar)' });
+        }
+        
+        // Add satuan_besar if different from satuan_dasar
+        if (satuanBesar && satuanBesar !== satuanDasar) {
+            satuanOptions.push({ value: satuanBesar, text: satuanBesar + ' (Besar)' });
+        }
+        
+        // Add unit_dasar if different from both above
+        if (unitDasar && unitDasar !== satuanDasar && unitDasar !== satuanBesar) {
+            satuanOptions.push({ value: unitDasar, text: unitDasar + ' (Unit)' });
+        }
+        
+        // Add options to select
+        satuanOptions.forEach(option => {
+            $satuanSelect.append(`<option value="${option.value}">${option.text}</option>`);
+        });
+        
+        // Set default value based on barang data
+        if (satuanDasar) {
+            $satuanSelect.val(satuanDasar);
+        } else if (unitDasar) {
+            $satuanSelect.val(unitDasar);
+        } else if (satuanBesar) {
+            $satuanSelect.val(satuanBesar);
+        }
+    }
+
+    // Function to check stock availability
+    function checkStockAvailability(kodeBarang, qty, satuan, callback) {
+        $.ajax({
+            url: '{{ route("api.stock.check") }}',
+            method: 'GET',
+            data: {
+                kode_barang: kodeBarang,
+                qty: qty,
+                satuan: satuan
+            },
+            success: function(response) {
+                callback(response.available, response.available_stock, response.stock_unit);
+            },
+            error: function() {
+                // If API fails, assume stock is available (fallback)
+                callback(true, 999999, satuan);
+            }
+        });
+    }
+
+    // Add item button handler
+    $('#addItemBtn').on('click', function() {
+        const kodeBarang = $('#newKodeBarang').val().trim();
+        const namaBarang = $('#newNamaBarang').val().trim();
+        const qty = parseFloat($('#newQty').val());
+        const satuan = $('#newSatuan').val();
+
+        if (!kodeBarang || !namaBarang || !qty || qty <= 0) {
+            alert('Silakan lengkapi semua field dengan benar');
+            return;
+        }
+
+        // Check if item already exists
+        const existingItem = items.find(item => item.kode_barang === kodeBarang);
+        if (existingItem) {
+            alert('Barang sudah ada dalam daftar!');
+            return;
+        }
+
+        // Check stock availability
+        checkStockAvailability(kodeBarang, qty, satuan, function(isAvailable, availableStock, stockUnit) {
+            if (!isAvailable) {
+                alert(`⚠️ STOK TIDAK CUKUP!\n\n📦 Barang: ${namaBarang}\n📊 Diminta: ${qty} ${satuan}\n📈 Tersedia: ${availableStock} ${stockUnit}\n\n❌ Silakan kurangi qty atau pilih barang lain.`);
+                return;
+            }
+
+            // Add item to array
+            items.push({
+                kode_barang: kodeBarang,
+                nama_barang: namaBarang,
+                qty: qty,
+                satuan: satuan
+            });
+
+            // Update table
+            updateItemsTable();
+
+            // Clear form
+            $('#newKodeBarang').val('');
+            $('#newNamaBarang').val('');
+            $('#newQty').val('');
+            $('#newSatuan').empty().append('<option value="">Pilih Satuan</option>');
+        });
+    });
+
+    // Remove item button handler
+    $(document).on('click', '.remove-item', function() {
+        const index = $(this).data('index');
+        if (confirm('Hapus barang ini?')) {
+            items.splice(index, 1);
+            updateItemsTable();
+        }
+    });
+
+    // Enter key handler for add item form
+    $('#newKodeBarang, #newNamaBarang, #newQty').on('keypress', function(e) {
+        if (e.which === 13) { // Enter key
+            $('#addItemBtn').click();
+        }
+    });
+
+    // Search kode barang
+    $('#newKodeBarang').on('input', function() {
+        const keyword = $(this).val();
+        if (keyword.length > 0) {
+            $.ajax({
+                url: "{{ route('kodeBarang.search') }}",
+                method: "GET",
+                data: { keyword },
+                success: function (data) {
+                    console.log('API Response for kode barang:', data);
+                    let dropdown = '';
+                    if (data.length > 0) {
+                        data.forEach(barang => {
+                            console.log('Barang item:', barang);
+                            dropdown += `<a class="dropdown-item barang-item" 
+                                data-kode="${barang.kode_barang}" 
+                                data-nama="${barang.nama_barang}"
+                                data-satuan-dasar="${barang.satuan_dasar || 'PCS'}"
+                                data-satuan-besar="${barang.satuan_besar || 'PCS'}"
+                                data-unit-dasar="${barang.unit_dasar || 'PCS'}">
+                                ${barang.kode_barang} - ${barang.nama_barang}</a>`;
+                        });
+                    } else {
+                        dropdown = '<a class="dropdown-item disabled">Tidak ada barang ditemukan</a>';
+                    }
+                    $('#kodeBarangDropdown').html(dropdown).show();
+                },
+                error: function () {
+                    alert('Terjadi kesalahan saat mencari barang.');
+                }
+            });
+        } else {
+            $('#kodeBarangDropdown').hide();
+            // Reset satuan options when no search
+            $('#newSatuan').empty().append('<option value="">Pilih Satuan</option>');
+        }
+    });
+
+    // Search nama barang
+    $('#newNamaBarang').on('input', function() {
+        const keyword = $(this).val();
+        if (keyword.length > 0) {
+            $.ajax({
+                url: "{{ route('kodeBarang.search') }}",
+                method: "GET",
+                data: { keyword },
+                success: function (data) {
+                    console.log('API Response for nama barang:', data);
+                    let dropdown = '';
+                    if (data.length > 0) {
+                        data.forEach(barang => {
+                            console.log('Barang item:', barang);
+                            dropdown += `<a class="dropdown-item barang-item" 
+                                data-kode="${barang.kode_barang}" 
+                                data-nama="${barang.nama_barang}"
+                                data-satuan-dasar="${barang.satuan_dasar || 'PCS'}"
+                                data-satuan-besar="${barang.satuan_besar || 'PCS'}"
+                                data-unit-dasar="${barang.unit_dasar || 'PCS'}">
+                                ${barang.kode_barang} - ${barang.nama_barang}</a>`;
+                        });
+                    } else {
+                        dropdown = '<a class="dropdown-item disabled">Tidak ada barang ditemukan</a>';
+                    }
+                    $('#namaBarangDropdown').html(dropdown).show();
+                },
+                error: function () {
+                    alert('Terjadi kesalahan saat mencari barang.');
+                }
+            });
+        } else {
+            $('#namaBarangDropdown').hide();
+            // Reset satuan options when no search
+            $('#newSatuan').empty().append('<option value="">Pilih Satuan</option>');
+        }
+    });
+
+    // Select barang from dropdown
+    $(document).on('click', '.barang-item', function(e) {
+        e.preventDefault();
+        const kodeBarang = $(this).data('kode');
+        const namaBarang = $(this).data('nama');
+        const satuanDasar = $(this).data('satuan-dasar');
+        const satuanBesar = $(this).data('satuan-besar');
+        const unitDasar = $(this).data('unit-dasar');
+        
+        console.log('Selected barang:', { kodeBarang, namaBarang, satuanDasar, satuanBesar, unitDasar });
+        console.log('Data attributes:', $(this).data());
+        
+        $('#newKodeBarang').val(kodeBarang);
+        $('#newNamaBarang').val(namaBarang);
+        
+        // Update opsi satuan berdasarkan data barang terlebih dahulu
+        updateSatuanOptions(satuanDasar, satuanBesar, unitDasar);
+        
+        // Set satuan otomatis berdasarkan data barang (setelah update options)
+        if (satuanDasar) {
+            $('#newSatuan').val(satuanDasar);
+        } else if (unitDasar) {
+            $('#newSatuan').val(unitDasar);
+        } else {
+            $('#newSatuan').val('PCS'); // Default fallback
+        }
+        
+        $('#kodeBarangDropdown').hide();
+        $('#namaBarangDropdown').hide();
+        
+        // Focus ke qty field
+        $('#newQty').focus();
     });
 
 });

@@ -33,7 +33,9 @@ class PerusahaanController extends Controller
             'catatan_nota' => 'nullable|string',
             'catatan_surat_jalan' => 'nullable|string',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'ppn_enabled' => 'nullable|boolean',
+            'ppn_rate' => 'nullable|numeric|min:0'
         ]);
         if (Perusahaan::count() == 0) {
             $validated['is_default'] = true;
@@ -92,6 +94,10 @@ class PerusahaanController extends Controller
             $validated['logo'] = Storage::url($path);
         }
 
+        $validated['ppn_enabled'] = $request->boolean('ppn_enabled');
+        if (array_key_exists('ppn_rate', $validated) && $validated['ppn_rate'] === null) {
+            unset($validated['ppn_rate']);
+        }
         $perusahaan->update($validated);
 
         return redirect()

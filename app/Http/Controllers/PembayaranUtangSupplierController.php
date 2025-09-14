@@ -14,6 +14,7 @@ use App\Models\Supplier;
 use App\Models\NotaDebit;
 use App\Models\Kas;
 use Carbon\Carbon;
+use App\Services\AccountingService;
 
 class PembayaranUtangSupplierController extends Controller
 {
@@ -246,6 +247,13 @@ class PembayaranUtangSupplierController extends Controller
             }
 
             DB::commit();
+
+            // Create accounting journal (DR Utang Usaha, CR Kas/Bank)
+            try {
+                app(AccountingService::class)->createJournalFromPaymentAP($pembayaran);
+            } catch (\Exception $e) {
+                Log::warning('Accounting journal for AP payment failed', ['message' => $e->getMessage(), 'no_pembayaran' => $pembayaran->no_pembayaran]);
+            }
 
             if ($request->wantsJson()) {
                 return response()->json([

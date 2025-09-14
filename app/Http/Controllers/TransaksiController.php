@@ -24,6 +24,7 @@ use App\Models\CustomerItemOngkos;
 use App\Models\SuratJalanItemSumber;
 use App\Models\TransaksiItemSumber;
 use App\Models\StockBatch;
+use App\Services\AccountingService;
 
 class TransaksiController extends Controller
 {
@@ -328,6 +329,13 @@ class TransaksiController extends Controller
             $this->saveCustomerSpecificPrices($request->kode_customer, $request->items);
 
             DB::commit();
+
+            // Create accounting journal (DR Piutang Usaha, CR Pendapatan, CR Utang PPN)
+            try {
+                app(AccountingService::class)->createJournalFromSale($transaksi);
+            } catch (\Exception $e) {
+                Log::warning('Accounting journal for sale failed', ['message' => $e->getMessage(), 'no_transaksi' => $transaksi->no_transaksi]);
+            }
 
             foreach ($request->items as $item){
                 $panels = Panel::where('group_id', $item['kodeBarang'])
@@ -1364,6 +1372,13 @@ class TransaksiController extends Controller
             }
 
             DB::commit();
+
+            // Create accounting journal (DR Piutang Usaha, CR Pendapatan, CR Utang PPN)
+            try {
+                app(AccountingService::class)->createJournalFromSale($transaksi);
+            } catch (\Exception $e) {
+                Log::warning('Accounting journal for sale from Surat Jalan failed', ['message' => $e->getMessage(), 'no_transaksi' => $transaksi->no_transaksi]);
+            }
 
             return response()->json([
                 'success' => true,

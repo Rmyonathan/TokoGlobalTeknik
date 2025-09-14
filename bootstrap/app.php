@@ -28,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\RedirectIfNotAuthenticated::class,
-            \App\Http\Middleware\AdminDatabaseSwitchMiddleware::class,
+            \App\Http\Middleware\DatabaseSwitchMiddleware::class,
             // \App\Http\Middleware\RoleMiddleware::class,
         ]);
     })

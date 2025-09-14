@@ -71,6 +71,8 @@ class PanelController extends Controller
             $stock = Stock::where('kode_barang', $panel->kode_barang)->first();
             $goodStock = $stock ? $stock->good_stock : 0;
             $unit = $stock ? $stock->satuan : 'PCS';
+            
+            // Available quantity from Stock table (no need to calculate from StockMutation)
 
             // $pricePerSmallUnit = $panel->price; // jika sudah per PAK
             // $costPerSmallUnit = $panel->cost;   // jika sudah per PAK

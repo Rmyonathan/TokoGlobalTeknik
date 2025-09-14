@@ -66,6 +66,26 @@
                 </div>
 
                 <div class="form-group row">
+                    <label for="merek" class="col-sm-3 col-form-label">Merek</label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control @error('merek') is-invalid @enderror" id="merek" name="merek" value="{{ old('merek', $code->merek) }}">
+                        @error('merek')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label for="ukuran" class="col-sm-3 col-form-label">Ukuran</label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control @error('ukuran') is-invalid @enderror" id="ukuran" name="ukuran" value="{{ old('ukuran', $code->ukuran) }}">
+                        @error('ukuran')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="form-group row">
                     <label for="unit_dasar" class="col-sm-3 col-form-label">Satuan Kecil</label>
                     <div class="col-sm-9">
                         <select class="form-control @error('unit_dasar') is-invalid @enderror" id="unit_dasar" name="unit_dasar" required>
@@ -79,6 +99,23 @@
                         @error('unit_dasar')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-sm-3 col-form-label">Konversi Default</label>
+                    <div class="col-sm-9">
+                        <div class="form-row">
+                            <div class="col-md-4">
+                                <input type="text" class="form-control mb-2" id="satuan_dasar" name="satuan_dasar" placeholder="Satuan Dasar" value="{{ old('satuan_dasar', $code->satuan_dasar) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control mb-2" id="satuan_besar" name="satuan_besar" placeholder="Satuan Besar" value="{{ old('satuan_besar', $code->satuan_besar) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" class="form-control mb-2" id="nilai_konversi" name="nilai_konversi" placeholder="Nilai" min="1" value="{{ old('nilai_konversi', $code->nilai_konversi) }}">
+                            </div>
+                        </div>
                     </div>
                 </div>
 

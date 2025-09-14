@@ -4,7 +4,43 @@
 <div class="card">
 	<div class="card-header">Laporan</div>
 	<div class="card-body">
-		<div class="list-group">
+		<div class="row">
+			<div class="col-md-6">
+				<h5>Total Penjualan (Bulan ini)</h5>
+				<table class="table table-bordered">
+					<thead>
+						<tr>
+							<th>Jumlah Faktur</th>
+							<th>Total Omset</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>{{ \App\Models\Transaksi::where('status','!=','canceled')->whereBetween('tanggal',[now()->startOfMonth(), now()->endOfMonth()])->count() }}</td>
+							<td>{{ number_format(\App\Models\Transaksi::where('status','!=','canceled')->whereBetween('tanggal',[now()->startOfMonth(), now()->endOfMonth()])->sum('grand_total')) }}</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<div class="col-md-6">
+				<h5>Total Retur Penjualan (Bulan ini)</h5>
+				<table class="table table-bordered">
+					<thead>
+						<tr>
+							<th>Jumlah Retur</th>
+							<th>Total Nilai Retur</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>{{ \App\Models\ReturPenjualan::whereBetween('tanggal',[now()->startOfMonth(), now()->endOfMonth()])->count() }}</td>
+							<td>{{ number_format(\App\Models\ReturPenjualan::whereBetween('tanggal',[now()->startOfMonth(), now()->endOfMonth()])->sum('total_retur')) }}</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="list-group mt-3">
 			<a href="{{ route('laporan.laba-per-faktur') }}" class="list-group-item list-group-item-action">
 				Laporan Laba per Faktur
 			</a>

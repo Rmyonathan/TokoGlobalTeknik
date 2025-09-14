@@ -18,11 +18,16 @@ class KodeBarang extends Model
         'cost',
         'kode_barang',
         'attribute',
+        'merek',
+        'ukuran',
         // 'length',
         'status',
         // Kolom yang sudah ada di database
         'grup_barang_id',
         'unit_dasar',
+        'nilai_konversi',
+        'satuan_dasar',
+        'satuan_besar',
         'harga_jual',
         'ongkos_kuli_default',
     ];

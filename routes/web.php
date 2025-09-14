@@ -29,6 +29,11 @@ use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\PembayaranPiutangController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\CustomerPriceController;
+use App\Http\Controllers\ChartOfAccountController;
+use App\Http\Controllers\DatabaseSwitchController;
+use App\Http\Controllers\Accounting\GeneralJournalController;
+use App\Http\Controllers\Accounting\ReportsController;
+use App\Http\Controllers\Accounting\YearEndClosingController;
 
 use App\Models\StokOwner;
 use App\Models\Supplier;
@@ -105,6 +110,56 @@ Route::middleware(['web', 'auth'])->group(function () {
     // ==============================
     // MASTER DATA SECTION
     // ==============================
+    
+    // Chart of Accounts CRUD
+    Route::resource('chart-of-accounts', ChartOfAccountController::class)
+        ->middleware(['permission:view chart of accounts|create chart of accounts|edit chart of accounts|delete chart of accounts']);
+    
+    // Chart of Accounts additional routes
+    Route::post('chart-of-accounts/recalculate-balances', [ChartOfAccountController::class, 'recalculateBalances'])
+        ->name('chart-of-accounts.recalculate-balances')
+        ->middleware(['permission:manage accounting']);
+    
+    Route::post('chart-of-accounts/{chart_of_account}/recalculate-balance', [ChartOfAccountController::class, 'recalculateBalance'])
+        ->name('chart-of-accounts.recalculate-balance')
+        ->middleware(['permission:manage accounting']);
+    
+    // Database Switch routes
+    Route::group(['prefix' => 'database-switch', 'as' => 'database-switch.', 'middleware' => ['permission:manage accounting']], function () {
+        Route::get('/', [DatabaseSwitchController::class, 'index'])->name('index');
+        Route::post('/switch', [DatabaseSwitchController::class, 'switch'])->name('switch');
+        Route::get('/status', [DatabaseSwitchController::class, 'status'])->name('status');
+        Route::post('/test-connection', [DatabaseSwitchController::class, 'testConnection'])->name('test-connection');
+        Route::post('/reset', [DatabaseSwitchController::class, 'reset'])->name('reset');
+    });
+    
+    // Database switch API routes (for AJAX)
+    Route::group(['prefix' => 'database', 'as' => 'database.', 'middleware' => ['permission:manage accounting']], function () {
+        Route::post('/switch', [DatabaseSwitchController::class, 'switch'])->name('switch');
+        Route::get('/status', [DatabaseSwitchController::class, 'status'])->name('status');
+        Route::post('/test-connection', [DatabaseSwitchController::class, 'testConnection'])->name('test-connection');
+        Route::post('/reset', [DatabaseSwitchController::class, 'reset'])->name('reset');
+    });
+    
+    // Public database switch route for navbar (accessible to all authenticated users)
+    Route::post('/database/switch', [DatabaseSwitchController::class, 'switch'])->name('database.switch')->middleware('auth');
+    
+    // Accounting (grouped like roles): single permission gate
+    Route::group(['middleware' => ['permission:manage accounting'], 'prefix' => 'accounting', 'as' => 'accounting.'], function () {
+        // General Journal (use {journal} as parameter for consistency with controller)
+        Route::resource('general-journal', GeneralJournalController::class)
+            ->parameters(['general-journal' => 'journal']);
+
+        // Accounting Reports
+        Route::get('reports/general-ledger', [ReportsController::class, 'generalLedger'])->name('reports.gl');
+        Route::get('reports/trial-balance', [ReportsController::class, 'trialBalance'])->name('reports.trial_balance');
+        Route::get('reports/income-statement', [ReportsController::class, 'incomeStatement'])->name('reports.income_statement');
+        Route::get('reports/balance-sheet', [ReportsController::class, 'balanceSheet'])->name('reports.balance_sheet');
+        Route::post('reports/save', [ReportsController::class, 'saveReport'])->name('reports.save');
+
+        // Year End Closing
+        Route::resource('year-end', YearEndClosingController::class)->only(['index','create','store','show']);
+    });
     
     // Master Barang routes
     Route::group(['middleware' => ['permission:view master data'], 'prefix' => 'master'], function () {
@@ -455,6 +510,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/detail/{id}', [SuratJalanController::class, 'detail'])->name('suratjalan.detail');
         Route::get('/available-stock', [SuratJalanController::class, 'getAvailableStock'])->name('suratjalan.available-stock');
         Route::get('/fifo-allocation/{suratJalanItemId}', [SuratJalanController::class, 'getFifoAllocation'])->name('suratjalan.fifo-allocation');
+        Route::get('/api/by-no/{no}', [SuratJalanController::class, 'apiByNo'])->name('suratjalan.api.by-no');
     });
     
     // Surat Jalan routes - Edit (if you have edit functionality)
@@ -793,6 +849,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Panels API routes
         Route::get('/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
         Route::get('/kode-barang/search', [KodeBarangController::class, 'searchKodeBarang'])->name('kodeBarang.search');
+        Route::get('/stock/check', [StockController::class, 'checkStock'])->name('api.stock.check');
         Route::get('/panels/search-available', [PanelController::class, 'searchAvailablePanels'])->name('panels.searchAvailable');
         Route::get('/panel-by-kode-barang', [PanelController::class, 'getPanelByKodeBarang'])->name('panel.by.kodeBarang');
         

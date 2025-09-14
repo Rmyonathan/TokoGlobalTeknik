@@ -14,6 +14,7 @@ use App\Models\Customer;
 use App\Models\NotaKredit;
 use App\Models\KodeBarang;
 use App\Services\FifoService;
+use App\Services\AccountingService;
 
 class ReturPenjualanController extends Controller
 {
@@ -120,6 +121,13 @@ class ReturPenjualanController extends Controller
             $returPenjualan->update(['total_retur' => $totalRetur]);
 
             DB::commit();
+
+            // Create accounting journal (DR Retur Penjualan, CR Piutang Usaha)
+            try {
+                app(AccountingService::class)->createJournalFromSalesReturn($returPenjualan);
+            } catch (\Exception $e) {
+                Log::warning('Accounting journal for sales return failed', ['message' => $e->getMessage(), 'no_retur' => $returPenjualan->no_retur]);
+            }
 
             return redirect()->route('retur-penjualan.index')
                 ->with('success', 'Retur penjualan berhasil dibuat dengan nomor: ' . $noRetur);

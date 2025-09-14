@@ -80,7 +80,11 @@
                                             <br>
                                             <small class="text-muted">per {{ $item['unit_dasar'] ?? 'PCS' }}</small>
                                         </td>
-                                        <td>{{ $item['quantity'] }}</td>
+                                        <td>
+                                            <span class="badge {{ ($item['quantity'] ?? 0) > 0 ? 'bg-success' : 'bg-warning' }}">
+                                                {{ number_format($item['quantity'] ?? 0, 0, ',', '.') }} {{ $item['unit'] ?? 'PCS' }}
+                                            </span>
+                                        </td>
                                         <td>
                                             <span class="badge bg-primary">{{ $item['unit_dasar'] ?? 'PCS' }}</span>
                                         </td>
@@ -149,6 +153,7 @@
                                         echo $totalQuantity;
                                     @endphp
                                 </th>
+                               
                                 <th></th> <!-- kolom Satuan Dasar -->
                                 <th></th> <!-- kolom Satuan Besar -->
                                 <th colspan="2"></th>

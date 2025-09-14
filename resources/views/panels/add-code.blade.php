@@ -24,6 +24,20 @@
                             <small class="form-text text-muted">Masukkan Nama Barang.</small>
                         </div>
                         <div class="form-group">
+                            <label for="merek"><i class="fas fa-trademark mr-1"></i> Merek</label>
+                            <input type="text" class="form-control @error('merek') is-invalid @enderror" id="merek" name="merek" value="{{ old('merek') }}">
+                            @error('merek')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="form-group">
+                            <label for="ukuran"><i class="fas fa-text-height mr-1"></i> Ukuran</label>
+                            <input type="text" class="form-control @error('ukuran') is-invalid @enderror" id="ukuran" name="ukuran" value="{{ old('ukuran') }}">
+                            @error('ukuran')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="form-group">
                             <label for="grup_barang_id"><i class="fas fa-tags mr-1"></i> Pilih Grup Barang:</label>
                             <select class="form-control @error('grup_barang_id') is-invalid @enderror" id="grup_barang_id" name="grup_barang_id" required>
                                 <option value="">Pilih Grup Barang</option>
@@ -78,6 +92,26 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="form-text text-muted">Satuan terkecil untuk perhitungan harga.</small>
+                        </div>
+                        <div class="form-row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="satuan_dasar">Satuan Dasar</label>
+                                    <input type="text" class="form-control" id="satuan_dasar" name="satuan_dasar" value="{{ old('satuan_dasar') }}" placeholder="PCS">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="satuan_besar">Satuan Besar</label>
+                                    <input type="text" class="form-control" id="satuan_besar" name="satuan_besar" value="{{ old('satuan_besar') }}" placeholder="LUSIN">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="nilai_konversi">Nilai Konversi</label>
+                                    <input type="number" class="form-control" id="nilai_konversi" name="nilai_konversi" value="{{ old('nilai_konversi', 12) }}" min="1">
+                                </div>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="harga_jual"><i class="fas fa-tag mr-1"></i> Harga Jual per Satuan Dasar</label>
@@ -195,6 +229,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const grupBarangSelect = document.getElementById('grup_barang_id');
     const attributeInput = document.getElementById('attribute');
     const kodeBarangInput = document.getElementById('kode_barang');
+    const unitDasarSelect = document.getElementById('unit_dasar');
+    const satuanDasarInput = document.getElementById('satuan_dasar');
+    const satuanBesarInput = document.getElementById('satuan_besar');
+    const nilaiKonversiInput = document.getElementById('nilai_konversi');
 
     grupBarangSelect.addEventListener('change', function() {
         const selectedGrupBarang = this.value;
@@ -238,6 +276,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 showMessage('Error: Gagal menghubungi server', 'error');
             });
     }
+
+    // Prefill default conversion when unit dasar is PCS
+    unitDasarSelect.addEventListener('change', function(){
+        const v = (unitDasarSelect.value||'').toUpperCase();
+        if(v === 'PCS'){
+            if(!satuanDasarInput.value){ satuanDasarInput.value = 'PCS'; }
+            if(!satuanBesarInput.value){ satuanBesarInput.value = 'LUSIN'; }
+            if(!nilaiKonversiInput.value){ nilaiKonversiInput.value = 12; }
+        }
+    });
 
     // Function to show messages
     function showMessage(message, type) {

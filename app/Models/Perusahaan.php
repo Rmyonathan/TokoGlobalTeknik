@@ -18,11 +18,15 @@ class Perusahaan extends Model
         'bca_account',
         'catatan_nota',
         'catatan_surat_jalan',
-        'is_active'
+        'is_active',
+        'ppn_enabled',
+        'ppn_rate'
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'ppn_enabled' => 'boolean',
+        'ppn_rate' => 'decimal:2',
     ];
 
     // Get active company
