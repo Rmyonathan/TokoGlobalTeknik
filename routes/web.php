@@ -34,6 +34,8 @@ use App\Http\Controllers\DatabaseSwitchController;
 use App\Http\Controllers\Accounting\GeneralJournalController;
 use App\Http\Controllers\Accounting\ReportsController;
 use App\Http\Controllers\Accounting\YearEndClosingController;
+use App\Http\Controllers\StockTransferController;
+use App\Http\Controllers\BankLoanController;
 
 use App\Models\StokOwner;
 use App\Models\Supplier;
@@ -60,6 +62,22 @@ use App\Models\Transaksi;
 Route::get('/return-barang-api/search-transactions', [App\Http\Controllers\ReturnBarangController::class, 'searchTransactions'])->name('return-barang-api.search-transactions')->withoutMiddleware(['web', 'auth']);
 Route::get('/return-barang-api/transaction-items', [App\Http\Controllers\ReturnBarangController::class, 'getTransactionItems'])->name('return-barang-api.transaction-items')->withoutMiddleware(['web', 'auth']);
 
+// Public test connection route for ngrok testing (no middleware)
+Route::post('/test-connection', [DatabaseSwitchController::class, 'testConnection'])->name('test-connection')->withoutMiddleware(['web', 'auth']);
+
+// Public database switch route for ngrok testing (no middleware)
+Route::post('/database-switch', [DatabaseSwitchController::class, 'switch'])->name('database-switch')->withoutMiddleware(['web', 'auth']);
+
+// Public health check route for ngrok
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'message' => 'Application is running',
+        'timestamp' => now(),
+        'database' => config('database.default')
+    ]);
+})->withoutMiddleware(['web', 'auth']);
+
 // Public routes (authentication)
 Route::middleware(['web'])->group(function () {
     Route::post('/signin', [AccountsController::class, 'login']);
@@ -78,7 +96,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Dashboard route
     Route::get('', [PanelController::class, 'viewBarang'])
         ->middleware('permission:view dashboard')
-        ->name('master.barang');
+        ->name('dashboard');
     
     // Profile route - accessible by all authenticated users
     Route::get('/profile', [AccountsController::class, 'profile']);
@@ -105,6 +123,10 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/edit/{id}', [AccountsController::class, 'editRole'])->name('editRole');
         Route::put('/update/{id}', [AccountsController::class, 'updateRole'])->name('updateRole');
         Route::delete('/delete/{id}', [AccountsController::class, 'deleteRole'])->name('deleteRole');
+        
+        // Quick Edit Role Routes
+        Route::get('/{id}/permissions', [AccountsController::class, 'getRolePermissions'])->name('role.permissions');
+        Route::post('/{id}/quick-update', [AccountsController::class, 'quickUpdateRole'])->name('role.quick-update');
     });
     
     // ==============================
@@ -284,6 +306,8 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/{id}/edit', [GrupBarangController::class, 'edit'])->name('grup_barang.edit');
         Route::put('/{id}', [GrupBarangController::class, 'update'])->name('grup_barang.update');
         Route::patch('/{id}/toggle-status', [GrupBarangController::class, 'toggleStatus'])->name('grup_barang.toggle-status');
+        // Bulk assign items to group
+        Route::post('/{id}/assign-items', [GrupBarangController::class, 'assignItems'])->name('grup_barang.assign-items');
     });
     
     // Grup Barang routes - Delete
@@ -297,6 +321,9 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/view', [KodeBarangController::class, 'viewCode'])->name('code.view-code');
         Route::post('/add', [KodeBarangController::class, 'storeCode'])->name('code.store-code');
         Route::get('/get-next-code', [KodeBarangController::class, 'getNextItemCode'])->name('code.get-next-code');
+        // Import Barang (CSV as initial Excel alternative)
+        Route::get('/import', [KodeBarangController::class, 'importForm'])->name('code.import.form');
+        Route::post('/import', [KodeBarangController::class, 'importProcess'])->name('code.import.process');
     });
     
     // Kode Barang Management routes - Edit
@@ -313,16 +340,40 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     // Unit conversion inline AJAX endpoints
     Route::prefix('unit-conversion')->group(function () {
-        Route::get('{kodeBarangId}/list', [\App\Http\Controllers\UnitConversionController::class, 'list'])->name('unit_conversion.list');
-        Route::post('{kodeBarangId}', [\App\Http\Controllers\UnitConversionController::class, 'store'])->name('unit_conversion.store');
-        Route::post('{kodeBarangId}/{id}/toggle', [\App\Http\Controllers\UnitConversionController::class, 'toggleStatus'])->name('unit_conversion.toggle');
-        Route::delete('{kodeBarangId}/{id}', [\App\Http\Controllers\UnitConversionController::class, 'destroy'])->name('unit_conversion.destroy');
+        Route::get('{kodeBarangId}/list', [\App\Http\Controllers\UnitConversionController::class, 'list'])
+            ->whereNumber('kodeBarangId')
+            ->name('unit_conversion.list');
+        Route::post('{kodeBarangId}', [\App\Http\Controllers\UnitConversionController::class, 'store'])
+            ->whereNumber('kodeBarangId')
+            ->name('unit_conversion.store');
+        Route::post('{kodeBarangId}/{id}/toggle', [\App\Http\Controllers\UnitConversionController::class, 'toggleStatus'])
+            ->whereNumber('kodeBarangId')
+            ->whereNumber('id')
+            ->name('unit_conversion.toggle');
+        Route::delete('{kodeBarangId}/{id}', [\App\Http\Controllers\UnitConversionController::class, 'destroy'])
+            ->whereNumber('kodeBarangId')
+            ->whereNumber('id')
+            ->name('unit_conversion.destroy');
         // by kode string for panels/edit view
-        Route::get('by-kode/{kodeBarang}', [\App\Http\Controllers\UnitConversionController::class, 'listByKode'])->name('unit_conversion.list_by_kode');
-        Route::post('by-kode/{kodeBarang}', [\App\Http\Controllers\UnitConversionController::class, 'storeByKode'])->name('unit_conversion.store_by_kode');
-        Route::put('by-kode/{kodeBarang}/{id}', [\App\Http\Controllers\UnitConversionController::class, 'updateByKode'])->name('unit_conversion.update_by_kode');
-        Route::post('by-kode/{kodeBarang}/{id}/toggle', [\App\Http\Controllers\UnitConversionController::class, 'toggleByKode'])->name('unit_conversion.toggle_by_kode');
-        Route::delete('by-kode/{kodeBarang}/{id}', [\App\Http\Controllers\UnitConversionController::class, 'destroyByKode'])->name('unit_conversion.destroy_by_kode');
+        Route::get('by-kode/{kodeBarang}', [\App\Http\Controllers\UnitConversionController::class, 'listByKode'])
+            ->name('unit_conversion.list_by_kode');
+        Route::post('by-kode/{kodeBarang}', [\App\Http\Controllers\UnitConversionController::class, 'storeByKode'])
+            ->name('unit_conversion.store_by_kode');
+        Route::put('by-kode/{kodeBarang}/{id}', [\App\Http\Controllers\UnitConversionController::class, 'updateByKode'])
+            ->whereNumber('id')
+            ->name('unit_conversion.update_by_kode');
+        Route::post('by-kode/{kodeBarang}/{id}/toggle', [\App\Http\Controllers\UnitConversionController::class, 'toggleByKode'])
+            ->whereNumber('id')
+            ->name('unit_conversion.toggle_by_kode');
+        Route::delete('by-kode/{kodeBarang}/{id}', [\App\Http\Controllers\UnitConversionController::class, 'destroyByKode'])
+            ->whereNumber('id')
+            ->name('unit_conversion.destroy_by_kode');
+        // bulk assign unit conversion to multiple items
+        Route::post('bulk-assign', [\App\Http\Controllers\UnitConversionController::class, 'bulkAssign'])->name('unit_conversion.bulk_assign');
+        // list items by a specific unit
+        Route::get('by-unit', [\App\Http\Controllers\UnitConversionController::class, 'itemsByUnit'])->name('unit_conversion.items_by_unit');
+        // sync selected items for a specific unit (add/update selected, remove from unselected)
+        Route::post('bulk-sync-by-unit', [\App\Http\Controllers\UnitConversionController::class, 'bulkSyncByUnit'])->name('unit_conversion.bulk_sync_by_unit');
     });
     
     // Wilayah Management routes - View and Create
@@ -512,6 +563,13 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/available-units/{kodeBarangId}', [SuratJalanController::class, 'getAvailableUnits'])->name('suratjalan.available-units');
         Route::get('/fifo-allocation/{suratJalanItemId}', [SuratJalanController::class, 'getFifoAllocation'])->name('suratjalan.fifo-allocation');
         Route::get('/api/by-no/{no}', [SuratJalanController::class, 'apiByNo'])->name('suratjalan.api.by-no');
+        Route::get('/rekap', [SuratJalanController::class, 'rekap'])->name('suratjalan.rekap');
+        
+        // Multiple Surat Jalan to Invoice routes
+        Route::get('/create-faktur', [SuratJalanController::class, 'createMultipleFaktur'])->name('suratjalan.create-faktur');
+        Route::get('/get-by-customer', [SuratJalanController::class, 'getSuratJalansByCustomer'])->name('multiple-sj.get-by-customer');
+        Route::post('/preview-faktur', [SuratJalanController::class, 'previewMultipleFaktur'])->name('multiple-sj.preview');
+        Route::post('/store-faktur', [SuratJalanController::class, 'storeMultipleFaktur'])->name('multiple-sj.store');
     });
     
     // Surat Jalan routes - Edit (if you have edit functionality)
@@ -519,6 +577,19 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Add edit routes for surat jalan if needed
         // Route::get('/edit/{id}', [SuratJalanController::class, 'edit'])->name('suratjalan.edit');
         // Route::post('/update/{id}', [SuratJalanController::class, 'update'])->name('suratjalan.update');
+    });
+    
+    // Stock Transfer routes
+    Route::group(['middleware' => ['permission:manage stok'], 'prefix' => 'stock-transfer'], function () {
+        Route::get('/create', [StockTransferController::class, 'create'])->name('stock-transfer.create');
+        Route::post('/store', [StockTransferController::class, 'store'])->name('stock-transfer.store');
+    });
+
+    // Finance - Bank Loan
+    Route::group(['middleware' => ['permission:manage bank loan'], 'prefix' => 'finance'], function () {
+        Route::get('/utang-bank', [BankLoanController::class, 'index'])->name('finance.bank-loan.index');
+        Route::post('/utang-bank/disburse', [BankLoanController::class, 'disburse'])->name('finance.bank-loan.disburse');
+        Route::post('/utang-bank/installment', [BankLoanController::class, 'installment'])->name('finance.bank-loan.installment');
     });
     
     // Surat Jalan routes - Cancel (if you have cancel functionality)
@@ -555,6 +626,24 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/print-good', [StockController::class, 'printGoodStock'])->name('stock.print.good');
         Route::get('/get', [StockController::class, 'getStock'])->name('stock.get');
         Route::get('/mutations', [StockController::class, 'getStockMutations'])->name('stock.mutations');
+    });
+
+    // Stock Transfer routes
+    Route::group(['middleware' => ['permission:manage stock transfer'], 'prefix' => 'stock-transfer'], function () {
+        Route::get('/', [App\Http\Controllers\StockTransferController::class, 'index'])->name('stock-transfer.index');
+        Route::get('/create', [App\Http\Controllers\StockTransferController::class, 'create'])->name('stock-transfer.create');
+        Route::post('/store', [App\Http\Controllers\StockTransferController::class, 'store'])->name('stock-transfer.store');
+        Route::get('/history', [App\Http\Controllers\StockTransferController::class, 'history'])->name('stock-transfer.history');
+        Route::get('/detail/{id}', [App\Http\Controllers\StockTransferController::class, 'detail'])->name('stock-transfer.detail');
+        Route::get('/{stockTransfer}', [App\Http\Controllers\StockTransferController::class, 'show'])->name('stock-transfer.show');
+        Route::get('/{stockTransfer}/edit', [App\Http\Controllers\StockTransferController::class, 'edit'])->name('stock-transfer.edit');
+        Route::put('/{stockTransfer}', [App\Http\Controllers\StockTransferController::class, 'update'])->name('stock-transfer.update');
+        Route::delete('/{stockTransfer}', [App\Http\Controllers\StockTransferController::class, 'destroy'])->name('stock-transfer.destroy');
+        Route::post('/{stockTransfer}/approve', [App\Http\Controllers\StockTransferController::class, 'approve'])->name('stock-transfer.approve');
+        Route::post('/{stockTransfer}/cancel', [App\Http\Controllers\StockTransferController::class, 'cancel'])->name('stock-transfer.cancel');
+        Route::get('/available-stock', [App\Http\Controllers\StockTransferController::class, 'getAvailableStock'])->name('stock-transfer.available-stock');
+        Route::get('/global-stock', [App\Http\Controllers\StockTransferController::class, 'getGlobalStock'])->name('stock-transfer.global-stock');
+        Route::get('/stock-breakdown', [App\Http\Controllers\StockTransferController::class, 'getStockBreakdown'])->name('stock-transfer.stock-breakdown');
     });
     
     // Stock Adjustment routes - View and Create
@@ -778,7 +867,16 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/piutang', [LaporanController::class, 'laporanPiutang'])->name('laporan.piutang');
         Route::get('/utang-supplier', [LaporanController::class, 'laporanUtangSupplier'])->name('laporan.utang-supplier');
         Route::get('/penjualan-dan-retur', [LaporanController::class, 'penjualanDanRetur'])->name('laporan.penjualan-dan-retur');
+        Route::get('/penjualan-per-hari', [LaporanController::class, 'penjualanPerHari'])->name('laporan.penjualan-per-hari');
         Route::get('/retur', [App\Http\Controllers\LaporanReturController::class, 'index'])->name('laporan.retur');
+        
+        // COGS/HPP Routes
+        Route::get('/cogs', [App\Http\Controllers\CogsController::class, 'index'])->name('laporan.cogs');
+        Route::get('/cogs/report', [App\Http\Controllers\CogsController::class, 'report'])->name('laporan.cogs.report');
+        Route::get('/cogs/transaction', [App\Http\Controllers\CogsController::class, 'transactionReport'])->name('laporan.cogs.transaction');
+        Route::get('/cogs/product', [App\Http\Controllers\CogsController::class, 'productReport'])->name('laporan.cogs.product');
+        Route::get('/cogs/inventory', [App\Http\Controllers\CogsController::class, 'inventoryValue'])->name('laporan.cogs.inventory');
+        Route::get('/cogs/detail/{transaksiId}', [App\Http\Controllers\CogsController::class, 'transactionDetail'])->name('laporan.cogs.detail');
     });
 
     // ==============================
@@ -891,5 +989,16 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Pembayaran Utang Supplier API routes
         Route::get('/pembayaran-utang-supplier/supplier-invoices', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'getSupplierInvoices'])->name('api.pembayaran-utang-supplier.supplier-invoices');
         Route::get('/pembayaran-utang-supplier/supplier-nota-debits', [App\Http\Controllers\PembayaranUtangSupplierController::class, 'getSupplierNotaDebits'])->name('api.pembayaran-utang-supplier.supplier-nota-debits');
+        
+        // Stock Transfer API routes
+        Route::get('/stock-transfer/stock-breakdown', [App\Http\Controllers\StockTransferController::class, 'getStockBreakdown'])->name('api.stock-transfer.stock-breakdown');
+        Route::get('/stock-transfer/global-stock', [App\Http\Controllers\StockTransferController::class, 'getGlobalStock'])->name('api.stock-transfer.global-stock');
+        
+        // COGS API routes
+        Route::get('/cogs/chart-data', [App\Http\Controllers\CogsController::class, 'chartData'])->name('api.cogs.chart-data');
+        Route::get('/cogs/products', [App\Http\Controllers\CogsController::class, 'getProducts'])->name('api.cogs.products');
+
+        // PO Number Generator API
+        Route::get('/generate-po', [App\Http\Controllers\PoNumberController::class, 'generate'])->name('api.generate-po');
     });
 });

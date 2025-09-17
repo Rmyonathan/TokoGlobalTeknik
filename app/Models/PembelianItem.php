@@ -28,6 +28,8 @@ class PembelianItem extends Model
         'keterangan',
         'harga',
         'qty',
+        'ukuran',
+        'ukuran_unit',
         'diskon',
         'total',
     ];
@@ -39,6 +41,8 @@ class PembelianItem extends Model
      */
     protected $casts = [
         'harga' => 'decimal:2',
+        'qty' => 'decimal:4',
+        'ukuran' => 'decimal:4',
         'diskon' => 'decimal:2',
         'total' => 'decimal:2',
     ];

@@ -11,6 +11,7 @@ use App\Models\Customer;
 use App\Models\CustomerPrice;
 use App\Models\Panel;
 use App\Models\SuratJalanItem;
+use App\Models\SuratJalan;
 use App\Models\Kas;
 use App\Models\CaraBayar;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Services\FifoService;
 use App\Services\UnitConversionService;
+use App\Services\PoNumberGeneratorService;
 use App\Models\KodeBarang;
 use App\Models\CustomerItemOngkos;
 use App\Models\SuratJalanItemSumber;
@@ -100,21 +102,29 @@ class TransaksiController extends Controller
     }
 
     public function penjualan(Request $request){
-        // Ambil nomor transaksi terakhir
-        $lastTransaction = Transaksi::orderBy('created_at', 'desc')->first();
-
-        // Generate nomor transaksi baru
-        if ($lastTransaction) {
-            // Ambil angka terakhir dari no_transaksi
-            $lastNumber = (int) substr($lastTransaction->no_transaksi, strrpos($lastTransaction->no_transaksi, '/') + 1);
-            $newNumber = $lastNumber + 1;
+        // Generate nomor transaksi baru dengan logic yang konsisten
+        $prefix = 'KP/WS/';
+        $lastTransaksi = Transaksi::where('no_transaksi', 'like', $prefix . '%')
+            ->orderBy('no_transaksi', 'desc')
+            ->first();
+        
+        if ($lastTransaksi) {
+            $numeric = (int) substr($lastTransaksi->no_transaksi, strlen($prefix));
+            $nextNumber = $numeric + 1;
         } else {
-            // Jika belum ada transaksi, mulai dari 1
-            $newNumber = 1;
+            $nextNumber = 1;
         }
-
-        // Format nomor transaksi baru
-        $noTransaksi = 'KP/WS/' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        
+        // Ensure uniqueness by checking existence and incrementing if needed
+        do {
+            $generatedNoTransaksi = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $exists = Transaksi::where('no_transaksi', $generatedNoTransaksi)->exists();
+            if ($exists) {
+                $nextNumber++;
+            }
+        } while ($exists);
+        
+        $noTransaksi = $generatedNoTransaksi;
         
         // Get KodeBarang data for dropdown
         try {
@@ -167,12 +177,13 @@ class TransaksiController extends Controller
             'tanggal' => 'required|date',
             'kode_customer' => 'required|exists:customers,kode_customer',
             'sales' => 'required|exists:stok_owners,kode_stok_owner', // Validasi sales
+            'no_po' => 'nullable|string|max:50',
             'subtotal' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'items' => 'required|array',
             'items.*.kodeBarang' => 'required|exists:kode_barangs,kode_barang', // Validasi kode_barang ke master KodeBarang
             'items.*.harga' => 'required|numeric',
-            'items.*.qty' => 'required|numeric',
+            'items.*.qty' => 'required|numeric|min:0.01',
             'notes' => 'nullable|string',
             'hari_tempo' => 'nullable|integer|min:0',
             'tanggal_jatuh_tempo' => 'nullable|date|after_or_equal:tanggal',
@@ -235,9 +246,16 @@ class TransaksiController extends Controller
                 }
             } while ($exists);
 
+            // Auto generate PO number if not provided
+            $noPo = $request->no_po;
+            // if (empty($noPo)) {
+            //     $noPo = PoNumberGeneratorService::generateForDate($request->tanggal ?? now(), 'transaksi');
+            // }
+
             // Create transaction
             $transaksi = Transaksi::create([
                 'no_transaksi' => $generatedNoTransaksi,
+                'no_po' => $noPo,
                 'tanggal' => now(),
                 'kode_customer' => $request->kode_customer,
                 'sales_order_id' => $request->sales_order_id ?? null,
@@ -1295,15 +1313,18 @@ class TransaksiController extends Controller
     public function storeFromSuratJalan(Request $request)
     {
         $request->validate([
-            'no_transaksi' => 'required|string|unique:transaksi,no_transaksi',
+            'no_transaksi' => 'nullable|string',
             'tanggal' => 'required|date',
             'kode_customer' => 'required|exists:customers,kode_customer',
             'sales' => 'required|exists:stok_owners,kode_stok_owner',
+            'no_po' => 'nullable|string|max:50',
+            'hari_tempo' => 'nullable|integer|min:0',
+            'tanggal_jatuh_tempo' => 'nullable|date',
             'subtotal' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'surat_jalan_id' => 'required|exists:surat_jalan,id',
             'items' => 'required|array',
-            'items.*.surat_jalan_item_id' => 'required|exists:surat_jalan_items,id',
+            'items.*.surat_jalan_item_id' => 'nullable|exists:surat_jalan_items,id',
             'items.*.kode_barang' => 'required|string',
             'items.*.nama_barang' => 'required|string',
             'items.*.qty' => 'required|numeric|min:0.01',
@@ -1315,15 +1336,55 @@ class TransaksiController extends Controller
 
         DB::beginTransaction();
         try {
+            // Ambil nomor PO dari input; jika kosong coba ambil dari Surat Jalan, tanpa auto-generate
+            $noPo = $request->no_po;
+            if (empty($noPo)) {
+                $suratJalan = SuratJalan::find($request->surat_jalan_id);
+                if ($suratJalan && $suratJalan->no_po) {
+                    $noPo = $suratJalan->no_po;
+                }
+            }
+
+            // Generate nomor transaksi if not provided
+            $noTransaksi = $request->no_transaksi;
+            if (empty($noTransaksi)) {
+                // Auto-generate nomor transaksi
+                $prefix = 'KP/WS/';
+                $lastTransaksi = Transaksi::where('no_transaksi', 'like', $prefix . '%')
+                    ->orderBy('no_transaksi', 'desc')
+                    ->first();
+                
+                if ($lastTransaksi) {
+                    $numeric = (int) substr($lastTransaksi->no_transaksi, strlen($prefix));
+                    $nextNumber = $numeric + 1;
+                } else {
+                    $nextNumber = 1;
+                }
+                
+                // Ensure uniqueness by checking existence and incrementing if needed
+                do {
+                    $generatedNoTransaksi = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                    $exists = Transaksi::where('no_transaksi', $generatedNoTransaksi)->exists();
+                    if ($exists) {
+                        $nextNumber++;
+                    }
+                } while ($exists);
+                
+                $noTransaksi = $generatedNoTransaksi;
+            }
+
             // Create transaction
             $transaksi = Transaksi::create([
-                'no_transaksi' => $request->no_transaksi,
+                'no_transaksi' => $noTransaksi,
+                'no_po' => $noPo,
                 'tanggal' => $request->tanggal,
                 'kode_customer' => $request->kode_customer,
                 'sales' => $request->sales,
                 'pembayaran' => $request->pembayaran ?? 'Tunai',
                 'cara_bayar' => $request->cara_bayar ?? 'Tunai',
                 'tanggal_jadi' => $request->tanggal_jadi,
+                'hari_tempo' => $request->hari_tempo ?? 0,
+                'tanggal_jatuh_tempo' => $request->tanggal_jatuh_tempo,
                 'subtotal' => $request->subtotal,
                 'discount' => $request->discount ?? 0,
                 'disc_rupiah' => $request->disc_rupiah ?? 0,
@@ -1357,8 +1418,11 @@ class TransaksiController extends Controller
                     'ongkos_kuli' => $item['ongkos_kuli']
                 ]);
 
-                // Transfer FIFO allocation dari Surat Jalan ke Transaksi
-                $suratJalanItemSumber = SuratJalanItemSumber::where('surat_jalan_item_id', $item['surat_jalan_item_id'])->get();
+                // Transfer FIFO allocation dari Surat Jalan ke Transaksi (jika ada surat_jalan_item_id)
+                $suratJalanItemSumber = collect();
+                if (!empty($item['surat_jalan_item_id'])) {
+                    $suratJalanItemSumber = SuratJalanItemSumber::where('surat_jalan_item_id', $item['surat_jalan_item_id'])->get();
+                }
                 
                 foreach ($suratJalanItemSumber as $sumber) {
                     \App\Models\TransaksiItemSumber::create([
@@ -1398,6 +1462,15 @@ class TransaksiController extends Controller
             }
 
             DB::commit();
+
+            // Update surat jalan dengan no_transaksi (setelah transaksi dibuat)
+            $suratJalan = SuratJalan::find($request->surat_jalan_id);
+            if ($suratJalan) {
+                $suratJalan->update([
+                    'no_transaksi' => $transaksi->no_transaksi
+                ]);
+                Log::info("Updated Surat Jalan {$suratJalan->no_suratjalan} with no_transaksi: {$transaksi->no_transaksi}");
+            }
 
             // Create accounting journal (DR Piutang Usaha, CR Pendapatan, CR Utang PPN)
             try {

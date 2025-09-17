@@ -338,4 +338,134 @@ class UnitConversionController extends Controller
             'message' => 'Satuan konversi berhasil dihapus!'
         ]);
     }
+
+    /**
+     * Bulk assign a unit conversion definition to multiple KodeBarang
+     * Payload: unit_turunan, nilai_konversi, item_ids[]
+     */
+    public function bulkAssign(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'unit_turunan' => 'required|string|max:20',
+            'nilai_konversi' => 'required|integer|min:1',
+            'item_ids' => 'required|array|min:1',
+            'item_ids.*' => 'integer|exists:kode_barangs,id'
+        ], [
+            'unit_turunan.required' => 'Satuan turunan harus diisi',
+            'nilai_konversi.required' => 'Nilai konversi harus diisi',
+            'item_ids.required' => 'Pilih minimal satu barang'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $created = 0; $updated = 0;
+        foreach ($request->item_ids as $kodeBarangId) {
+            $uc = UnitConversion::updateOrCreate(
+                [ 'kode_barang_id' => $kodeBarangId, 'unit_turunan' => strtoupper($request->unit_turunan) ],
+                [ 'nilai_konversi' => (int) $request->nilai_konversi, 'is_active' => true ]
+            );
+            if ($uc->wasRecentlyCreated) { $created++; } else { $updated++; }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Bulk assign selesai. Ditambahkan: {$created}, Diperbarui: {$updated}",
+            'created' => $created,
+            'updated' => $updated
+        ]);
+    }
+
+    /**
+     * Get all items for a given unit_turunan, with selection info
+     * Query: ?unit=LUSIN
+     */
+    public function itemsByUnit(Request $request)
+    {
+        $unit = strtoupper(trim($request->query('unit', '')));
+        if ($unit === '') {
+            return response()->json(['success' => false, 'message' => 'Param unit wajib diisi'], 400);
+        }
+
+        // Items having this unit conversion
+        $withUnit = UnitConversion::where('unit_turunan', $unit)->pluck('kode_barang_id')->toArray();
+        $items = KodeBarang::orderBy('name')->get(['id','kode_barang','name','unit_dasar']);
+
+        // Fetch all conversions for these items to show existing satuan besar list
+        $itemIds = $items->pluck('id')->toArray();
+        $conversions = UnitConversion::whereIn('kode_barang_id', $itemIds)
+            ->orderBy('unit_turunan')
+            ->get(['kode_barang_id','unit_turunan','nilai_konversi'])
+            ->groupBy('kode_barang_id');
+
+        $result = $items->map(function($it) use ($withUnit, $conversions) {
+            $convList = ($conversions->get($it->id) ?? collect())->map(function($uc){
+                return [
+                    'unit' => $uc->unit_turunan,
+                    'nilai' => (float) $uc->nilai_konversi,  // FIX: Gunakan float untuk desimal
+                ];
+            })->values()->all();
+            return [
+                'id' => $it->id,
+                'kode_barang' => $it->kode_barang,
+                'name' => $it->name,
+                'unit_dasar' => $it->unit_dasar,
+                'conversions' => $convList,
+                'selected' => in_array($it->id, $withUnit)
+            ];
+        });
+
+        return response()->json(['success' => true, 'data' => $result]);
+    }
+
+    /**
+     * Bulk sync items for a unit: ensure selected list has the unit with value, and others do not
+     * Payload: unit_turunan, nilai_konversi, item_ids[]
+     */
+    public function bulkSyncByUnit(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'unit_turunan' => 'required|string|max:20',
+            'nilai_konversi' => 'required|integer|min:1',
+            'item_ids' => 'nullable|array',
+            'item_ids.*' => 'integer|exists:kode_barangs,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $unit = strtoupper($request->unit_turunan);
+        $nilai = (int) $request->nilai_konversi;
+        $selectedIds = $request->input('item_ids', []);
+
+        // Remove unit from all items not in selected list
+        $allWithUnit = UnitConversion::where('unit_turunan', $unit)->pluck('kode_barang_id')->toArray();
+        $toRemove = array_diff($allWithUnit, $selectedIds);
+        if (!empty($toRemove)) {
+            UnitConversion::whereIn('kode_barang_id', $toRemove)->where('unit_turunan', $unit)->delete();
+        }
+
+        // Upsert for selected
+        $created = 0; $updated = 0;
+        foreach ($selectedIds as $id) {
+            $uc = UnitConversion::updateOrCreate(
+                [ 'kode_barang_id' => $id, 'unit_turunan' => $unit ],
+                [ 'nilai_konversi' => $nilai, 'is_active' => true ]
+            );
+            if ($uc->wasRecentlyCreated) { $created++; } else { $updated++; }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sinkronisasi berhasil',
+            'created' => $created,
+            'updated' => $updated,
+            'removed' => count($toRemove)
+        ]);
+    }
 }

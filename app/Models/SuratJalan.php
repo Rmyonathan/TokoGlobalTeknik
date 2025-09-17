@@ -16,6 +16,7 @@ class SuratJalan extends Model{
         'kode_customer',
         'alamat_suratjalan',
         'no_transaksi',
+        'no_po',
         'tanggal_transaksi',
         'titipan_uang',
         'sisa_piutang',

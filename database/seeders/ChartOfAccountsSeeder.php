@@ -43,11 +43,12 @@ class ChartOfAccountsSeeder extends Seeder
         $accounts = [
             // 1. ASET
             ['code' => '1100', 'name' => 'Aset Lancar', 'type' => 'A', 'parent' => null],
-            ['code' => '1101', 'name' => 'Kas', 'type' => 'A', 'parent' => '1100'],
-            ['code' => '1102', 'name' => 'Bank', 'type' => 'A', 'parent' => '1100'],
-            ['code' => '1103', 'name' => 'Piutang Usaha', 'type' => 'A', 'parent' => '1100'],
-            ['code' => '1104', 'name' => 'Persediaan Barang Dagang', 'type' => 'A', 'parent' => '1100'],
-            ['code' => '1105', 'name' => 'Piutang PPN (PPN Masukan)', 'type' => 'A', 'parent' => '1100'],
+            ['code' => '1101', 'name' => 'Kas Kecil', 'type' => 'A', 'parent' => '1100'],
+            ['code' => '1102', 'name' => 'Kas Besar', 'type' => 'A', 'parent' => '1100'],
+            ['code' => '1103', 'name' => 'Bank', 'type' => 'A', 'parent' => '1100'],
+            ['code' => '1104', 'name' => 'Piutang Usaha', 'type' => 'A', 'parent' => '1100'],
+            ['code' => '1105', 'name' => 'Persediaan Barang Dagang', 'type' => 'A', 'parent' => '1100'],
+            ['code' => '1106', 'name' => 'Piutang PPN (PPN Masukan)', 'type' => 'A', 'parent' => '1100'],
             ['code' => '1200', 'name' => 'Aset Tetap', 'type' => 'A', 'parent' => null],
             ['code' => '1201', 'name' => 'Peralatan Toko', 'type' => 'A', 'parent' => '1200'],
             ['code' => '1202', 'name' => 'Akumulasi Penyusutan - Peralatan', 'type' => 'A', 'parent' => '1200'],
@@ -56,6 +57,12 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '2100', 'name' => 'Liabilitas Jangka Pendek', 'type' => 'L', 'parent' => null],
             ['code' => '2101', 'name' => 'Utang Usaha', 'type' => 'L', 'parent' => '2100'],
             ['code' => '2102', 'name' => 'Utang PPN (PPN Keluaran)', 'type' => 'L', 'parent' => '2100'],
+            ['code' => '2103', 'name' => 'Utang Bank', 'type' => 'L', 'parent' => '2100'],
+            
+            // 2.1. LIABILITAS TOKO 2 (Database Kedua)
+            ['code' => '2200', 'name' => 'Liabilitas Toko 2', 'type' => 'L', 'parent' => null],
+            ['code' => '2201', 'name' => 'Piutang PPN Toko 2', 'type' => 'A', 'parent' => '2200'],
+            ['code' => '2202', 'name' => 'Utang PPN Toko 2', 'type' => 'L', 'parent' => '2200'],
 
             // 3. EKUITAS
             ['code' => '3101', 'name' => 'Modal Pemilik', 'type' => 'E', 'parent' => null],

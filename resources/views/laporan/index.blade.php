@@ -41,26 +41,35 @@
 			</div>
 		</div>
 		<div class="list-group mt-3">
+			<a href="{{ route('laporan.penjualan-per-hari') }}" class="list-group-item list-group-item-action">
+				<i class="fas fa-chart-line mr-2"></i>Laporan Penjualan per Hari
+			</a>
+			<a href="{{ route('laporan.cogs') }}" class="list-group-item list-group-item-action">
+				<i class="fas fa-calculator mr-2"></i>Laporan COGS/HPP
+			</a>
+			<a href="{{ route('laporan.penjualan-dan-retur') }}" class="list-group-item list-group-item-action">
+				<i class="fas fa-exchange-alt mr-2"></i>Laporan Penjualan dan Retur
+			</a>
 			<a href="{{ route('laporan.laba-per-faktur') }}" class="list-group-item list-group-item-action">
-				Laporan Laba per Faktur
+				<i class="fas fa-file-invoice mr-2"></i>Laporan Laba per Faktur
 			</a>
 			<a href="{{ route('laporan.laba-per-barang') }}" class="list-group-item list-group-item-action">
-				Laporan Laba per Barang
+				<i class="fas fa-boxes mr-2"></i>Laporan Laba per Barang
 			</a>
 			<a href="{{ route('laporan.ongkos-kuli') }}" class="list-group-item list-group-item-action">
-				Laporan Ongkos Kuli
+				<i class="fas fa-tools mr-2"></i>Laporan Ongkos Kuli
 			</a>
 			<a href="{{ route('laporan.komisi-sales') }}" class="list-group-item list-group-item-action">
-				Laporan Komisi Sales
+				<i class="fas fa-user-tie mr-2"></i>Laporan Komisi Sales
 			</a>
 			<a href="{{ route('laporan.stok') }}" class="list-group-item list-group-item-action">
-				Laporan Stok
+				<i class="fas fa-warehouse mr-2"></i>Laporan Stok
 			</a>
 			<a href="{{ route('laporan.piutang') }}" class="list-group-item list-group-item-action">
-				Laporan Piutang Pelanggan
+				<i class="fas fa-hand-holding-usd mr-2"></i>Laporan Piutang Pelanggan
 			</a>
 			<a href="{{ route('laporan.utang-supplier') }}" class="list-group-item list-group-item-action">
-				Laporan Utang Supplier
+				<i class="fas fa-truck mr-2"></i>Laporan Utang Supplier
 			</a>
 		</div>
 	</div>

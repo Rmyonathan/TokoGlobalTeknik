@@ -14,6 +14,7 @@ class Transaksi extends Model
     
     protected $fillable = [
         'no_transaksi',
+        'no_po',
         'tanggal',
         'kode_customer',
         'sales_order_id',
@@ -35,6 +36,7 @@ class Transaksi extends Model
         'tanggal_jatuh_tempo',
         'tanggal_pelunasan',
         'created_from_po',
+        'created_from_multiple_sj',
         'is_edited',
         'edited_by',
         'edited_at',
@@ -56,23 +58,30 @@ class Transaksi extends Model
 
     public static function generateNoTransaksi(): string
     {
-        $prefix = 'TRX-';
-        $date = now()->format('Ymd');
+        // Format: KP/WS/0009 (4 digit increment, global)
+        $prefix = 'KP/WS/';
 
-        // Ambil transaksi terakhir hari ini
-        $lastTransaksi = self::whereDate('tanggal', now()->toDateString())
+        // Ambil transaksi terakhir dengan prefix ini
+        $last = self::where('no_transaksi', 'like', $prefix . '%')
             ->orderBy('no_transaksi', 'desc')
             ->first();
 
-        if ($lastTransaksi) {
-            // ambil nomor urut terakhir
-            $lastNumber = (int) substr($lastTransaksi->no_transaksi, -3);
-            $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '001';
+        $nextNumber = 1;
+        if ($last && strpos($last->no_transaksi, $prefix) === 0) {
+            $numeric = (int) substr($last->no_transaksi, strlen($prefix));
+            $nextNumber = $numeric + 1;
         }
 
-        return $prefix . $date . '-' . $newNumber;
+        // Pastikan unik (jika ada race condition)
+        do {
+            $generated = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $exists = self::where('no_transaksi', $generated)->exists();
+            if ($exists) {
+                $nextNumber++;
+            }
+        } while ($exists);
+
+        return $generated;
     }
 
     public function items()
@@ -192,5 +201,38 @@ class Transaksi extends Model
     public function scopeByDateRange($query, $startDate, $endDate)
     {
         return $query->whereBetween('tanggal', [$startDate, $endDate]);
+    }
+
+    /**
+     * Hitung total COGS untuk transaksi ini
+     */
+    public function getTotalCogsAttribute(): float
+    {
+        $totalCogs = 0;
+        
+        foreach ($this->items as $item) {
+            foreach ($item->sumber as $sumber) {
+                $totalCogs += $sumber->qty_diambil * $sumber->harga_modal;
+            }
+        }
+        
+        return $totalCogs;
+    }
+
+    /**
+     * Hitung total margin untuk transaksi ini
+     */
+    public function getTotalMarginAttribute(): float
+    {
+        return $this->grand_total - $this->total_cogs;
+    }
+
+    /**
+     * Hitung persentase margin untuk transaksi ini
+     */
+    public function getMarginPercentageAttribute(): float
+    {
+        if ($this->grand_total == 0) return 0;
+        return ($this->total_margin / $this->grand_total) * 100;
     }
 }

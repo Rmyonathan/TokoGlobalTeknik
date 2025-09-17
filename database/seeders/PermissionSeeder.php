@@ -152,6 +152,9 @@ class PermissionSeeder extends Seeder
         $this->createPermissionIfNotExists('view pembayaran piutang');
         $this->createPermissionIfNotExists('edit pembayaran piutang');
         $this->createPermissionIfNotExists('manage pembayaran piutang');
+        // Bank Loan (Utang Bank)
+        $this->createPermissionIfNotExists('view bank loan');
+        $this->createPermissionIfNotExists('manage bank loan');
     }
 
     /**
@@ -394,7 +397,10 @@ class PermissionSeeder extends Seeder
             'view chart of accounts',
             'create chart of accounts',
             'edit chart of accounts',
-            'delete chart of accounts'
+            'delete chart of accounts',
+            // Bank Loan (Utang Bank)
+            'view bank loan',
+            'manage bank loan',
         ];
         
         // Senior roles with cancel permissions

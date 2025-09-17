@@ -34,9 +34,8 @@ class FifoTestSeeder extends Seeder
             [
                 'name' => 'Plastik Test FIFO',
                 'cost' => 8000,
-                'price' => 12000,
+                'harga_jual' => 12000,
                 'attribute' => 'Test FIFO',
-                'length' => 100,
                 'status' => 'Active'
             ]
         );

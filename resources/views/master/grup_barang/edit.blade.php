@@ -49,5 +49,105 @@
             </form>
         </div>
     </div>
+
+    {{-- Bulk assign items to this group --}}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="card-title">Kelola Barang dalam Grup Ini</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ route('grup_barang.assign-items', $category->id) }}" method="POST">
+                @csrf
+                <div class="mb-3">
+                    <label for="item_ids" class="form-label">Pilih Barang</label>
+                    <select class="form-select select2" id="item_ids" name="item_ids[]" multiple size="10">
+                        @foreach(($allItems ?? []) as $it)
+                            <option value="{{ $it->id }}" {{ ($it->grup_barang_id == $category->id) ? 'selected' : '' }}>
+                                {{ $it->kode_barang }} - {{ $it->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="form-text text-muted">Tahan Ctrl/Cmd untuk memilih banyak barang.</small>
+                </div>
+                <button type="submit" class="btn btn-primary">Simpan Barang Grup</button>
+            </form>
+        </div>
+    </div>
+
+    {{-- Bulk assign unit conversion to selected items --}}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="card-title">Terapkan Konversi Satuan ke Barang Terpilih</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="bulk_unit_turunan" class="form-label">Satuan Turunan</label>
+                    <input type="text" id="bulk_unit_turunan" class="form-control" placeholder="mis. LUSIN">
+                </div>
+                <div class="col-md-4">
+                    <label for="bulk_nilai_konversi" class="form-label">Nilai Konversi</label>
+                    <input type="number" id="bulk_nilai_konversi" class="form-control" min="1" value="12">
+                </div>
+                <div class="col-md-4">
+                    <button type="button" id="btnBulkAssignUC" class="btn btn-success">
+                        Terapkan ke Barang Terpilih
+                    </button>
+                </div>
+            </div>
+            <small class="form-text text-muted d-block mt-2">Gunakan tombol di atas untuk menambahkan/memperbarui konversi satuan pada semua barang yang dipilih.</small>
+        </div>
+    </div>
 </section>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        if (typeof $ !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+            $('#item_ids').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: 'Pilih barang...',
+                allowClear: true,
+                closeOnSelect: false
+            });
+        }
+    } catch (e) {
+        console.error('Select2 init error:', e);
+    }
+
+    // Bulk assign unit conversion handler
+    $('#btnBulkAssignUC').on('click', function() {
+        const unit = ($('#bulk_unit_turunan').val() || '').trim();
+        const nilai = parseInt($('#bulk_nilai_konversi').val(), 10);
+        const selected = ($('#item_ids').val() || []).map(id => parseInt(id, 10));
+
+        if (!unit) { alert('Satuan turunan wajib diisi'); return; }
+        if (!nilai || nilai < 1) { alert('Nilai konversi harus >= 1'); return; }
+        if (selected.length === 0) { alert('Pilih minimal satu barang'); return; }
+
+        $.ajax({
+            url: '{{ route('unit_conversion.bulk_assign') }}',
+            method: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                unit_turunan: unit,
+                nilai_konversi: nilai,
+                item_ids: selected
+            },
+            success: function(res) {
+                alert(res.message || 'Konversi satuan berhasil diterapkan.');
+            },
+            error: function(xhr) {
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    const errs = xhr.responseJSON.errors;
+                    const msg = Object.keys(errs).map(k => errs[k]).join('\n');
+                    alert(msg);
+                } else {
+                    alert('Gagal menerapkan konversi.');
+                }
+            }
+        });
+    });
+});
+</script>
 @endsection

@@ -335,7 +335,7 @@
                                             <input type="number" class="form-control" name="items[{{ $index }}][panjang]" value="{{ $item->panjang }}" step="0.01" min="0">
                                         </td>
                                         <td>
-                                            <input type="number" class="form-control item-qty" name="items[{{ $index }}][qty]" value="{{ $item->qty }}" min="1" required>
+                                            <input type="number" class="form-control item-qty" name="items[{{ $index }}][qty]" value="{{ $item->qty }}" step="0.01" min="0.01" required>
                                         </td>
                                         <td>
                                             <input type="number" class="form-control item-diskon" name="items[{{ $index }}][diskon]" value="{{ $item->diskon ?? 0 }}" min="0" max="100">
@@ -606,7 +606,7 @@
                     <input type="number" class="form-control" name="items[${index}][panjang]" value="${panjang}" step="0.01" min="0">
                 </td>
                 <td>
-                    <input type="number" class="form-control item-qty" name="items[${index}][qty]" value="${qty}" min="1" required>
+                    <input type="number" class="form-control item-qty" name="items[${index}][qty]" value="${qty}" step="0.01" min="0.01" required>
                 </td>
                 <td>
                     <input type="number" class="form-control item-diskon" name="items[${index}][diskon]" value="${diskon}" min="0" max="100">

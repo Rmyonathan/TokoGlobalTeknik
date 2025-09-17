@@ -16,7 +16,8 @@ class TransaksiItemSumber extends Model
         'transaksi_item_id',
         'stock_batch_id',
         'qty_diambil',
-        'harga_modal'
+        'harga_modal',
+        'surat_jalan_item_sumber_id'
     ];
 
     protected $casts = [

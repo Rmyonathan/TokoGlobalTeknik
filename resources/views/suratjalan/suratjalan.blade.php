@@ -2,10 +2,12 @@
 
 @section('content')
 <div class="container">
+    <!-- Header Section -->
     <div class="title-box">
         <h2><i class="fas fa-truck mr-2"></i>Surat Jalan</h2>
     </div>
 
+    <!-- Main Form Section -->
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">Data Surat Jalan</h5>
@@ -14,23 +16,36 @@
             <form id="suratjalanForm">
                 @csrf
                 <div class="row">
-                    <!-- Kiri -->
+                    <!-- Left Column - Basic Information -->
                     <div class="col-md-6">
+                        <!-- Surat Jalan Number -->
                         <div class="form-group">
                             <label for="no_suratjalan">No. Surat Jalan</label>
-                            <input type="text" class="form-control" id="no_suratjalan" name="no_suratjalan" value="{{ $noSuratJalan ?? 'SJ-001-00001' }}" readonly style="background-color: #ffc107; color: #000; font-weight: bold;">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="no_suratjalan" 
+                                   name="no_suratjalan" 
+                                   value="{{ $noSuratJalan ?? 'SJ-001-00001' }}" 
+                                   readonly 
+                                   style="background-color: #ffc107; color: #000; font-weight: bold;">
                         </div>
 
+                        <!-- Date -->
                         <div class="form-group">
                             <label for="tanggal">Tanggal</label>
                             <div class="input-group">
-                                <input type="date" class="form-control" id="tanggal" name="tanggal" value="{{ date('Y-m-d') }}">
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="tanggal" 
+                                       name="tanggal" 
+                                       value="{{ date('Y-m-d') }}">
                                 <div class="input-group-append">
                                     <span class="input-group-text"><i class="fas fa-calendar"></i></span>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- Customer Selection -->
                         <div class="form-group">
                             <label for="customer">Customer</label>
                             <div class="input-group">
@@ -52,7 +67,11 @@
                                     @endif
                                 </select>
                                 <div class="input-group-append">
-                                    <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addCustomerModal" title="Tambah Customer Baru">
+                                    <button type="button" 
+                                            class="btn btn-success" 
+                                            data-toggle="modal" 
+                                            data-target="#addCustomerModal" 
+                                            title="Tambah Customer Baru">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
@@ -60,76 +79,119 @@
                             <input type="hidden" id="kode_customer" name="kode_customer">
                         </div>
 
+                        <!-- Customer Address -->
                         <div class="form-group">
                             <label for="alamatCustomer">Alamat Customer</label>
-                            <input type="text" id="alamatCustomer" name="customer-alamat" class="form-control" readonly>
+                            <input type="text" 
+                                   id="alamatCustomer" 
+                                   name="customer-alamat" 
+                                   class="form-control" 
+                                   readonly>
                         </div>
 
+                        <!-- Customer Contact -->
                         <div class="form-group">
                             <label for="hpCustomer">No HP / Telp Customer</label>
-                            <input type="text" id="hpCustomer" name="customer-hp" class="form-control" readonly>
+                            <input type="text" 
+                                   id="hpCustomer" 
+                                   name="customer-hp" 
+                                   class="form-control" 
+                                   readonly>
                         </div>
 
+                        <!-- Delivery Address -->
                         <div class="form-group">
                             <label for="alamat_suratjalan">Alamat di Surat Jalan</label>
-                            <textarea class="form-control" id="alamat_suratjalan" name="alamat_suratjalan" rows="2" placeholder="Alamat pengiriman"></textarea>
+                            <textarea class="form-control" 
+                                      id="alamat_suratjalan" 
+                                      name="alamat_suratjalan" 
+                                      rows="2" 
+                                      placeholder="Alamat pengiriman"></textarea>
+                        </div>
+
+                        <!-- PO Number -->
+                        <div class="form-group">
+                            <label for="no_po">Nomor PO</label>
+                            <div class="input-group">
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="no_po" 
+                                       name="no_po" 
+                                       placeholder="Masukkan Nomor PO">
+                            </div>
+                            <small class="form-text text-muted">Isi manual nomor PO customer (opsional).</small>
                         </div>
                     </div>
 
-                    <!-- Kanan -->
+                    <!-- Right Column - Payment Information -->
                     <div class="col-md-6">
-                        <!-- <div class="form-group">
-                            <label for="select_faktur">Pilih Faktur (Opsional)</label>
-                            <select class="form-control" id="select_faktur" name="select_faktur">
-                                <option value="">-- Pilih Faktur --</option>
-                                @foreach($availableTransactions as $transaction)
-                                    <option value="{{ $transaction->id }}" 
-                                            data-kode-customer="{{ $transaction->kode_customer }}"
-                                            data-customer-name="{{ $transaction->customer->nama ?? 'N/A' }}"
-                                            data-customer-alamat="{{ $transaction->customer->alamat ?? 'N/A' }}"
-                                            data-customer-hp="{{ $transaction->customer->hp ?? 'N/A' }}"
-                                            data-customer-telp="{{ $transaction->customer->telepon ?? 'N/A' }}">
-                                        {{ $transaction->no_transaksi }} - {{ $transaction->customer->nama ?? 'N/A' }} ({{ \Carbon\Carbon::parse($transaction->tanggal)->format('d/m/Y') }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="form-text text-muted">Pilih faktur untuk mengisi otomatis data customer dan items</small>
-                        </div> -->
-
+                        <!-- Money Deposit -->
                         <div class="form-group">
                             <label for="titipan_uang">Titipan Uang</label>
-                            <input type="number" class="form-control" id="titipan_uang" name="titipan_uang" value="0" min="0">
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="titipan_uang" 
+                                   name="titipan_uang" 
+                                   value="0" 
+                                   min="0">
                         </div>
 
+                        <!-- Remaining Debt -->
                         <div class="form-group">
                             <label for="sisa_piutang">Sisa Piutang</label>
-                            <input type="number" class="form-control" id="sisa_piutang" name="sisa_piutang" value="0" min="0">
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="sisa_piutang" 
+                                   name="sisa_piutang" 
+                                   value="0" 
+                                   min="0">
                         </div>
 
+                        <!-- Payment Method -->
                         <div class="form-group">
                             <label for="metode_pembayaran">Metode Pembayaran</label>
                             <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
+                                <option value="Tunai">Tunai</option>
                                 <option value="Non Tunai" selected>Non Tunai</option>
                             </select>
-                            <small class="form-text text-muted">Semua pembayaran menggunakan kredit/tempo</small>
+                            <small class="form-text text-muted">Sumber dari master Cara Bayar</small>
                         </div>
 
+                        <!-- Payment Type -->
                         <div class="form-group">
                             <label for="cara_bayar">Cara Bayar</label>
                             <select class="form-control" id="cara_bayar" name="cara_bayar">
-                                <option value="Kredit" selected>Kredit</option>
+                                @if(isset($caraBayars) && count($caraBayars) > 0)
+                                    @foreach($caraBayars as $cb)
+                                        <option value="{{ $cb->nama }}" data-metode="{{ $cb->metode }}" {{ $cb->nama === 'Kredit' ? 'selected' : '' }}>
+                                            {{ $cb->nama }}
+                                        </option>
+                                    @endforeach
+                                @else
+                                    <option value="Kredit" selected>Kredit</option>
+                                @endif
                             </select>
                         </div>
 
+                        <!-- Credit Terms -->
                         <div class="form-group" id="hariTempoGroup" style="display:block;">
                             <label for="hari_tempo">Hari Tempo</label>
-                            <input type="number" class="form-control" id="hari_tempo" name="hari_tempo" min="0" value="0">
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="hari_tempo" 
+                                   name="hari_tempo" 
+                                   min="0" 
+                                   value="0">
                             <small class="form-text text-muted">Isi 0 jika tanpa tempo</small>
                         </div>
 
+                        <!-- Due Date -->
                         <div class="form-group" id="jatuhTempoGroup" style="display:block;">
                             <label for="tanggal_jatuh_tempo">Tanggal Jatuh Tempo</label>
-                            <input type="date" class="form-control" id="tanggal_jatuh_tempo" name="tanggal_jatuh_tempo">
+                            <input type="date" 
+                                   class="form-control" 
+                                   id="tanggal_jatuh_tempo" 
+                                   name="tanggal_jatuh_tempo">
                         </div>
                     </div>
                 </div>
@@ -137,12 +199,13 @@
         </div>
     </div>
 
-    <!-- Items Section -->
+    <!-- Add Item Section -->
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">Tambah Barang</h5>
         </div>
         <div class="card-body">
+            <!-- Product Selection Row -->
             <div class="row">
                 <div class="col-md-3">
                     <div class="form-group">
@@ -159,7 +222,10 @@
                                             data-nama="{{ $barang->name }}"
                                             data-merek="{{ $barang->merek }}"
                                             data-ukuran="{{ $barang->ukuran }}">
-                                        {{ $barang->kode_barang }} - {{ $barang->name }}@if($barang->merek || $barang->ukuran) ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})@endif
+                                        {{ $barang->kode_barang }} - {{ $barang->name }}
+                                        @if($barang->merek || $barang->ukuran)
+                                            ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})
+                                        @endif
                                     </option>
                                 @endforeach
                             @else
@@ -168,12 +234,18 @@
                         </select>
                     </div>
                 </div>
+                
                 <div class="col-md-2">
                     <div class="form-group">
                         <label>Qty</label>
-                        <input type="number" class="form-control" id="newQty" step="0.01" min="0.01">
+                        <input type="number" 
+                               class="form-control" 
+                               id="newQty" 
+                               step="0.01" 
+                               min="0.01">
                     </div>
                 </div>
+                
                 <div class="col-md-2">
                     <div class="form-group">
                         <label>Satuan Kecil</label>
@@ -183,44 +255,70 @@
                         <input type="hidden" id="newSatuan" value="">
                     </div>
                 </div>
+                
                 <div class="col-md-2">
                     <div class="form-group">
                         <label>Satuan Besar</label>
                         <select class="form-control" id="newSatuanBesar"></select>
                     </div>
                 </div>
+                
                 <div class="col-md-2">
                     <div class="form-group">
                         <label>Harga</label>
-                        <input type="number" class="form-control" id="newHarga" step="0.01" min="0">
+                        <input type="number" 
+                               class="form-control" 
+                               id="newHarga" 
+                               step="0.01" 
+                               min="0">
                     </div>
                 </div>
+                
                 <div class="col-md-1">
                     <div class="form-group">
                         <label>Total</label>
-                        <input type="number" class="form-control" id="newTotal" readonly>
+                        <input type="number" 
+                               class="form-control" 
+                               id="newTotal" 
+                               readonly>
                     </div>
                 </div>
             </div>
+            
+            <!-- Additional Fields Row -->
             <div class="row">
                 <div class="col-md-2">
                     <div class="form-group">
                         <label>Diskon (%)</label>
-                        <input type="number" class="form-control" id="newDiskon" placeholder="0" min="0" max="100">
+                        <input type="number" 
+                               class="form-control" 
+                               id="newDiskon" 
+                               placeholder="0" 
+                               min="0" 
+                               max="100">
                     </div>
                 </div>
+                
                 <div class="col-md-2">
                     <div class="form-group">
                         <label>Ongkos Kuli</label>
-                        <input type="number" class="form-control" id="newOngkosKuli" placeholder="0">
+                        <input type="number" 
+                               class="form-control" 
+                               id="newOngkosKuli" 
+                               placeholder="0">
                     </div>
                 </div>
+                
                 <div class="col-md-7">
                     <div class="form-group">
                         <label>Keterangan</label>
-                        <input type="text" class="form-control" id="newKeterangan" placeholder="Keterangan">
+                        <input type="text" 
+                               class="form-control" 
+                               id="newKeterangan" 
+                               placeholder="Keterangan">
                     </div>
                 </div>
+                
                 <div class="col-md-1 d-flex align-items-end justify-content-end">
                     <button type="button" class="btn btn-success btn-sm" id="addItemBtn">
                         <i class="fas fa-plus"></i> Add
@@ -230,18 +328,21 @@
         </div>
     </div>
 
-    <!-- Items Table -->
+    <!-- Items List Section -->
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">Daftar Barang</h5>
         </div>
         <div class="card-body">
+            <!-- Items Table -->
             <div class="table-responsive">
                 <table class="table table-bordered table-striped" id="itemsTable">
                     <thead>
                         <tr>
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
+                            <th>Merek</th>
+                            <th>Ukuran</th>
                             <th>Keterangan</th>
                             <th>Harga Jual</th>
                             <th>Qty & Satuan</th>
@@ -258,13 +359,15 @@
                 </table>
             </div>
             
-            <!-- Summary Total -->
+            <!-- Summary Section -->
             <div class="row mt-4">
                 <div class="col-md-6"></div>
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-body">
                             <h6 class="card-title">Ringkasan Total</h6>
+                            
+                            <!-- Subtotal -->
                             <div class="row">
                                 <div class="col-6">
                                     <label>Subtotal:</label>
@@ -273,10 +376,14 @@
                                     <span id="summary_subtotal">Rp 0</span>
                                 </div>
                             </div>
+                            
+                            <!-- PPN -->
                             <div class="row">
                                 <div class="col-6">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="ppn_checkbox_sj">
+                                        <input class="form-check-input" 
+                                               type="checkbox" 
+                                               id="ppn_checkbox_sj">
                                         <label class="form-check-label" for="ppn_checkbox_sj">
                                             PPN ({{ $ppnConfig['rate'] ?? 11 }}%)
                                         </label>
@@ -286,7 +393,10 @@
                                     <span id="summary_ppn">Rp 0</span>
                                 </div>
                             </div>
+                            
                             <hr>
+                            
+                            <!-- Grand Total -->
                             <div class="row">
                                 <div class="col-6">
                                     <strong>Grand Total:</strong>
@@ -300,6 +410,7 @@
                 </div>
             </div>
             
+            <!-- Action Buttons -->
             <div class="form-group text-right mt-4">
                 <button type="button" class="btn btn-success" id="saveSuratJalan">
                     <i class="fas fa-save"></i> Simpan Surat Jalan
@@ -313,9 +424,20 @@
 </div>
 
 <script>
+// ========================================
+// GLOBAL VARIABLES
+// ========================================
 let items = [];
 
-// Format currency function
+// ========================================
+// UTILITY FUNCTIONS
+// ========================================
+
+/**
+ * Format currency to Indonesian Rupiah
+ * @param {number} amount - Amount to format
+ * @returns {string} Formatted currency string
+ */
 function formatCurrency(amount) {
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
@@ -324,22 +446,62 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-// Handle customer selection change
+/**
+ * Calculate due date based on base date and credit terms
+ */
+function recalcJatuhTempo() {
+    const base = $('#tanggal').val();
+    const hari = parseInt($('#hari_tempo').val() || '0', 10);
+    
+    if (!base || isNaN(hari)) return;
+    
+    const d = new Date(base);
+    d.setDate(d.getDate() + hari);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    
+    $('#tanggal_jatuh_tempo').val(`${yyyy}-${mm}-${dd}`);
+}
+
+/**
+ * Calculate total for new item
+ */
+function calculateNewItemTotal() {
+    const qty = parseFloat($('#newQty').val()) || 0;
+    const harga = parseFloat($('#newHarga').val()) || 0;
+    const diskon = parseFloat($('#newDiskon').val()) || 0;
+    
+    const subtotal = qty * harga;
+    const diskonAmount = (subtotal * diskon) / 100;
+    const total = subtotal - diskonAmount;
+    
+    $('#newTotal').val(total.toFixed(2));
+}
+
+// ========================================
+// EVENT HANDLERS
+// ========================================
+
+/**
+ * Handle customer selection change
+ */
 $('#customer_display').on('change', function() {
     const selectedOption = $(this).find('option:selected');
+    
     if (selectedOption.val()) {
+        // Fill customer data
         $('#kode_customer').val(selectedOption.val());
         $('#alamatCustomer').val(selectedOption.data('alamat') || '');
         $('#hpCustomer').val(`${selectedOption.data('hp') || ''} / ${selectedOption.data('telepon') || ''}`);
         $('#alamat_suratjalan').val(selectedOption.data('alamat') || '');
         
-        // Auto-fill hari tempo from customer data
+        // Auto-fill credit terms
         const hariTempo = selectedOption.data('limit-hari-tempo') || 0;
         $('#hari_tempo').val(hariTempo);
-        
-        // Recalculate jatuh tempo
         recalcJatuhTempo();
     } else {
+        // Clear customer data
         $('#kode_customer').val('');
         $('#alamatCustomer').val('');
         $('#hpCustomer').val('');
@@ -349,21 +511,93 @@ $('#customer_display').on('change', function() {
     }
 });
 
-// Handle kode barang selection change
+/**
+ * Handle product selection change
+ */
 $('#newKodeBarang').on('change', function() {
     const selectedOption = $(this).find('option:selected');
     const harga = selectedOption.data('harga') || 0;
     const unitDasar = selectedOption.data('unit-dasar') || 'PCS';
+    const merek = selectedOption.data('merek') || '';
+    const ukuran = selectedOption.data('ukuran') || '';
     const kodeBarangId = $(this).val();
     
-    // Set harga
+    // Set price
     $('#newHarga').val(harga);
     
-    // Set satuan kecil options
+    // Set small unit options
     $('#newSatuanKecil').empty().append(`<option value="${unitDasar}">${unitDasar}</option>`);
     $('#newSatuan').val(unitDasar);
     
-    // Set satuan besar options using API
+    // Load available units for large unit
+    loadAvailableUnits(kodeBarangId, unitDasar);
+    // cache meta on selects for later add
+    $('#newKodeBarang').data('merek', merek);
+    $('#newKodeBarang').data('ukuran', ukuran);
+});
+
+/**
+ * Handle quantity and price changes for total calculation
+ */
+$('#newQty, #newHarga, #newDiskon').on('input', function() {
+    calculateNewItemTotal();
+});
+
+/**
+ * Handle date and credit terms changes for due date calculation
+ */
+$('#tanggal').on('change', recalcJatuhTempo);
+$('#hari_tempo').on('input', recalcJatuhTempo);
+
+/**
+ * Handle PPN checkbox change
+ */
+$('#ppn_checkbox_sj').on('change', function() {
+    updateSummaryTotal();
+});
+
+/**
+ * Handle add item button click
+ */
+$('#addItemBtn').on('click', function() {
+    addNewItem();
+});
+
+/**
+ * Handle remove item button click
+ */
+$(document).on('click', '.remove-item', function() {
+    const index = $(this).data('index');
+    if (confirm('Hapus barang ini?')) {
+        items.splice(index, 1);
+        updateItemsTable();
+    }
+});
+
+/**
+ * Handle save surat jalan button click
+ */
+$('#saveSuratJalan').on('click', function() {
+    saveSuratJalan();
+});
+
+/**
+ * Handle reset form button click
+ */
+$('#resetForm').on('click', function() {
+    if (confirm('Apakah Anda yakin ingin mereset form? Semua data yang sudah diisi akan hilang.')) {
+        resetForm();
+    }
+});
+
+// ========================================
+// AJAX FUNCTIONS
+// ========================================
+
+/**
+ * Load available units for selected product
+ */
+function loadAvailableUnits(kodeBarangId, unitDasar) {
     $('#newSatuanBesar').empty();
     $('#newSatuanBesar').append(`<option value="">-- Pilih Satuan Besar --</option>`);
     
@@ -381,80 +615,49 @@ $('#newKodeBarang').on('change', function() {
                         }
                     });
                     
-                    // Auto-select first available unit (excluding unit dasar)
+                    // Auto-select first available unit
                     if (hasOtherUnits) {
                         const firstUnit = units.find(unit => unit !== unitDasar);
                         if (firstUnit) {
                             $('#newSatuanBesar').val(firstUnit);
                         }
                     } else {
-                        // Only show unit dasar as option if there are no other units
                         $('#newSatuanBesar').append(`<option value="${unitDasar}">${unitDasar}</option>`);
                         $('#newSatuanBesar').val(unitDasar);
                     }
                 } else {
-                    // Fallback: show unit dasar
                     $('#newSatuanBesar').append(`<option value="${unitDasar}">${unitDasar}</option>`);
                     $('#newSatuanBesar').val(unitDasar);
                 }
                 calculateNewItemTotal();
             },
             error: function() {
-                // Fallback: show unit dasar as option
                 $('#newSatuanBesar').append(`<option value="${unitDasar}">${unitDasar}</option>`);
                 $('#newSatuanBesar').val(unitDasar);
                 calculateNewItemTotal();
             }
         });
     } else {
-        // Reset to empty if no product
         $('#newSatuanKecil').html('<option value=""></option>');
         $('#newSatuanBesar').html('<option value="">-- Pilih Satuan Besar --</option>');
         $('#newSatuan').val('');
         calculateNewItemTotal();
     }
-});
-
-// Handle qty and harga changes for total calculation
-$('#newQty, #newHarga, #newDiskon').on('input', function() {
-    calculateNewItemTotal();
-});
-
-// Calculate jatuh tempo
-function recalcJatuhTempo() {
-    const base = $('#tanggal').val();
-    const hari = parseInt($('#hari_tempo').val() || '0', 10);
-    if (!base || isNaN(hari)) return;
-    const d = new Date(base);
-    d.setDate(d.getDate() + hari);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    $('#tanggal_jatuh_tempo').val(`${yyyy}-${mm}-${dd}`);
 }
 
-// Event listeners for jatuh tempo calculation
-$('#tanggal').on('change', recalcJatuhTempo);
-$('#hari_tempo').on('input', recalcJatuhTempo);
+// ========================================
+// ITEM MANAGEMENT FUNCTIONS
+// ========================================
 
-// Calculate total for new item
-function calculateNewItemTotal() {
-    const qty = parseFloat($('#newQty').val()) || 0;
-    const harga = parseFloat($('#newHarga').val()) || 0;
-    const diskon = parseFloat($('#newDiskon').val()) || 0;
-    
-    const subtotal = qty * harga;
-    const diskonAmount = (subtotal * diskon) / 100;
-    const total = subtotal - diskonAmount;
-    
-    $('#newTotal').val(total.toFixed(2));
-}
-
-// Add item button handler
-$('#addItemBtn').on('click', function() {
+/**
+ * Add new item to the list
+ */
+function addNewItem() {
     const selectedOption = $('#newKodeBarang option:selected');
     const kodeBarang = selectedOption.data('kode');
     const namaBarang = selectedOption.data('nama');
+    const merek = $('#newKodeBarang').data('merek') || selectedOption.data('merek') || '';
+    const ukuran = $('#newKodeBarang').data('ukuran') || selectedOption.data('ukuran') || '';
     const qty = parseFloat($('#newQty').val());
     const satuanKecil = $('#newSatuanKecil').val();
     const satuanBesar = $('#newSatuanBesar').val();
@@ -463,12 +666,13 @@ $('#addItemBtn').on('click', function() {
     const ongkosKuli = parseFloat($('#newOngkosKuli').val()) || 0;
     const keterangan = $('#newKeterangan').val().trim();
 
+    // Validation
     if (!kodeBarang || !namaBarang || !qty || qty <= 0 || !satuanKecil) {
         alert('Silakan lengkapi semua field yang wajib (Kode Barang, Qty, Satuan Kecil)');
         return;
     }
 
-    // Check if item already exists
+    // Check for duplicate items
     const existingItem = items.find(item => item.kode_barang === kodeBarang);
     if (existingItem) {
         alert('Barang sudah ada dalam daftar!');
@@ -484,6 +688,8 @@ $('#addItemBtn').on('click', function() {
     items.push({
         kode_barang: kodeBarang,
         nama_barang: namaBarang,
+        merek: merek,
+        ukuran: ukuran,
         keterangan: keterangan,
         harga: harga,
         qty: qty,
@@ -494,22 +700,14 @@ $('#addItemBtn').on('click', function() {
         total: total
     });
 
-    // Update table
+    // Update display and clear form
     updateItemsTable();
+    clearItemForm();
+}
 
-    // Clear form
-    $('#newKodeBarang').val('');
-    $('#newQty').val('');
-    $('#newSatuanKecil').empty().append('<option value=""></option>');
-    $('#newSatuanBesar').empty();
-    $('#newHarga').val('');
-    $('#newTotal').val('');
-    $('#newDiskon').val('');
-    $('#newOngkosKuli').val('');
-    $('#newKeterangan').val('');
-});
-
-// Update items table display
+/**
+ * Update items table display
+ */
 function updateItemsTable() {
     const tbody = $('#itemsList');
     tbody.empty();
@@ -528,6 +726,8 @@ function updateItemsTable() {
             <tr>
                 <td>${item.kode_barang || 'N/A'}</td>
                 <td>${item.nama_barang || 'N/A'}</td>
+                <td>${item.merek || '-'}</td>
+                <td>${item.ukuran || '-'}</td>
                 <td>${item.keterangan || '-'}</td>
                 <td class="text-right">${formatCurrency(item.harga || 0)}</td>
                 <td class="text-center">${qtyDisplay}</td>
@@ -548,7 +748,28 @@ function updateItemsTable() {
     updateSummaryTotal();
 }
 
-// Update summary total with PPN calculation
+/**
+ * Clear item form
+ */
+function clearItemForm() {
+    $('#newKodeBarang').val('');
+    $('#newQty').val('');
+    $('#newSatuanKecil').empty().append('<option value=""></option>');
+    $('#newSatuanBesar').empty();
+    $('#newHarga').val('');
+    $('#newTotal').val('');
+    $('#newDiskon').val('');
+    $('#newOngkosKuli').val('');
+    $('#newKeterangan').val('');
+}
+
+// ========================================
+// CALCULATION FUNCTIONS
+// ========================================
+
+/**
+ * Update summary total with PPN calculation
+ */
 function updateSummaryTotal() {
     let subtotal = 0;
     
@@ -573,92 +794,14 @@ function updateSummaryTotal() {
     $('#summary_grand_total').text('Rp ' + formatCurrency(grandTotal));
 }
 
-// Remove item button handler
-$(document).on('click', '.remove-item', function() {
-    const index = $(this).data('index');
-    if (confirm('Hapus barang ini?')) {
-        items.splice(index, 1);
-        updateItemsTable();
-    }
-});
+// ========================================
+// SAVE FUNCTIONS
+// ========================================
 
-// PPN checkbox change handler
-$('#ppn_checkbox_sj').on('change', function() {
-    updateSummaryTotal();
-});
-
-// Auto-check PPN if enabled in company settings
-@if($ppnConfig['enabled'] ?? false)
-    $('#ppn_checkbox_sj').prop('checked', true);
-@endif
-
-// Handle faktur selection
-$('#select_faktur').on('change', function() {
-    const selectedOption = $(this).find('option:selected');
-    if (selectedOption.val()) {
-        // Fill customer data using dropdown
-        $('#customer_display').val(selectedOption.data('kode-customer'));
-        $('#kode_customer').val(selectedOption.data('kode-customer'));
-        $('#alamatCustomer').val(selectedOption.data('customer-alamat'));
-        $('#hpCustomer').val(`${selectedOption.data('customer-hp')} / ${selectedOption.data('customer-telp')}`);
-        $('#alamat_suratjalan').val(selectedOption.data('customer-alamat'));
-        
-        // Trigger customer change event to auto-fill hari tempo
-        $('#customer_display').trigger('change');
-        
-        // Load transaction items
-        loadTransactionItems(selectedOption.val());
-    } else {
-        // Clear customer data
-        $('#customer_display').val('');
-        $('#kode_customer').val('');
-        $('#alamatCustomer').val('');
-        $('#hpCustomer').val('');
-        $('#alamat_suratjalan').val('');
-        $('#hari_tempo').val(0);
-        $('#tanggal_jatuh_tempo').val('');
-        
-        // Clear items
-        items = [];
-        updateItemsTable();
-    }
-});
-
-// Load transaction items
-function loadTransactionItems(transaksiId) {
-    $.ajax({
-        url: "{{ url('api/suratjalan/transaksiitem/') }}/" + transaksiId,
-        method: "GET",
-        success: function(response) {
-            console.log('Transaction items response:', response);
-            
-            items = [];
-            response.forEach(function(item, index) {
-                items.push({
-                    kode_barang: item.kode_barang,
-                    nama_barang: item.keterangan,
-                    keterangan: item.keterangan,
-                    harga: item.harga,
-                    qty: item.qty,
-                    satuan: item.satuan,
-                    satuan_besar: '',
-                    diskon: item.diskon,
-                    ongkos_kuli: item.ongkos_kuli,
-                    total: item.total
-                });
-            });
-            
-            updateItemsTable();
-        },
-        error: function(xhr, status, error) {
-            console.error('Error fetching transaction items:', error);
-            alert('Terjadi kesalahan saat mengambil detail transaksi.');
-        }
-    });
-}
-
-// Save surat jalan
-$('#saveSuratJalan').on('click', function() {
+/**
+ * Save surat jalan
+ */
+function saveSuratJalan() {
     if (items.length === 0) {
         alert('Tidak ada barang yang ditambahkan!');
         return;
@@ -669,6 +812,7 @@ $('#saveSuratJalan').on('click', function() {
         tanggal: $('#tanggal').val(),
         kode_customer: $('#kode_customer').val(),
         alamat_suratjalan: $('#alamat_suratjalan').val(),
+        no_po: $('#no_po').val(),
         titipan_uang: $('#titipan_uang').val(),
         sisa_piutang: $('#sisa_piutang').val(),
         metode_pembayaran: $('#metode_pembayaran').val(),
@@ -696,18 +840,94 @@ $('#saveSuratJalan').on('click', function() {
             alert('Terjadi kesalahan saat menyimpan Surat Jalan.');
         }
     });
+}
+
+/**
+ * Reset form
+ */
+function resetForm() {
+    items = [];
+    updateItemsTable();
+    $('#suratjalanForm')[0].reset();
+    $('#newKodeBarang').val('');
+    $('#newSatuanKecil').empty().append('<option value=""></option>');
+    $('#newSatuanBesar').empty();
+}
+
+// ========================================
+// INITIALIZATION
+// ========================================
+
+// Auto-check PPN if enabled in company settings
+@if($ppnConfig['enabled'] ?? false)
+    $('#ppn_checkbox_sj').prop('checked', true);
+@endif
+
+// No PO auto-generation; user inputs PO manually
+
+// Sync metode_pembayaran with selected cara_bayar's metode and toggle tempo fields
+$('#cara_bayar').on('change', function() {
+    const metode = $('#cara_bayar option:selected').data('metode');
+    if (metode) {
+        $('#metode_pembayaran').val(metode);
+    }
+
+    // If metode is Kredit/Non Tunai show tempo fields, if Tunai hide and reset
+    const isCredit = (metode && metode.toLowerCase() !== 'tunai');
+    if (isCredit) {
+        $('#hariTempoGroup').show();
+        $('#jatuhTempoGroup').show();
+    } else {
+        $('#hariTempoGroup').hide();
+        $('#jatuhTempoGroup').hide();
+        $('#hari_tempo').val(0);
+        $('#tanggal_jatuh_tempo').val('');
+    }
+}).trigger('change');
+
+// Filter cara_bayar options based on selected metode_pembayaran
+let originalCaraBayarOptions = null;
+function ensureOriginalCaraBayarOptions() {
+    if (!originalCaraBayarOptions) {
+        originalCaraBayarOptions = $('#cara_bayar option').clone();
+    }
+}
+
+function filterCaraBayarOptionsByMetode() {
+    ensureOriginalCaraBayarOptions();
+    const selectedMetode = ($('#metode_pembayaran').val() || '').toLowerCase();
+    const currentValue = $('#cara_bayar').val();
+
+    const filtered = originalCaraBayarOptions.filter(function() {
+        const m = ($(this).data('metode') || '').toLowerCase();
+        if (selectedMetode === 'tunai') {
+            return m === 'tunai';
+        }
+        // Non Tunai: exclude Tunai
+        return m !== 'tunai';
+    });
+
+    $('#cara_bayar').empty().append(filtered);
+
+    // Try to preserve previous selection if still valid; else select first
+    if (currentValue && $('#cara_bayar option[value="' + currentValue + '"]').length) {
+        $('#cara_bayar').val(currentValue);
+    } else {
+        const firstVal = $('#cara_bayar option:first').val();
+        if (firstVal) {
+            $('#cara_bayar').val(firstVal);
+        }
+    }
+
+    // Trigger change to sync tempo visibility
+    $('#cara_bayar').trigger('change');
+}
+
+$('#metode_pembayaran').on('change', function() {
+    filterCaraBayarOptionsByMetode();
 });
 
-// Reset form
-$('#resetForm').on('click', function() {
-    if (confirm('Apakah Anda yakin ingin mereset form? Semua data yang sudah diisi akan hilang.')) {
-        items = [];
-        updateItemsTable();
-        $('#suratjalanForm')[0].reset();
-        $('#newKodeBarang').val('');
-        $('#newSatuanKecil').empty().append('<option value=""></option>');
-        $('#newSatuanBesar').empty();
-    }
-});
+// Initial filter on load
+filterCaraBayarOptionsByMetode();
 </script>
 @endsection

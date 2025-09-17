@@ -232,7 +232,7 @@ function populateItemsTable() {
                            data-item-id="${item.id}" 
                            data-max-qty="${item.qty}"
                            data-harga="${item.harga}"
-                           min="0" 
+                           min="0.01" 
                            max="${item.qty}" 
                            step="0.01" 
                            value="0">

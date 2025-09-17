@@ -82,7 +82,7 @@
             </div>
             <div class="right">
                 <strong>Tanggal:</strong> {{ \Carbon\Carbon::parse($suratJalan->tanggal)->format('d M Y') }}<br>
-                <strong>Waktu:</strong> {{ \Carbon\Carbon::parse($suratJalan->transaksi->created_at)->format('H:i:s') }}
+                <strong>Waktu:</strong> {{ $suratJalan->transaksi && $suratJalan->transaksi->created_at ? \Carbon\Carbon::parse($suratJalan->transaksi->created_at)->format('H:i:s') : \Carbon\Carbon::parse($suratJalan->created_at)->format('H:i:s') }}
             </div>
         </div>
         <div class="row">
@@ -105,7 +105,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach ($suratJalan->transaksi->items as $i => $item)
+                @foreach ($suratJalan->items as $i => $item)
                 @php
                     // Get kode barang info for unit conversion
                     $kodeBarang = \App\Models\KodeBarang::where('kode_barang', $item->kode_barang)->first();
@@ -130,7 +130,7 @@
                 @php
                     $max_items = 8;
                 @endphp
-                @for ($j = count($suratJalan->transaksi->items); $j < $max_items; $j++)
+                @for ($j = count($suratJalan->items); $j < $max_items; $j++)
                     <tr class="empty-row">
                         <td>&nbsp;</td> <td>&nbsp;</td> <td>&nbsp;</td>
                         <td>&nbsp;</td> <td>&nbsp;</td> <td>&nbsp;</td>

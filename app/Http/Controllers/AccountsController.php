@@ -118,6 +118,34 @@ class AccountsController extends Controller
         return view('viewRole', compact('role'));
     }
 
+    public function getRolePermissions($id)
+    {
+        $role = Role::with('permissions')->findOrFail($id);
+        $permissions = Permission::all();
+        
+        return response()->json([
+            'permissions' => $permissions,
+            'rolePermissions' => $role->permissions->pluck('name')->toArray()
+        ]);
+    }
+
+    public function quickUpdateRole(Request $request, $id)
+    {
+        $role = Role::findOrFail($id);
+        
+        $request->validate([
+            'permissions' => 'nullable|array',
+        ]);
+
+        if ($request->permissions) {
+            $role->syncPermissions($request->permissions);
+        } else {
+            $role->syncPermissions([]);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Role permissions updated successfully']);
+    }
+
     public function deleteRole($id)
     {
         $role = Role::findOrFail($id);
@@ -202,10 +230,12 @@ class AccountsController extends Controller
 
     public function editAccount(Request $request)
     {
-        $user = User::find($request->users_id);
+        $user = User::with('roles')->find($request->users_id);
+        $roles = Role::where('is_active', true)->get();
 
         return view('edit-user', [
             "user" => $user,
+            "roles" => $roles,
         ]);
     }
 
@@ -248,6 +278,8 @@ class AccountsController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => 'nullable|min:6|confirmed', // 'confirmed' ensures password_confirmation field matches
+            'roles' => 'nullable|array',
+            'roles.*' => 'exists:roles,id',
         ]);
 
         // Update user data
@@ -260,6 +292,11 @@ class AccountsController extends Controller
         }
 
         $user->save(); // Save changes
+
+        // Update user roles if provided
+        if ($request->has('roles')) {
+            $user->syncRoles($request->roles);
+        }
 
         return redirect()->intended('/account-maintenance')->with('success', 'Profile updated successfully!');
     }

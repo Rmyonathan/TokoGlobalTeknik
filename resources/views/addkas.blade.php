@@ -25,7 +25,7 @@
 
         <div class="form-group">
             <label>Nominal</label>
-            <input type="number" name="qty" class="form-control" required value="{{ old('qty') }}">
+            <input type="number" name="qty" class="form-control" step="0.01" min="0.01" required value="{{ old('qty') }}">
             @error('qty') <div class="text-danger">{{ $message }}</div> @enderror
         </div>
 

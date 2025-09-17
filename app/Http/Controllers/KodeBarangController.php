@@ -32,6 +32,108 @@ class KodeBarangController extends Controller
     }
 
     /**
+     * Import Form for Kode Barang (CSV as Excel alternative)
+     */
+    public function importForm()
+    {
+        // Provide sample headers to the view
+        $sampleHeaders = [
+            'kode_barang', 'name', 'attribute', 'merek', 'ukuran', 'unit_dasar',
+            'satuan_dasar', 'satuan_besar', 'nilai_konversi', 'harga_jual', 'ongkos_kuli_default'
+        ];
+        return view('panels.import-code', compact('sampleHeaders'));
+    }
+
+    /**
+     * Process uploaded CSV and create/update KodeBarang records
+     */
+    public function importProcess(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt',
+        ]);
+
+        $path = $request->file('file')->getRealPath();
+        $handle = fopen($path, 'r');
+        if (!$handle) {
+            return back()->withErrors(['file' => 'Tidak bisa membaca file']);
+        }
+
+        $header = null;
+        $rows = [];
+        while (($row = fgetcsv($handle, 0, ',')) !== false) {
+            if ($header === null) {
+                $header = array_map('trim', $row);
+                continue;
+            }
+            $rows[] = array_combine($header, $row);
+        }
+        fclose($handle);
+
+        $created = 0; $updated = 0; $errors = [];
+        foreach ($rows as $index => $data) {
+            try {
+                $kode = trim($data['kode_barang'] ?? '');
+                $name = trim($data['name'] ?? '');
+                if ($kode === '' || $name === '') {
+                    throw new \Exception('kode_barang dan name wajib diisi');
+                }
+
+                $payload = [
+                    'kode_barang' => $kode,
+                    'name' => $name,
+                    'attribute' => $data['attribute'] ?? null,
+                    'merek' => $data['merek'] ?? null,
+                    'ukuran' => $data['ukuran'] ?? null,
+                    'unit_dasar' => $data['unit_dasar'] ?? 'PCS',
+                    'satuan_dasar' => $data['satuan_dasar'] ?? null,
+                    'satuan_besar' => $data['satuan_besar'] ?? null,
+                    'nilai_konversi' => isset($data['nilai_konversi']) ? (int) $data['nilai_konversi'] : null,
+                    'harga_jual' => isset($data['harga_jual']) ? (float) $data['harga_jual'] : 0,
+                    'ongkos_kuli_default' => isset($data['ongkos_kuli_default']) ? (float) $data['ongkos_kuli_default'] : 0,
+                    'status' => 'Active',
+                    'cost' => 0,
+                ];
+
+                // Map grup automatically by attribute if exists
+                if (!empty($payload['attribute'])) {
+                    $grup = \App\Models\GrupBarang::where('name', $payload['attribute'])->first();
+                    if ($grup) {
+                        $payload['grup_barang_id'] = $grup->id;
+                    }
+                }
+
+                $existing = KodeBarang::where('kode_barang', $kode)->first();
+                if ($existing) {
+                    $existing->update($payload);
+                    $updated++;
+                } else {
+                    $existing = KodeBarang::create($payload);
+                    $created++;
+                }
+
+                // Create default conversion if provided
+                if (!empty($payload['satuan_besar']) && !empty($payload['nilai_konversi'])) {
+                    \App\Models\UnitConversion::updateOrCreate(
+                        [ 'kode_barang_id' => $existing->id, 'unit_turunan' => strtoupper($payload['satuan_besar']) ],
+                        [ 'nilai_konversi' => (int) $payload['nilai_konversi'], 'is_active' => true ]
+                    );
+                }
+            } catch (\Throwable $e) {
+                $errors[] = 'Baris ' . ($index + 2) . ': ' . $e->getMessage();
+            }
+        }
+
+        if (!empty($errors)) {
+            return back()->with('warning', "Selesai dengan peringatan. Created: {$created}, Updated: {$updated}")
+                ->withErrors(['detail' => implode("\n", $errors)]);
+        }
+
+        return redirect()->route('code.view-code')
+            ->with('success', "Import selesai. Created: {$created}, Updated: {$updated}");
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function storeCode(Request $request)

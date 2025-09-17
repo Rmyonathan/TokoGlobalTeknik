@@ -88,7 +88,7 @@
 
                 <div class="mb-3">
                     <label for="quantity" class="form-label">Quantity</label>
-                    <input type="number" class="form-control" name="quantity[]" value="{{ $xitem->qty }}" required>
+                    <input type="number" class="form-control" name="quantity[]" value="{{ $xitem->qty }}" step="0.01" min="0.01" required>
                 </div>
             @endforeach
             <button type="submit" class="btn btn-success">

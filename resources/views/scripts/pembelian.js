@@ -4,6 +4,17 @@ $(document).ready(function () {
     let items = [];
     let grandTotal = 0;
 
+    // Toggle small/large item forms by mode pembelian
+    $(document).on('change', '#mode_pembelian', function() {
+        const mode = $(this).val();
+        if (mode === 'besar') {
+            $('#cardSmallItems').hide();
+            $('#cardLargeItems').show();
+        } else {
+            $('#cardLargeItems').hide();
+            $('#cardSmallItems').show();
+        }
+    });
     // Search suppliers
     $("#supplier").on("input", function () {
         console.log("Supplier input changed:", $(this).val());
@@ -81,7 +92,7 @@ $(document).ready(function () {
         calculateTotals();
     });
 
-    // Handle item-barang change (like sales order)
+    // Handle item-barang change (small form)
     $(document).on('change', '.item-barang', function() {
         const row = $(this).closest('.item-row');
         const selectedOption = $(this).find('option:selected');
@@ -103,7 +114,7 @@ $(document).ready(function () {
             satuanKecilSelect.append(`<option value="${unitDasar}">${unitDasar}</option>`);
             row.find('.item-satuan').val(unitDasar);
             
-            // Get available units for satuan besar
+            // Get available units for satuan besar (small form)
             $.ajax({
                 url: `${window.availableUnitsUrl}/${kodeBarangId}`,
                 method: 'GET',
@@ -119,6 +130,16 @@ $(document).ready(function () {
                             }
                         });
                     }
+                    // Fetch conversion list and store in row data
+                    $.ajax({
+                        url: `${window.unitConversionListUrl}/${kodeBarangId}/list`,
+                        method: 'GET',
+                        success: function(list){
+                            const map = {};
+                            (list || []).forEach(it => { map[it.unit_turunan] = parseFloat(it.nilai_konversi||0); });
+                            row.data('conversionMap', map);
+                        }
+                    });
                 },
                 error: function () {
                     console.log('Error fetching available units');
@@ -155,11 +176,95 @@ $(document).ready(function () {
         calculateItemTotal(row);
     });
 
+    // ========== Large form handlers ==========
+    // Change barang on large form
+    $(document).on('change', '.item-barang-large', function() {
+        const row = $(this).closest('.item-row-large');
+        const selectedOption = $(this).find('option:selected');
+        const kodeBarangId = $(this).val();
+        if (!kodeBarangId) return;
+
+        const harga = selectedOption.data('harga') || 0;
+        const unitDasar = selectedOption.data('unit-dasar') || 'LBR';
+
+        // Set harga
+        row.find('.item-harga-large').val(harga);
+
+        // Fetch available large units (exclude unit dasar)
+        $.ajax({
+            url: `${window.availableUnitsUrl}/${kodeBarangId}`,
+            method: 'GET',
+            success: function (units) {
+                const select = row.find('.item-satuan-besar-large');
+                select.empty();
+                if (units && units.length > 0) {
+                    units.forEach(unit => {
+                        if (unit !== unitDasar) {
+                            select.append(`<option value="${unit}">${unit}</option>`);
+                        }
+                    });
+                }
+                // Set first as default hidden satuan
+                const first = select.find('option').first().val() || '';
+                row.find('.item-satuan-large').val(first);
+                // Fetch conversion list and store in row data
+                $.ajax({
+                    url: `${window.unitConversionListUrl}/${kodeBarangId}/list`,
+                    method: 'GET',
+                    success: function(list){
+                        const map = {};
+                        (list || []).forEach(it => { map[it.unit_turunan] = parseFloat(it.nilai_konversi||0); });
+                        row.data('conversionMap', map);
+                    }
+                });
+            },
+            error: function(){
+                console.log('Error fetching available units');
+            }
+        });
+
+        calculateItemTotalLarge(row);
+    });
+
+    // Change selected large unit
+    $(document).on('change', '.item-satuan-besar-large', function(){
+        const row = $(this).closest('.item-row-large');
+        row.find('.item-satuan-large').val($(this).val());
+        calculateItemTotalLarge(row);
+    });
+
+    // Qty/Harga inputs on large form
+    $(document).on('input', '.item-qty-large, .item-harga-large', function(){
+        const row = $(this).closest('.item-row-large');
+        calculateItemTotalLarge(row);
+    });
+
+    function calculateItemTotalLarge(row) {
+        const qty = parseFloat(row.find('.item-qty-large').val()) || 0;
+        const harga = parseFloat(row.find('.item-harga-large').val()) || 0;
+        const selectedLarge = row.find('.item-satuan-besar-large').val();
+        const conversionMap = row.data('conversionMap') || {};
+        const factor = selectedLarge && conversionMap[selectedLarge] ? parseFloat(conversionMap[selectedLarge]) : 1;
+        
+        // FIX: Untuk satuan besar, konversi ke satuan dasar dengan MENGALIKAN
+        const effectiveQty = qty * factor;
+        const total = Math.round(effectiveQty * harga); // Pembulatan ke integer
+        
+        row.find('.item-total-large').val(total);
+    }
+
     // Calculate item total
     function calculateItemTotal(row) {
         const qty = parseFloat(row.find('.item-qty').val()) || 0;
         const harga = parseFloat(row.find('.item-harga').val()) || 0;
-        const total = qty * harga;
+        const chosenUnit = row.find('.item-satuan').val();
+        const selectedLarge = row.find('.item-satuan-besar').val();
+        const conversionMap = row.data('conversionMap') || {};
+        const shouldConvert = selectedLarge && chosenUnit === selectedLarge;
+        const factor = shouldConvert && conversionMap[selectedLarge] ? parseFloat(conversionMap[selectedLarge]) : 1;
+        // FIX: Untuk satuan besar, konversi ke satuan dasar dengan MENGALIKAN
+        const effectiveQty = shouldConvert ? qty * factor : qty;
+        const total = Math.round(effectiveQty * harga); // Pembulatan ke integer
         row.find('.item-total').val(total);
     }
 
@@ -171,12 +276,16 @@ $(document).ready(function () {
         
         const kodeBarang = selectedOption.data('kode');
         const namaBarang = selectedOption.data('nama');
+        const merek = selectedOption.data('merek') || '';
+        const ukuran = selectedOption.data('ukuran') || '';
         const kodeBarangId = kodeBarangSelect.val();
         const keterangan = row.find('#keterangan').val();
         const harga = parseFloat(row.find('.item-harga').val()) || 0;
         const qty = parseFloat(row.find('.item-qty').val()) || 0;
         const satuan = row.find('.item-satuan').val();
-        const satuanBesar = row.find('.item-satuan-besar').val();
+        const selectedLarge = row.find('.item-satuan-besar').val();
+        const usedLarge = selectedLarge && (satuan === selectedLarge);
+        const satuanBesar = selectedLarge || '';
         const diskon = parseFloat(row.find('#diskon').val()) || 0;
         const panjang = parseFloat(row.find('#panjang').val()) || 0;
 
@@ -185,17 +294,24 @@ $(document).ready(function () {
             return;
         }
 
-        // Calculate total
-        const subtotal = harga * qty;
+        // Calculate total with conversion only if chosen unit equals selected large unit
+        const conversionMap = row.data('conversionMap') || {};
+        const factor = usedLarge && conversionMap[selectedLarge] ? parseFloat(conversionMap[selectedLarge]) : 1;
+        const effectiveQty = qty * factor;
+        const subtotal = harga * effectiveQty;
         const diskonAmount = (subtotal * diskon) / 100;
         const total = subtotal - diskonAmount;
 
         const newItem = {
             kodeBarang,
             namaBarang,
+            merek,
+            ukuran,
+            ukuran,
             keterangan,
             harga: harga,
-            qty,
+            qty: effectiveQty, // base units for stock
+            displayQty: qty, // shown in table with chosen unit
             satuan,
             satuanBesar,
             diskon,
@@ -214,6 +330,63 @@ $(document).ready(function () {
         row.find('.item-satuan').val('LBR');
     });
 
+    // Add item from large form
+    $('#addItemBtnLarge').click(function(){
+        const row = $(this).closest('.item-row-large');
+        const kodeBarangSelect = row.find('.item-barang-large');
+        const selectedOption = kodeBarangSelect.find('option:selected');
+
+        const kodeBarang = selectedOption.data('kode');
+        const namaBarang = selectedOption.data('nama');
+        const merek = selectedOption.data('merek') || '';
+        const kodeBarangId = kodeBarangSelect.val();
+        const keterangan = row.find('#keterangan_large').val();
+        const harga = parseFloat(row.find('.item-harga-large').val()) || 0;
+        const qty = parseFloat(row.find('.item-qty-large').val()) || 0;
+        const satuan = row.find('.item-satuan-large').val();
+        const satuanBesar = row.find('.item-satuan-besar-large').val();
+        const diskon = parseFloat(row.find('#diskon_large').val()) || 0;
+        const panjang = parseFloat(row.find('#panjang_large').val()) || 0;
+
+        if (!kodeBarangId || !kodeBarang || !namaBarang || !harga || !qty || !satuan) {
+            alert('Mohon lengkapi data barang (satuan besar)!');
+            return;
+        }
+
+        // Calculate total with conversion (large unit always selected)
+        const conversionMap = row.data('conversionMap') || {};
+        const factor = (satuan && conversionMap[satuan]) ? parseFloat(conversionMap[satuan]) : 1;
+        // FIX: Untuk satuan besar, konversi ke satuan dasar dengan MENGALIKAN
+        const effectiveQty = qty * factor;
+        const subtotal = harga * effectiveQty;
+        const diskonAmount = (subtotal * diskon) / 100;
+        const total = subtotal - diskonAmount;
+
+        const newItem = {
+            kodeBarang,
+            namaBarang,
+            merek,
+            keterangan,
+            harga: harga,
+            qty: effectiveQty, // base units for stock
+            displayQty: qty, // shown in table with chosen unit
+            satuan, // selected large unit
+            satuanBesar, // keep explicit large unit for table column
+            diskon,
+            panjang,
+            total
+        };
+
+        items.push(newItem);
+        renderItems();
+        calculateTotals();
+
+        // Reset large form
+        row.find('select, input').val('');
+        row.find('.item-satuan-besar-large').empty();
+        row.find('.item-satuan-large').val('');
+    });
+
     // Function to render items table
     function renderItems() {
         const tbody = $('#itemsList');
@@ -224,10 +397,12 @@ $(document).ready(function () {
                 <tr>
                     <td>${item.kodeBarang}</td>
                     <td>${item.namaBarang}</td>
+                    <td>${item.merek || '-'}</td>
+                    <td>${item.ukuran || '-'}</td>
                     <td>${item.keterangan || '-'}</td>
                     <td class="text-right">${formatCurrency(item.harga)}</td>
-                    <td>${item.qty} ${item.satuan || 'LBR'}</td>
-                    <td>${item.satuanBesar || 'BOX'}</td>
+                    <td>${(item.displayQty ?? item.qty)} ${item.satuan || 'LBR'}</td>
+                    <td>${item.satuanBesar || '-'}</td>
                     <td class="text-right">${formatCurrency(item.total)}</td>
                     <td class="text-center">${item.panjang || '-'}</td>
                     <td class="text-right">${item.diskon || 0}%</td>
@@ -268,15 +443,16 @@ $(document).ready(function () {
         }
         $("#discount_amount").val(formatCurrency(discountAmount));
 
-        // Calculate PPN
+        // Calculate PPN (only if enabled by hidden rate)
         let ppnAmount = 0;
         if ($("#ppn_checkbox").is(":checked")) {
-            ppnAmount = ((subtotal - discountAmount) * 11) / 100; // Using 11% for PPN
+            const rate = parseFloat($("#ppn_rate_hidden").val() || '0') || 0;
+            ppnAmount = ((subtotal - discountAmount) * rate) / 100;
         }
         $("#ppn_amount").val(formatCurrency(ppnAmount));
 
-        // Calculate grand total
-        grandTotal = subtotal - discountAmount + ppnAmount;
+        // Calculate grand total with rounding
+        grandTotal = Math.round(subtotal - discountAmount + ppnAmount);
         $("#grand_total").val(formatCurrency(grandTotal));
     }
 
@@ -301,6 +477,7 @@ $(document).ready(function () {
         // IMPORTANT: Changed 'supplier' to 'kode_supplier' to match the database column
         const transactionData = {
             nota: $("#no_nota").val(),
+            no_po: $("#no_po").val(), // FIX: Tambahkan field no_po
             no_surat_jalan: $("#no_surat_jalan").val(),
             tanggal: $("#tanggal").val(),
             kode_supplier: $("#kode_supplier").val(), // This field name must match your database column

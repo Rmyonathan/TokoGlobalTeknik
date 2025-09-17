@@ -25,16 +25,39 @@
                         <input type="password" class="form-control" id="password" name="password" placeholder="Leave blank to keep current password">
                     </div>
                     <div class="mb-3">
-                        <label for="role" class="form-label">Role</label>
-                        <select class="form-select" id="role" name="role" required>
-                            <option value="" disabled selected>Select Role</option>
-                            <option value="admin">Admin</option>
-                            <option value="user">User</option>
+                        <label for="roles" class="form-label">Roles</label>
+                        <select class="form-select select2-multiple" id="roles" name="roles[]" multiple>
+                            @if(isset($roles))
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->id }}" 
+                                        {{ isset($user) && $user->roles->contains($role->id) ? 'selected' : '' }}>
+                                        {{ $role->display_name ?: $role->name }}
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="admin">Admin</option>
+                                <option value="user">User</option>
+                            @endif
                         </select>
+                        <small class="form-text text-muted">Select one or more roles for this user</small>
                     </div>
                     <button type="submit" class="btn btn-primary">Update Profile</button>
                 </form>
             </div>
         </div>
     </section>
+
+    @push('scripts')
+    <script>
+    $(document).ready(function() {
+        // Initialize Select2 for roles
+        $('.select2-multiple').select2({
+            placeholder: 'Select roles...',
+            allowClear: true,
+            width: '100%',
+            // theme: 'bootstrap-5'
+        });
+    });
+    </script>
+    @endpush
 @endsection

@@ -20,6 +20,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
      <style>
         :root {
             --primary-color: #7d8590; /* Lighter gray */
@@ -83,7 +87,7 @@
             display: flex;
             flex-direction: column;
             padding: 0;
-            width: 50%;
+            width: 100%;
         }
 
         .side-navbar .nav-item {
@@ -114,6 +118,8 @@
             border-left: 3px solid transparent;
             font-weight: 500;
             font-size: 0.85rem; /* Reduced from 0.9rem */
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .side-navbar .nav-link:hover {
@@ -175,6 +181,26 @@
             color: white;
             border-left: 3px solid var(--light-color);
         }
+
+        /* Rotate chevron when expanded */
+        .side-navbar .nav-link .fa-chevron-down { transition: transform 0.2s ease; }
+        .side-navbar .nav-link[aria-expanded="true"] .fa-chevron-down { transform: rotate(180deg); }
+
+        /* Slim scrollbar for sidebar */
+        .side-navbar::-webkit-scrollbar { width: 6px; }
+        .side-navbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
+        .side-navbar { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.2) transparent; }
+
+        /* Section titles and dividers */
+        .menu-section-title {
+            color: rgba(255,255,255,0.85);
+            font-size: 0.75rem;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            padding: 6px 10px;
+            opacity: .9;
+        }
+        .menu-divider { border-color: rgba(255,255,255,0.08); margin: 6px 0; }
 
         /* Main Container */
         .main-container {
@@ -547,15 +573,17 @@
     <nav class="navbar navbar-expand-lg navbar-dark side-navbar" id="sideNavbar">
         <div class="container-fluid p-0">
             <ul class="navbar-nav flex-column w-100">
+                <li class="menu-section-title">Navigasi Utama</li>
                 <!-- Dropdown Menu Master -->
                 <li class='nav-item'>
                     <a class="nav-link" data-toggle="collapse" href="#masterMenu" role="button" aria-expanded="false" aria-controls="masterMenu">
-                        <i class="fas fa-list"></i> Master Data
+                        <i class="fas fa-list"></i>
+                        <span class="ml-2">Master Data</span>
                         <i class="fas fa-chevron-down ml-auto"></i>
                     </a>
                     <div class="collapse bg-dark border-0" id="masterMenu">
                         <!-- Master menu items -->
-                        <ul class="nav flex-column ml-3">
+                        <ul class="nav flex-column ml-2">
 
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('master.barang') }}"><i class="fas fa-layer-group"></i> Master Barang</a>
@@ -617,19 +645,22 @@
                 <!-- Dropdown Menu Transaksi -->
                 <li class="nav-item">
                     <a class="nav-link" data-toggle="collapse" href="#transaksiMenu" role="button" aria-expanded="false" aria-controls="masterMenu">
-                        <i class="fas fa-arrow-right-arrow-left"></i> Transaksi
+                        <i class="fas fa-arrow-right-arrow-left"></i>
+                        <span class="ml-2">Transaksi</span>
                         <i class="fas fa-chevron-down ml-auto"></i>
                     </a>
                     <div class="collapse bg-dark border-0" id="transaksiMenu">
-                        <ul class="nav flex-column ml-3">
+                        <ul class="nav flex-column ml-2">
+                            <li class="menu-section-title">Penjualan</li>
                             <!-- Di sini Dropdown Transaksi Penjualan -->
                             <li class='nav-item'>
                                 <a class="nav-link" data-toggle="collapse" href="#penjualan" role="button" aria-expanded="false" aria-controls="transaksipenjualan">
-                                    <i class="fas fa-cash-register"></i> Penjualan
+                                    <i class="fas fa-cash-register"></i>
+                                    <span class="ml-2">Penjualan</span>
                                     <i class="fas fa-chevron-down ml-auto"></i>
                                 </a>
                                 <div class="collapse bg-dark border-0" id="penjualan">
-                                    <ul class="nav flex-column ml-3">
+                                    <ul class="nav flex-column ml-2">
                                         <!-- Add the new Panel Management menu item here -->
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('sales-order.index')); ?>"><i class="fas fa-clipboard-list"></i> Sales Order</a>
@@ -639,6 +670,12 @@
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('suratjalan.history') }}"><i class="fas fa-history"></i> History Surat Jalan</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('suratjalan.rekap') }}"><i class="fas fa-chart-bar"></i> Rekap Surat Jalan</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('stock-transfer.create') }}"><i class="fas fa-exchange-alt"></i> Transfer Antar Database</a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('transaksi.penjualan')); ?>"><i class="fas fa-file-invoice"></i> Faktur Penjualan</a>
@@ -659,14 +696,16 @@
                                     </ul>
                                 </div>
                             </li>
+                            <li class="menu-section-title mt-2">Pembelian</li>
                             <!-- Di sini Dropdown Transaksi Pembelian -->
                             <li class='nav-item'>
                                 <a class="nav-link" data-toggle="collapse" href="#pembelian" role="button" aria-expanded="false" aria-controls="pembelian">
-                                    <i class="fas fa-cart-flatbed"></i> Pembelian
+                                    <i class="fas fa-cart-flatbed"></i>
+                                    <span class="ml-2">Pembelian</span>
                                     <i class="fas fa-chevron-down ml-auto"></i>
                                 </a>
                                 <div class="collapse bg-dark border-0" id="pembelian">
-                                    <ul class="nav flex-column ml-3">
+                                    <ul class="nav flex-column ml-2">
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('transaksi.purchaseorder')); ?>"><i class="fas fa-clipboard-check"></i> Purchase Order</a>
                                         </li>
@@ -684,6 +723,7 @@
                                     </ul>
                                 </div>
                             </li>
+                            <li class="menu-section-title mt-2">Pembayaran</li>
                             <!-- Pembayaran Piutang -->
                             <li class='nav-item'>
                                 <a class="nav-link" data-toggle="collapse" href="#pembayaranPiutang" role="button" aria-expanded="false" aria-controls="pembayaranPiutang">
@@ -728,11 +768,12 @@
 
                 <li class='nav-item'>
                     <a class="nav-link" data-toggle="collapse" href="#barang" role="button" aria-expanded="false" aria-controls="suratjalan">
-                        <i class="bi bi-boxes"></i> Barang
+                        <i class="bi bi-boxes"></i>
+                        <span class="ml-2">Barang</span>
                         <i class="fas fa-chevron-down ml-auto"></i>
                     </a>
                             <div class="collapse bg-dark border-0" id="barang">
-                                    <ul class="nav flex-column ml-3">
+                                    <ul class="nav flex-column ml-2">
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('panels.repack') }}"><i class="fas fa-boxes"></i> Repack</a>
                                         </li>
@@ -742,6 +783,11 @@
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('stock.adjustment.index')); ?>"><i class="bi bi-arrow-repeat"></i> Stok adjustment</a>
                                         </li>
+                                        @can('view stock transfer')
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('stock-transfer.index') }}"><i class="fas fa-exchange-alt"></i> Transfer Stok</a>
+                                        </li>
+                                        @endcan
                                     </ul>
                                 </div>
                 </li>
@@ -750,15 +796,21 @@
                     <a class="nav-link" href="/viewKas"><i class="fas fa-money-bill-wave mr-2"></i>Kas</a>
                 </li>
 
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('finance.bank-loan.index') }}"><i class="fas fa-university mr-2"></i>Utang Bank</a>
+                </li>
+
                 @canany(['view general journal','view accounting reports','view year end closing'])
                 <!-- Accounting Section -->
                 <li class='nav-item'>
                     <a class="nav-link" data-toggle="collapse" href="#accountingMenu" role="button" aria-expanded="false" aria-controls="accountingMenu">
-                        <i class="fas fa-calculator"></i> Accounting
+                        <i class="fas fa-calculator"></i>
+                        <span class="ml-2">Accounting</span>
                         <i class="fas fa-chevron-down ml-auto"></i>
                     </a>
                     <div class="collapse bg-dark border-0" id="accountingMenu">
-                        <ul class="nav flex-column ml-3">
+                        <ul class="nav flex-column ml-2">
+                            <li class="menu-section-title">Buku Besar & Tutup Buku</li>
                             @canany(['view general journal','create general journal','edit general journal','delete general journal'])
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('accounting.general-journal.index') }}"><i class="fas fa-book"></i> General Journal</a>
@@ -793,11 +845,13 @@
                 <!-- Laporan Section -->
                 <li class='nav-item'>
                     <a class="nav-link" data-toggle="collapse" href="#laporanMenu" role="button" aria-expanded="false" aria-controls="laporanMenu">
-                        <i class="fas fa-chart-bar"></i> Laporan
+                        <i class="fas fa-chart-bar"></i>
+                        <span class="ml-2">Laporan</span>
                         <i class="fas fa-chevron-down ml-auto"></i>
                     </a>
                     <div class="collapse bg-dark border-0" id="laporanMenu">
-                        <ul class="nav flex-column ml-3">
+                        <ul class="nav flex-column ml-2">
+                            <li class="menu-section-title">Analitik & Ringkasan</li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('laporan.laba-per-faktur') }}"><i class="fas fa-file-invoice-dollar"></i> Laporan Laba per Faktur</a>
                             </li>
@@ -818,6 +872,12 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('laporan.stok') }}?show_pergerakan=1"><i class="fas fa-exchange-alt"></i> Pergerakan Barang</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.penjualan-per-hari') }}"><i class="fas fa-chart-line"></i> Laporan Penjualan per Hari</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.cogs') }}"><i class="fas fa-calculator"></i> Laporan COGS/HPP</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('laporan.penjualan-dan-retur') }}"><i class="fas fa-chart-pie"></i> Laporan Penjualan & Retur</a>
@@ -919,6 +979,9 @@
 
 
     </script>
+
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <?php echo $__env->yieldContent('scripts'); ?>
     @stack('scripts')

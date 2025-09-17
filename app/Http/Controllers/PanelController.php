@@ -41,7 +41,7 @@ class PanelController extends Controller
         $perPage = 10; // Number of items per page
 
         // Build the query for KodeBarang
-        $query = KodeBarang::query();
+        $query = KodeBarang::with(['grupBarang']);
 
         // Apply search filter if search term exists and search_by is specified
         if (!empty($search) && !empty($searchBy)) {
@@ -50,7 +50,12 @@ class PanelController extends Controller
             } elseif ($searchBy === 'name') {
                 $query->where('name', 'like', "%{$search}%");
             } elseif ($searchBy === 'group') {
-                $query->where('attribute', 'like', "%{$search}%");
+                $query->where(function($q) use ($search) {
+                    $q->where('attribute', 'like', "%{$search}%")
+                      ->orWhereHas('grupBarang', function($sub) use ($search) {
+                          $sub->where('name', 'like', "%{$search}%");
+                      });
+                });
             }
         }
 
@@ -68,9 +73,21 @@ class PanelController extends Controller
         // Manually group the panels
         $groupedPanels = [];
         foreach ($panels as $panel) {
-            $stock = Stock::where('kode_barang', $panel->kode_barang)->first();
-            $goodStock = $stock ? $stock->good_stock : 0;
-            $unit = $stock ? $stock->satuan : 'PCS';
+            // Get stock from both databases separately
+            $stockDb1 = Stock::onDatabase('primary')->where('kode_barang', $panel->kode_barang)->first();
+            $stockDb2 = Stock::onDatabase('secondary')->where('kode_barang', $panel->kode_barang)->first();
+            
+            $stockDb1Qty = $stockDb1 ? $stockDb1->good_stock : 0;
+            $stockDb2Qty = $stockDb2 ? $stockDb2->good_stock : 0;
+            $totalStock = $stockDb1Qty + $stockDb2Qty;
+            
+            // Get unit from either database
+            $unit = 'PCS';
+            if ($stockDb1) {
+                $unit = $stockDb1->satuan;
+            } elseif ($stockDb2) {
+                $unit = $stockDb2->satuan;
+            }
             
             // Available quantity from Stock table (no need to calculate from StockMutation)
 
@@ -102,18 +119,24 @@ class PanelController extends Controller
                     'harga_per_satuan_dasar' => $panel->harga_jual ?? $panel->price,
                     'unit_dasar' => $panel->unit_dasar ?? 'PCS',
                     'group_id' => $panel->kode_barang,
-                    'group' => $panel->attribute,
+                    'group' => $panel->grupBarang->name ?? $panel->attribute,
+                    'merek' => $panel->merek,
+                    'ukuran' => $panel->ukuran,
                     'status' => $panel->status,
-                    'quantity' => $goodStock,
-                    'unit' => $stock ? $stock->satuan : '-',
+                    'quantity' => $totalStock,
+                    'stock_db1' => $stockDb1Qty,
+                    'stock_db2' => $stockDb2Qty,
+                    'unit' => $unit,
                     'satuan_besar' => $unitConversions,
-                    'total_cost' => $costPerUnit * $goodStock,
-                    'total_price' => $pricePerUnit * $goodStock
+                    'total_cost' => $costPerUnit * $totalStock,
+                    'total_price' => $pricePerUnit * $totalStock
                 ];
             } else {
-                $groupedPanels[$key]['quantity'] += $goodStock;
-                $groupedPanels[$key]['total_cost'] += $costPerUnit * $goodStock;
-                $groupedPanels[$key]['total_price'] += $pricePerUnit * $goodStock;
+                $groupedPanels[$key]['quantity'] += $totalStock;
+                $groupedPanels[$key]['stock_db1'] += $stockDb1Qty;
+                $groupedPanels[$key]['stock_db2'] += $stockDb2Qty;
+                $groupedPanels[$key]['total_cost'] += $costPerUnit * $totalStock;
+                $groupedPanels[$key]['total_price'] += $pricePerUnit * $totalStock;
             }
         }
 
@@ -184,8 +207,8 @@ class PanelController extends Controller
 
         // Filter and get updated prices from KodeBarang
         $filtered = $panels->filter(function($panel) {
-            $stock = \App\Models\Stock::where('kode_barang', $panel->group_id)->first();
-            return $stock && $stock->good_stock > 0;
+            $globalStock = \App\Models\Stock::getGlobalStock($panel->group_id);
+            return $globalStock->good_stock > 0;
         })->map(function($panel) {
             // Get updated price from KodeBarang table
             $kodeBarang = \App\Models\KodeBarang::where('kode_barang', $panel->group_id)->first();
@@ -281,9 +304,9 @@ class PanelController extends Controller
     {
         $panel = KodeBarang::where('kode_barang', $request->id)->first();
         
-        // Ambil quantity dari good_stock di tabel stocks
-        $stock = \App\Models\Stock::where('kode_barang', $request->id)->first();
-        $quantity = $stock ? $stock->good_stock : 0;
+        // Ambil quantity dari global stock
+        $globalStock = \App\Models\Stock::getGlobalStock($request->id);
+        $quantity = $globalStock->good_stock;
         
         return view('panels.edit', [
             'panel' => $panel,

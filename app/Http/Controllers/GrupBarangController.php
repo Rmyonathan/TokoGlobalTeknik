@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\GrupBarang;
+use App\Models\KodeBarang;
 use Illuminate\Http\Request;
 
 class GrupBarangController extends Controller
@@ -47,7 +48,8 @@ class GrupBarangController extends Controller
     public function edit($id)
     {
         $category = GrupBarang::findOrFail($id);
-        return view('master.grup_barang.edit', compact('category'));
+        $allItems = KodeBarang::orderBy('name')->get(['id','kode_barang','name','grup_barang_id']);
+        return view('master.grup_barang.edit', compact('category', 'allItems'));
     }
 
     /**
@@ -64,8 +66,35 @@ class GrupBarangController extends Controller
         $category = GrupBarang::findOrFail($id);
         $category->update($validated);
 
-        return redirect()->route('grup_barang.index')
+        return redirect()->route('grup_barang.edit', $category->id)
             ->with('success', 'Grup Barang berhasil diperbarui!');
+    }
+
+    /**
+     * Assign multiple KodeBarang to this group
+     */
+    public function assignItems(Request $request, $id)
+    {
+        $category = GrupBarang::findOrFail($id);
+        $request->validate([
+            'item_ids' => 'nullable|array',
+            'item_ids.*' => 'integer|exists:kode_barangs,id'
+        ]);
+
+        // Set grup for selected items
+        $selectedIds = $request->input('item_ids', []);
+
+        // Remove this group from items not selected
+        KodeBarang::where('grup_barang_id', $category->id)
+            ->whereNotIn('id', $selectedIds)
+            ->update(['grup_barang_id' => null]);
+
+        // Assign this group to selected items
+        if (!empty($selectedIds)) {
+            KodeBarang::whereIn('id', $selectedIds)->update(['grup_barang_id' => $category->id]);
+        }
+
+        return back()->with('success', 'Barang pada grup berhasil diperbarui.');
     }
 
     /**

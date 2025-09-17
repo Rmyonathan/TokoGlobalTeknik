@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Perusahaan;
+use Illuminate\Support\Facades\DB;
 
 class PpnService
 {
@@ -12,6 +13,8 @@ class PpnService
     public static function getPpnConfig(): array
     {
         $perusahaan = Perusahaan::getActive();
+        $connection = DB::getDefaultConnection();
+        $isDb2 = ($connection === 'mysql_second');
         
         if (!$perusahaan) {
             return [
@@ -20,9 +23,13 @@ class PpnService
             ];
         }
 
+        // Hanya aktif di DB2 (mysql_second) dan jika flag perusahaan aktif
+        $flagEnabled = $perusahaan->ppn_enabled ?? ($perusahaan->is_ppn_enabled ?? false);
+        $enabled = $isDb2 && $flagEnabled;
+
         return [
-            'enabled' => $perusahaan->ppn_enabled ?? false,
-            'rate' => $perusahaan->ppn_rate ?? 0
+            'enabled' => $enabled,
+            'rate' => $enabled ? ($perusahaan->ppn_rate ?? 11) : 0
         ];
     }
 

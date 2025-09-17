@@ -41,6 +41,18 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="no_po">Nomor PO</label>
+                            <div class="input-group">
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="no_po" 
+                                       name="no_po" 
+                                       placeholder="Masukkan Nomor PO">
+                            </div>
+                            <small class="form-text text-muted">Isi manual nomor PO customer (opsional).</small>
+                        </div>
+
+                        <div class="form-group">
                             <label for="customer">Customer</label>
                             <div class="input-group">
                                 <input type="text" id="customer" name="customer_display" class="form-control" placeholder="Masukkan nama customer">
@@ -527,6 +539,12 @@
             $('#alamatCustomer').val('{{ $suratJalan->customer->alamat }}');
             $('#hpCustomer').val('{{ $suratJalan->customer->hp ?? "" }} / {{ $suratJalan->customer->telepon ?? "" }}');
             
+            // Set PO number from surat jalan
+            @if($suratJalan->no_po)
+                $('#no_po').val('{{ $suratJalan->no_po }}');
+                console.log('Set no_po from surat jalan (PHP): {{ $suratJalan->no_po }}');
+            @endif
+            
             // Show tempo groups
             $('#hariTempoGroup').show();
             $('#jatuhTempoGroup').show();
@@ -832,6 +850,10 @@
                         } else {
                             $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
                         }
+                    }
+                    if (data.no_po) {
+                        $('#no_po').val(data.no_po);
+                        console.log('Set no_po from surat jalan:', data.no_po);
                     }
                     if (data.hari_tempo !== null && data.hari_tempo !== undefined) {
                         $('#hari_tempo').val(data.hari_tempo);
@@ -1344,12 +1366,14 @@
 
         // Inject PPN rate from perusahaan default
         if ($('#ppn_rate_hidden').length === 0) {
-            $('body').append('<input type="hidden" id="ppn_rate_hidden" value="{{ $ppnConfig['rate'] ?? 11 }}">');
+            $('body').append('<input type="hidden" id="ppn_rate_hidden" value="{{ $ppnConfig['rate'] ?? 0 }}">');
         }
         
         // Auto-check PPN if enabled in company settings
         @if($ppnConfig['enabled'] ?? false)
             $('#ppn_checkbox').prop('checked', true);
+        @else
+            $('#ppn_checkbox').prop('checked', false);
         @endif
 
         // Save transaction
@@ -1372,6 +1396,7 @@
             sales: $('#sales').val(),
             pembayaran: $('#metode_pembayaran').val(),
             cara_bayar: $('#cara_bayar').val() || $('#cara_bayar_akhir').val() || 'Tunai',
+            no_po: $('#no_po').val() || '',
             hari_tempo: parseInt($('#hari_tempo').val()||'0',10),
             tanggal_jatuh_tempo: $('#tanggal_jatuh_tempo').val() || null,
             tanggal_jadi: $('#tanggal_jadi').val(),
@@ -1398,7 +1423,7 @@
             ajaxMethod = "POST";
             const itemsForSj = items.map(function(it){
                 return {
-                    surat_jalan_item_id: it.surat_jalan_item_id,
+                    surat_jalan_item_id: it.surat_jalan_item_id || null,
                     kode_barang: it.kodeBarang,
                     nama_barang: it.namaBarang,
                     qty: it.qty,
@@ -1418,6 +1443,9 @@
                 pembayaran: transactionData.pembayaran,
                 cara_bayar: transactionData.cara_bayar,
                 tanggal_jadi: transactionData.tanggal_jadi,
+                no_po: $('#no_po').val() || '',
+                hari_tempo: transactionData.hari_tempo,
+                tanggal_jatuh_tempo: transactionData.tanggal_jatuh_tempo,
                 subtotal: parseFloat((transactionData.subtotal||'0').toString().replace(/\./g, '')) || 0,
                 discount: transactionData.discount,
                 disc_rupiah: transactionData.disc_rp,
@@ -1554,6 +1582,10 @@
                 calculateTotals();
             }
         });
+
+        // No PO auto-generation; user inputs PO manually
     });
+
+    // Removed generatePoNumber implementation
 </script>
 @endsection

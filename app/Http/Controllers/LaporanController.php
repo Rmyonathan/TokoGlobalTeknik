@@ -680,6 +680,127 @@ class LaporanController extends Controller
     }
 
     /**
+     * Laporan Penjualan per Hari
+     */
+    public function penjualanPerHari(Request $request)
+    {
+        $startDate = $request->get('start_date') ? \Carbon\Carbon::parse($request->get('start_date')) : now()->startOfMonth();
+        $endDate = $request->get('end_date') ? \Carbon\Carbon::parse($request->get('end_date')) : now()->endOfMonth();
+        $customerId = $request->get('customer_id');
+        
+        try {
+            // Query untuk data penjualan per hari
+            $query = Transaksi::with(['customer', 'items'])
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where('status', '!=', 'canceled');
+
+            if ($customerId) {
+                $query->where('kode_customer', $customerId);
+            }
+
+            $transaksi = $query->orderBy('tanggal', 'desc')->get();
+
+            // Group by tanggal
+            $penjualanPerHari = $transaksi->groupBy(function($item) {
+                return $item->tanggal->format('Y-m-d');
+            });
+
+            $laporanData = [];
+            $totalOmset = 0;
+            $totalFaktur = 0;
+            $totalQty = 0;
+
+            foreach ($penjualanPerHari as $tanggal => $transaksiHari) {
+                $omsetHari = $transaksiHari->sum('grand_total');
+                $fakturHari = $transaksiHari->count();
+                $qtyHari = $transaksiHari->sum(function($t) {
+                    return $t->items->sum('qty');
+                });
+
+                $laporanData[] = [
+                    'tanggal' => $tanggal,
+                    'tanggal_formatted' => \Carbon\Carbon::parse($tanggal)->format('d/m/Y'),
+                    'hari' => \Carbon\Carbon::parse($tanggal)->format('l'),
+                    'faktur_count' => $fakturHari,
+                    'omset' => $omsetHari,
+                    'qty_total' => $qtyHari,
+                    'rata_omset_per_faktur' => $fakturHari > 0 ? $omsetHari / $fakturHari : 0,
+                    'transaksi' => $transaksiHari->map(function($t) {
+                        return [
+                            'id' => $t->id,
+                            'no_faktur' => $t->no_transaksi, // Use no_transaksi instead of no_faktur
+                            'grand_total' => $t->grand_total,
+                            'status' => $t->status,
+                            'customer' => $t->customer ? [
+                                'id' => $t->customer->id,
+                                'nama' => $t->customer->nama,
+                                'kode_customer' => $t->customer->kode_customer
+                            ] : null
+                        ];
+                    })
+                ];
+
+                $totalOmset += $omsetHari;
+                $totalFaktur += $fakturHari;
+                $totalQty += $qtyHari;
+            }
+
+            // Sort by tanggal descending
+            $laporanData = collect($laporanData)->sortByDesc('tanggal')->values()->all();
+
+            // Summary data
+            $summary = [
+                'total_hari' => count($laporanData),
+                'total_faktur' => $totalFaktur,
+                'total_omset' => $totalOmset,
+                'total_qty' => $totalQty,
+                'rata_omset_per_hari' => count($laporanData) > 0 ? $totalOmset / count($laporanData) : 0,
+                'rata_faktur_per_hari' => count($laporanData) > 0 ? $totalFaktur / count($laporanData) : 0,
+                'hari_terbaik' => count($laporanData) > 0 ? $laporanData[0] : null,
+                'hari_terburuk' => count($laporanData) > 0 ? end($laporanData) : null
+            ];
+
+            // Chart data untuk grafik
+            $chartData = collect($laporanData)->map(function($item) {
+                return [
+                    'tanggal' => $item['tanggal_formatted'],
+                    'omset' => $item['omset'],
+                    'faktur' => $item['faktur_count']
+                ];
+            })->reverse()->values();
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $laporanData,
+                    'summary' => $summary,
+                    'chart_data' => $chartData
+                ]);
+            }
+
+            return view('laporan.penjualan_per_hari', compact(
+                'laporanData', 
+                'summary', 
+                'chartData',
+                'startDate', 
+                'endDate'
+            ));
+
+        } catch (\Exception $e) {
+            Log::error('Error generating laporan penjualan per hari:', ['message' => $e->getMessage()]);
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Detail faktur yang membentuk komisi untuk satu sales
      */
     public function komisiSalesDetail(Request $request, string $salesCode)

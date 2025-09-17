@@ -36,6 +36,15 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
+                                    <label for="no_po">No PO</label>
+                                    <input type="text" class="form-control" id="no_po" name="no_po" placeholder="Masukkan No PO" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
                                     <label for="customer_id">Customer</label>
                                     <select class="form-control" id="customer_id" name="customer_id" required>
                                         <option value="">Pilih Customer</option>

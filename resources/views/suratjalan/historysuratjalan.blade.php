@@ -2,7 +2,12 @@
 
 @section('content')
 <div class="container py-4">
-    <h4>History Surat Jalan</h4>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">History Surat Jalan</h4>
+        <a href="{{ route('suratjalan.create-faktur') }}" class="btn btn-success">
+            <i class="fas fa-file-invoice mr-1"></i> Buat Faktur dari Multiple SJ
+        </a>
+    </div>
     <form method="GET" action="{{ route('suratjalan.history') }}" class="row mb-3">
         <div class="col-md-3 mb-2">
             <select name="search_by" id="search_by" class="form-control">

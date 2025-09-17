@@ -5,17 +5,22 @@ use Illuminate\Http\Request;
 use App\Models\SuratJalan;
 use App\Models\SuratJalanItem;
 use App\Models\SuratJalanItemSumber;
+use App\Models\TransaksiItemSumber;
 use App\Models\Customer;
 use App\Models\Transaksi;
 use App\Models\TransaksiItem;
 use App\Models\StockBatch;
 use App\Models\KodeBarang;
+use App\Models\CaraBayar;
+use App\Models\StokOwner;
 use App\Services\FifoService;
 use App\Services\UnitConversionService;
+use App\Services\PoNumberGeneratorService;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class SuratJalanController extends Controller
 {
@@ -58,7 +63,10 @@ class SuratJalanController extends Controller
         // Get PPN configuration from company settings
         $ppnConfig = \App\Services\PpnService::getPpnConfig();
 
-        return view('suratjalan.suratjalan', compact('noSuratJalan', 'availableTransactions', 'transaksi', 'transaksiItems', 'kodeBarangs', 'customers', 'ppnConfig'));
+        // Cara Bayar master
+        $caraBayars = CaraBayar::orderBy('metode')->orderBy('nama')->get();
+
+        return view('suratjalan.suratjalan', compact('noSuratJalan', 'availableTransactions', 'transaksi', 'transaksiItems', 'kodeBarangs', 'customers', 'ppnConfig', 'caraBayars'));
     }
 
     public function store(Request $request){
@@ -77,6 +85,7 @@ class SuratJalanController extends Controller
             'alamat_suratjalan' => 'nullable|string',
             // Untuk alur SJ -> Faktur, no_transaksi boleh kosong
             'no_transaksi' => 'nullable|string',
+            'no_po' => 'nullable|string|max:50',
             'tanggal_transaksi' => 'nullable|date',
             'titipan_uang' => 'nullable|numeric',
             'sisa_piutang' => 'nullable|numeric',
@@ -106,6 +115,9 @@ class SuratJalanController extends Controller
     
         DB::beginTransaction();
         try {
+            // Use PO number from input (no auto-generate)
+            $noPo = $request->no_po;
+
             $suratJalan = SuratJalan::create([
                 'no_suratjalan' => $request->no_suratjalan,
                 'tanggal' => $request->tanggal ?? now(),
@@ -113,6 +125,7 @@ class SuratJalanController extends Controller
                 'alamat_suratjalan' => $request->alamat_suratjalan ?? "default",
                 // Boleh null pada alur SJ -> Faktur
                 'no_transaksi' => $request->no_transaksi,
+                'no_po' => $noPo,
                 'tanggal_transaksi' => $request->tanggal_transaksi ?? $request->tanggal,
                 'titipan_uang' => $request->titipan_uang ?? 0,
                 'sisa_piutang' => $request->sisa_piutang ?? 0,
@@ -363,6 +376,7 @@ class SuratJalanController extends Controller
             'id' => $sj->id,
             'no_suratjalan' => $sj->no_suratjalan,
             'no_transaksi' => $sj->no_transaksi,
+            'no_po' => $sj->no_po,
             'tanggal' => $sj->tanggal,
             'metode_pembayaran' => $sj->metode_pembayaran,
             'cara_bayar' => $sj->cara_bayar,
@@ -434,6 +448,486 @@ class SuratJalanController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal membatalkan Surat Jalan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Rekap Surat Jalan dengan statistik dan ringkasan
+     */
+    public function rekap(Request $request)
+    {
+        $query = SuratJalan::with(['customer', 'items'])
+            ->selectRaw('
+                surat_jalan.id,
+                surat_jalan.no_suratjalan,
+                surat_jalan.tanggal,
+                surat_jalan.kode_customer,
+                surat_jalan.no_po,
+                surat_jalan.no_transaksi,
+                surat_jalan.alamat_suratjalan,
+                surat_jalan.titipan_uang,
+                surat_jalan.sisa_piutang,
+                surat_jalan.metode_pembayaran,
+                surat_jalan.cara_bayar,
+                surat_jalan.hari_tempo,
+                surat_jalan.tanggal_jatuh_tempo,
+                surat_jalan.created_at,
+                surat_jalan.updated_at,
+                (SELECT COUNT(*) FROM surat_jalan_items WHERE surat_jalan_items.no_suratjalan = surat_jalan.no_suratjalan) as total_items,
+                (SELECT COALESCE(SUM(qty), 0) FROM surat_jalan_items WHERE surat_jalan_items.no_suratjalan = surat_jalan.no_suratjalan) as total_qty
+            ');
+
+        // Filter berdasarkan tanggal
+        if ($request->filled('start_date')) {
+            $query->where('surat_jalan.tanggal', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->where('surat_jalan.tanggal', '<=', $request->end_date);
+        }
+
+        // Filter berdasarkan customer
+        if ($request->filled('customer_id')) {
+            $query->where('surat_jalan.kode_customer', $request->customer_id);
+        }
+
+        // Filter berdasarkan status
+        if ($request->filled('status')) {
+            if ($request->status === 'sudah_faktur') {
+                $query->whereNotNull('surat_jalan.no_transaksi');
+            } elseif ($request->status === 'belum_faktur') {
+                $query->whereNull('surat_jalan.no_transaksi');
+            }
+        }
+
+        // Filter berdasarkan pencarian
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('surat_jalan.no_suratjalan', 'like', "%{$search}%")
+                  ->orWhere('surat_jalan.no_po', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function($customerQuery) use ($search) {
+                      $customerQuery->where('nama', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Sorting
+        $sortBy = $request->get('sort_by', 'tanggal');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy("surat_jalan.{$sortBy}", $sortOrder);
+
+        // Pagination
+        $suratJalan = $query->paginate(20)->appends($request->query());
+
+        // Statistik
+        $stats = $this->getSuratJalanStats($request);
+
+        // Data untuk chart
+        $chartData = $this->getChartData($request);
+
+        // Data customer untuk filter
+        $customers = Customer::orderBy('nama')->get();
+
+        return view('suratjalan.rekap', compact('suratJalan', 'stats', 'chartData', 'customers'));
+    }
+
+    /**
+     * Get statistics for surat jalan
+     */
+    private function getSuratJalanStats(Request $request)
+    {
+        $query = SuratJalan::query();
+
+        // Apply same filters as main query
+        if ($request->filled('start_date')) {
+            $query->where('tanggal', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->where('tanggal', '<=', $request->end_date);
+        }
+        if ($request->filled('customer_id')) {
+            $query->where('kode_customer', $request->customer_id);
+        }
+
+        $totalSuratJalan = $query->count();
+        $sudahFaktur = $query->clone()->whereNotNull('no_transaksi')->count();
+        $belumFaktur = $query->clone()->whereNull('no_transaksi')->count();
+
+        // Total quantity dari items
+        $totalQty = $query->clone()
+            ->join('surat_jalan_items', 'surat_jalan.no_suratjalan', '=', 'surat_jalan_items.no_suratjalan')
+            ->sum('surat_jalan_items.qty') ?? 0;
+
+        // Top customers
+        $topCustomers = $query->clone()
+            ->join('customers', 'surat_jalan.kode_customer', '=', 'customers.kode_customer')
+            ->selectRaw('customers.nama, COUNT(*) as total_sj')
+            ->groupBy('customers.kode_customer', 'customers.nama')
+            ->orderBy('total_sj', 'desc')
+            ->limit(5)
+            ->get();
+
+        return [
+            'total_surat_jalan' => $totalSuratJalan,
+            'sudah_faktur' => $sudahFaktur,
+            'belum_faktur' => $belumFaktur,
+            'total_qty' => $totalQty,
+            'persentase_sudah_faktur' => $totalSuratJalan > 0 ? round(($sudahFaktur / $totalSuratJalan) * 100, 2) : 0,
+            'top_customers' => $topCustomers
+        ];
+    }
+
+    /**
+     * Get chart data for surat jalan
+     */
+    private function getChartData(Request $request)
+    {
+        $query = SuratJalan::query();
+
+        // Apply same filters as main query
+        if ($request->filled('start_date')) {
+            $query->where('tanggal', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->where('tanggal', '<=', $request->end_date);
+        }
+        if ($request->filled('customer_id')) {
+            $query->where('kode_customer', $request->customer_id);
+        }
+
+        // Chart 1: Surat Jalan per hari (7 hari terakhir)
+        $dailyData = $query->clone()
+            ->selectRaw('DATE(tanggal) as date, COUNT(*) as total')
+            ->where('tanggal', '>=', now()->subDays(7))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->pluck('total', 'date')
+            ->toArray();
+
+        // Chart 2: Status surat jalan
+        $statusData = [
+            'Sudah Faktur' => $query->clone()->whereNotNull('no_transaksi')->count(),
+            'Belum Faktur' => $query->clone()->whereNull('no_transaksi')->count()
+        ];
+
+        // Chart 3: Top 5 customers
+        $customerData = $query->clone()
+            ->join('customers', 'surat_jalan.kode_customer', '=', 'customers.kode_customer')
+            ->selectRaw('customers.nama, COUNT(*) as total')
+            ->groupBy('customers.kode_customer', 'customers.nama')
+            ->orderBy('total', 'desc')
+            ->limit(5)
+            ->get()
+            ->pluck('total', 'nama')
+            ->toArray();
+
+        return [
+            'daily' => $dailyData,
+            'status' => $statusData,
+            'customers' => $customerData
+        ];
+    }
+
+    /**
+     * Display the form to create invoice from multiple delivery orders
+     */
+    public function createMultipleFaktur()
+    {
+        // Get delivery orders that are ready for invoicing (not yet converted to invoice)
+        $suratJalans = SuratJalan::with(['customer', 'items'])
+            ->whereNull('no_transaksi') // Not yet converted to invoice
+            ->orderBy('tanggal', 'desc')
+            ->get()
+            ->groupBy('kode_customer'); // Group by customer
+
+        $salesList = StokOwner::orderBy('keterangan')->get(['kode_stok_owner', 'keterangan']);
+
+        return view('transaksi.create_from_multiple_sj', compact('suratJalans', 'salesList'));
+    }
+
+    /**
+     * Get delivery orders for a specific customer
+     */
+    public function getSuratJalansByCustomer(Request $request)
+    {
+        $kodeCustomer = $request->kode_customer;
+        
+        $suratJalans = SuratJalan::with(['customer', 'items'])
+            ->where('kode_customer', $kodeCustomer)
+            ->whereNull('no_transaksi') // Not yet converted to invoice
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
+        return response()->json($suratJalans);
+    }
+
+    /**
+     * Store invoice from multiple delivery orders
+     */
+    public function storeMultipleFaktur(Request $request)
+    {
+        $request->validate([
+            'kode_customer' => 'required|exists:customers,kode_customer',
+            'surat_jalan_ids' => 'required|array|min:1',
+            'surat_jalan_ids.*' => 'exists:surat_jalan,id',
+            'tanggal' => 'required|date',
+            'pembayaran' => 'required|string',
+            'cara_bayar' => 'required|string',
+            'sales' => 'required|exists:stok_owners,kode_stok_owner',
+            'no_po' => 'required|string|max:50',
+            'hari_tempo' => 'nullable|integer|min:0',
+            'tanggal_jatuh_tempo' => 'nullable|date|after_or_equal:tanggal',
+            'merge_similar_items' => 'nullable|in:true,false,1,0,on,off',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Get customer info
+            $customer = Customer::where('kode_customer', $request->kode_customer)->first();
+            if (!$customer) {
+                throw new \Exception('Customer not found');
+            }
+
+            // Get selected delivery orders
+            $suratJalans = SuratJalan::with(['items.suratJalanItemSumber.stockBatch'])
+                ->whereIn('id', $request->surat_jalan_ids)
+                ->where('kode_customer', $request->kode_customer)
+                ->get();
+
+            if ($suratJalans->isEmpty()) {
+                throw new \Exception('No valid delivery orders found');
+            }
+
+            // Generate invoice number
+            $noTransaksi = Transaksi::generateNoTransaksi();
+
+            // Use provided PO number (no auto-generate)
+            $noPo = $request->no_po;
+
+            // Auto compute dates
+            $tanggalFaktur = Carbon::parse($request->tanggal);
+            $tanggalJadi = $tanggalFaktur->copy();
+            $tanggalJatuhTempo = null;
+            $hariTempo = (int) ($request->hari_tempo ?? 0);
+            if ($hariTempo > 0) {
+                $tanggalJatuhTempo = $tanggalFaktur->copy()->addDays($hariTempo)->toDateString();
+            }
+
+            // Collect all items from selected delivery orders
+            $allItems = collect();
+            foreach ($suratJalans as $sj) {
+                foreach ($sj->items as $item) {
+                    $allItems->push([
+                        'surat_jalan_id' => $sj->id,
+                        'surat_jalan_item_id' => $item->id,
+                        'kode_barang' => $item->kode_barang,
+                        'nama_barang' => $item->nama_barang,
+                        'qty' => $item->qty,
+                        'satuan' => $item->satuan,
+                        'satuan_besar' => $item->satuan_besar,
+                        'sumber_data' => $item->suratJalanItemSumber
+                    ]);
+                }
+            }
+
+            // Merge similar items if requested
+            if (filter_var($request->input('merge_similar_items'), FILTER_VALIDATE_BOOLEAN)) {
+                $allItems = $this->mergeSimilarItems($allItems);
+            }
+
+            // Calculate totals
+            $subtotal = 0;
+            $grandTotal = 0;
+
+            // Create invoice
+            $transaksi = Transaksi::create([
+                'no_transaksi' => $noTransaksi,
+                'no_po' => $noPo,
+                'tanggal' => $tanggalFaktur->toDateString(),
+                'tanggal_jadi' => $tanggalJadi,
+                'kode_customer' => $request->kode_customer,
+                'sales' => $request->sales,
+                'pembayaran' => $request->pembayaran,
+                'cara_bayar' => $request->cara_bayar,
+                'hari_tempo' => $request->hari_tempo ?? 0,
+                'tanggal_jatuh_tempo' => $request->tanggal_jatuh_tempo ?: null,
+                'subtotal' => $subtotal,
+                'discount' => 0,
+                'disc_rupiah' => 0,
+                'ppn' => 0,
+                'dp' => 0,
+                'grand_total' => $grandTotal,
+                'status' => 'pending',
+                'status_piutang' => 'belum_dibayar',
+                'total_dibayar' => 0,
+                'sisa_piutang' => $grandTotal,
+                'created_from_multiple_sj' => true,
+                'notes' => 'Created from multiple delivery orders: ' . $suratJalans->pluck('no_suratjalan')->join(', ')
+            ]);
+
+            // Create invoice items and transfer FIFO data
+            foreach ($allItems as $itemData) {
+                // Get the first item to determine price (you might want to implement pricing logic)
+                $kodeBarang = KodeBarang::where('kode_barang', $itemData['kode_barang'])->first();
+                $harga = $kodeBarang ? $kodeBarang->cost * 1.2 : 0; // 20% markup as example
+                $total = $itemData['qty'] * $harga;
+
+                // Create transaction item
+                $transaksiItem = TransaksiItem::create([
+                    'transaksi_id' => $transaksi->id,
+                    'no_transaksi' => $noTransaksi,
+                    'kode_barang' => $itemData['kode_barang'],
+                    'nama_barang' => $itemData['nama_barang'],
+                    'harga' => $harga,
+                    'qty' => $itemData['qty'],
+                    'qty_sisa' => $itemData['qty'],
+                    'satuan' => $itemData['satuan'],
+                    'total' => $total,
+                    'diskon' => 0,
+                ]);
+
+                // Transfer FIFO data from SuratJalanItemSumber to TransaksiItemSumber
+                $this->transferFifoData($itemData, $transaksiItem->id);
+
+                $subtotal += $total;
+            }
+
+            // Update totals
+            $grandTotal = $subtotal; // Add PPN, discount logic here if needed
+            $transaksi->update([
+                'subtotal' => $subtotal,
+                'grand_total' => $grandTotal,
+                'sisa_piutang' => $grandTotal,
+            ]);
+
+            // Update delivery orders to link with invoice
+            foreach ($suratJalans as $sj) {
+                $sj->update([
+                    'no_transaksi' => $noTransaksi,
+                    'tanggal_transaksi' => $request->tanggal
+                ]);
+            }
+
+            DB::commit();
+
+            Log::info('Invoice created from multiple delivery orders', [
+                'invoice_id' => $transaksi->id,
+                'no_transaksi' => $noTransaksi,
+                'surat_jalan_count' => $suratJalans->count(),
+                'items_count' => $allItems->count(),
+                'created_by' => auth()->user()->name ?? 'System'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice berhasil dibuat dari ' . $suratJalans->count() . ' surat jalan',
+                'transaksi_id' => $transaksi->id,
+                'no_transaksi' => $noTransaksi,
+                'redirect_url' => route('transaksi.show', $transaksi->id)
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error creating invoice from multiple SJ', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Preview invoice before creation
+     */
+    public function previewMultipleFaktur(Request $request)
+    {
+        $request->validate([
+            'kode_customer' => 'required|exists:customers,kode_customer',
+            'surat_jalan_ids' => 'required|array|min:1',
+            'surat_jalan_ids.*' => 'exists:surat_jalan,id',
+            'merge_similar_items' => 'nullable|in:true,false,1,0,on,off',
+        ]);
+
+        $suratJalans = SuratJalan::with(['customer', 'items'])
+            ->whereIn('id', $request->surat_jalan_ids)
+            ->where('kode_customer', $request->kode_customer)
+            ->get();
+
+        // Collect and process items
+        $allItems = collect();
+        foreach ($suratJalans as $sj) {
+            foreach ($sj->items as $item) {
+                $allItems->push([
+                    'surat_jalan_no' => $sj->no_suratjalan,
+                    'surat_jalan_tanggal' => $sj->tanggal,
+                    'kode_barang' => $item->kode_barang,
+                    'nama_barang' => $item->nama_barang,
+                    'qty' => $item->qty,
+                    'satuan' => $item->satuan,
+                    'satuan_besar' => $item->satuan_besar,
+                ]);
+            }
+        }
+
+        // Merge similar items if requested
+        if (filter_var($request->input('merge_similar_items'), FILTER_VALIDATE_BOOLEAN)) {
+            $allItems = $this->mergeSimilarItems($allItems);
+        }
+
+        return response()->json([
+            'success' => true,
+            'customer' => $suratJalans->first()->customer,
+            'surat_jalans' => $suratJalans,
+            'items' => $allItems,
+            'total_items' => $allItems->count(),
+            'total_qty' => $allItems->sum('qty')
+        ]);
+    }
+
+    /**
+     * Merge similar items (same kode_barang)
+     */
+    private function mergeSimilarItems($items)
+    {
+        $merged = $items->groupBy('kode_barang')->map(function ($group) {
+            $first = $group->first();
+            $totalQty = $group->sum('qty');
+            $allSumber = $group->pluck('sumber_data')->flatten();
+
+            return [
+                'surat_jalan_id' => $group->pluck('surat_jalan_id')->unique()->values()->toArray(),
+                'surat_jalan_item_id' => $group->pluck('surat_jalan_item_id')->toArray(),
+                'kode_barang' => $first['kode_barang'],
+                'nama_barang' => $first['nama_barang'],
+                'qty' => $totalQty,
+                'satuan' => $first['satuan'],
+                'satuan_besar' => $first['satuan_besar'],
+                'sumber_data' => $allSumber
+            ];
+        });
+
+        return $merged->values();
+    }
+
+    /**
+     * Transfer FIFO data from SuratJalanItemSumber to TransaksiItemSumber
+     */
+    private function transferFifoData($itemData, $transaksiItemId)
+    {
+        foreach ($itemData['sumber_data'] as $sumber) {
+            TransaksiItemSumber::create([
+                'transaksi_item_id' => $transaksiItemId,
+                'stock_batch_id' => $sumber->stock_batch_id,
+                'qty_diambil' => $sumber->qty_diambil,
+                'harga_modal' => $sumber->harga_modal,
+                'surat_jalan_item_sumber_id' => $sumber->id // Keep reference to original
+            ]);
         }
     }
 }

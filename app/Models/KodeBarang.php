@@ -80,4 +80,22 @@ class KodeBarang extends Model
     {
         return $query->where('unit_dasar', $unit);
     }
+
+    /**
+     * Get available stock from global stock (both databases)
+     */
+    public function getAvailableStockAttribute()
+    {
+        $globalStock = \App\Models\Stock::getGlobalStock($this->kode_barang);
+        return $globalStock->good_stock;
+    }
+
+    /**
+     * Get stock unit from global stock
+     */
+    public function getStockUnitAttribute()
+    {
+        $globalStock = \App\Models\Stock::getGlobalStock($this->kode_barang);
+        return $globalStock->satuan ?? 'PCS';
+    }
 }

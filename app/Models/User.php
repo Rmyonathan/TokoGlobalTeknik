@@ -48,4 +48,49 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Get user initials derived from the name.
+     */
+    public function getInitialsAttribute(): string
+    {
+        $name = trim((string) ($this->name ?? ''));
+        if ($name === '') {
+            return 'U';
+        }
+
+        // Take up to two initials from the name parts
+        $parts = preg_split('/\s+/', $name, -1, PREG_SPLIT_NO_EMPTY);
+        $initials = '';
+        foreach ($parts as $idx => $part) {
+            if ($idx > 1) break; // limit to 2 letters
+            $initials .= mb_strtoupper(mb_substr($part, 0, 1));
+        }
+
+        return $initials !== '' ? $initials : 'U';
+    }
+
+    /**
+     * Get a consistent avatar background color based on user's name/email.
+     */
+    public function getAvatarColorAttribute(): string
+    {
+        $seed = ($this->name ?: '') . '|' . ($this->email ?: '');
+        if ($seed === '|') {
+            return '#6c757d'; // fallback gray
+        }
+
+        // Create a deterministic color from hash
+        $hash = md5($seed);
+        $r = hexdec(substr($hash, 0, 2));
+        $g = hexdec(substr($hash, 2, 2));
+        $b = hexdec(substr($hash, 4, 2));
+
+        // Soften colors for better UI (blend towards 200)
+        $r = (int) round(($r + 200) / 2);
+        $g = (int) round(($g + 200) / 2);
+        $b = (int) round(($b + 200) / 2);
+
+        return sprintf('#%02x%02x%02x', $r, $g, $b);
+    }
+
 }

@@ -60,7 +60,11 @@
                                         <th>Group</th>
                                         <th>Harga Beli</th>
                                         <th>Harga Jual per Satuan Dasar</th>
-                                        <th>Available Quantity</th>
+                                        <th>Merek</th>
+                                        <th>Ukuran</th>
+                                        <th>Stok DB 1</th>
+                                        <th>Stok DB 2</th>
+                                        <th>Total Stok</th>
                                         <th>Satuan Dasar</th>
                                         <th>Satuan Besar</th>
                                         <th>Status</th>
@@ -80,18 +84,30 @@
                                             <br>
                                             <small class="text-muted">per {{ $item['unit_dasar'] ?? 'PCS' }}</small>
                                         </td>
+                                        <td>{{ $item['merek'] }}</td>
+                                        <td>{{ $item['ukuran'] }}</td>
                                         <td>
-                                            <span class="badge {{ ($item['quantity'] ?? 0) > 0 ? 'bg-success' : 'bg-warning' }}">
-                                                {{ number_format($item['quantity'] ?? 0, 0, ',', '.') }} {{ $item['unit'] ?? 'PCS' }}
+                                            <span class="badge {{ ($item['stock_db1'] ?? 0) > 0 ? 'bg-white' : 'bg-white' }}">
+                                                {{ number_format($item['stock_db1'] ?? 0, 0, ',', '.') }}
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="badge bg-primary">{{ $item['unit_dasar'] ?? 'PCS' }}</span>
+                                            <span class="badge {{ ($item['stock_db2'] ?? 0) > 0 ? 'bg-white' : 'bg-white' }}">
+                                                {{ number_format($item['stock_db2'] ?? 0, 0, ',', '.') }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge {{ ($item['quantity'] ?? 0) > 0 ? 'bg-white' : 'bg-white' }}">
+                                                {{ number_format($item['quantity'] ?? 0, 0, ',', '.') }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-white">{{ $item['unit_dasar'] ?? 'PCS' }}</span>
                                         </td>
                                         <td>
                                             @if(isset($item['satuan_besar']) && count($item['satuan_besar']) > 0)
                                                 @foreach($item['satuan_besar'] as $satuan)
-                                                    <span class="badge bg-success me-1">
+                                                    <span class="badge bg-white me-1">
                                                         {{ $satuan['unit'] }} ({{ $satuan['konversi'] }})
                                                     </span>
                                                 @endforeach
@@ -125,7 +141,7 @@
                             </tbody>
                             <tfoot>
                             <tr class="table-primary">
-                                <th colspan="4" class="text-end">Total</th>
+                                <th colspan="4" class="text-end"><strong>Total</strong></th>
                                 <th>
                                     @php
                                         $totalCost = 0;
@@ -144,19 +160,39 @@
                                         echo 'Rp. ' . number_format($totalPrice);
                                     @endphp
                                 </th>
+                                <th>-</th> <!-- Merek -->
+                                <th>-</th> <!-- Ukuran -->
+                                <th>
+                                    @php
+                                        $totalStockDb1 = 0;
+                                        foreach($inventory['inventory_by_length'] as $item) {
+                                            $totalStockDb1 += $item['stock_db1'] ?? 0;
+                                        }
+                                        echo number_format($totalStockDb1, 0, ',', '.');
+                                    @endphp
+                                </th>
+                                <th>
+                                    @php
+                                        $totalStockDb2 = 0;
+                                        foreach($inventory['inventory_by_length'] as $item) {
+                                            $totalStockDb2 += $item['stock_db2'] ?? 0;
+                                        }
+                                        echo number_format($totalStockDb2, 0, ',', '.');
+                                    @endphp
+                                </th>
                                 <th>
                                     @php
                                         $totalQuantity = 0;
                                         foreach($inventory['inventory_by_length'] as $item) {
                                             $totalQuantity += $item['quantity'];
                                         }
-                                        echo $totalQuantity;
+                                        echo number_format($totalQuantity, 0, ',', '.');
                                     @endphp
                                 </th>
-                               
-                                <th></th> <!-- kolom Satuan Dasar -->
-                                <th></th> <!-- kolom Satuan Besar -->
-                                <th colspan="2"></th>
+                                <th>-</th> <!-- Satuan Dasar -->
+                                <th>-</th> <!-- Satuan Besar -->
+                                <th>-</th> <!-- Status -->
+                                <th>-</th> <!-- Aksi -->
                             </tr>
                             </tfoot>
                         </table>

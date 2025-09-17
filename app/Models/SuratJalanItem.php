@@ -21,6 +21,10 @@ class SuratJalanItem extends Model{
         'satuan_besar',
     ];
 
+    protected $casts = [
+        'qty' => 'decimal:2',
+    ];
+
     public function suratJalan()
     {
         return $this->belongsTo(SuratJalan::class, 'no_suratjalan', 'no_suratjalan');

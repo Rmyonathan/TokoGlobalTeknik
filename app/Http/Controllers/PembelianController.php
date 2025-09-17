@@ -32,8 +32,15 @@ class PembelianController extends Controller
      */
     public function index()
     {
-        // Ambil nomor nota terakhir
-        $lastPurchase = Pembelian::orderBy('created_at', 'desc')->first();
+        // Generate nomor nota baru yang unik
+        $currentMonth = date('m');
+        $currentYear = date('y');
+        $notaPrefix = "BL/{$currentMonth}/{$currentYear}-";
+        
+        // Cari nomor terakhir untuk bulan dan tahun ini
+        $lastPurchase = Pembelian::where('nota', 'like', $notaPrefix . '%')
+            ->orderBy('nota', 'desc')
+            ->first();
 
         // Generate nomor nota baru
         if ($lastPurchase) {
@@ -41,14 +48,18 @@ class PembelianController extends Controller
             $lastNumber = (int) substr($lastPurchase->nota, strrpos($lastPurchase->nota, '-') + 1);
             $newNumber = $lastNumber + 1;
         } else {
-            // Jika belum ada pembelian, mulai dari 1
+            // Jika belum ada pembelian untuk bulan ini, mulai dari 1
             $newNumber = 1;
         }
 
-        // Format nomor nota baru
-        $currentMonth = date('m');
-        $currentYear = date('y');
-        $nota = "BL/{$currentMonth}/{$currentYear}-" . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
+        // Pastikan nomor nota unik
+        do {
+            $nota = $notaPrefix . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
+            $exists = Pembelian::where('nota', $nota)->exists();
+            if ($exists) {
+                $newNumber++;
+            }
+        } while ($exists);
 
         // Get KodeBarang data for dropdown
         $kodeBarangs = KodeBarang::orderBy('name')->get();
@@ -64,6 +75,7 @@ class PembelianController extends Controller
         // In the store method, update the validation
         $request->validate([
             'nota' => 'required|string|unique:pembelian,nota',
+            'no_po' => 'required|string|max:50',
             'no_surat_jalan' => 'nullable|string',
             'tanggal' => 'required|date',
             'kode_supplier' => 'required|exists:suppliers,kode_supplier',
@@ -72,13 +84,23 @@ class PembelianController extends Controller
             'items' => 'required|array',
             'items.*.kodeBarang' => 'required|string',
             'items.*.harga' => 'required|numeric',
-            'items.*.qty' => 'required|numeric',
+            'items.*.qty' => 'required|numeric|min:0.01',
             'hari_tempo' => 'nullable|integer|min:0',
             'tanggal_jatuh_tempo' => 'nullable|date|after_or_equal:tanggal',
         ]);
         
         try {
             DB::beginTransaction();
+            
+            // Pastikan nota unik sebelum menyimpan
+            $nota = $request->nota;
+            $originalNota = $nota;
+            $counter = 1;
+            
+            while (Pembelian::where('nota', $nota)->exists()) {
+                $nota = $originalNota . '-' . $counter;
+                $counter++;
+            }
             
             // Use current time for the transaction
             $currentDateTime = now();
@@ -90,7 +112,8 @@ class PembelianController extends Controller
             
             // Create purchase
             $pembelian = Pembelian::create([
-                'nota' => $request->nota,
+                'nota' => $nota,
+                'no_po' => $request->no_po,
                 'no_surat_jalan' => $request->no_surat_jalan,
                 'tanggal' => $tanggalWithTime, // Store with time
                 'kode_supplier' => $request->kode_supplier,
@@ -393,7 +416,7 @@ class PembelianController extends Controller
             'items' => 'required|array',
             'items.*.kodeBarang' => 'required|string',
             'items.*.harga' => 'required|numeric',
-            'items.*.qty' => 'required|numeric',
+            'items.*.qty' => 'required|numeric|min:0.01',
             'edit_reason' => 'required|string|max:255',
         ]);
         

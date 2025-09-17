@@ -32,6 +32,8 @@ class TransaksiItem extends Model
         'panjang',
         'lebar',
         'qty',
+        'ukuran',
+        'ukuran_unit',
         'qty_return',
         'qty_sisa',
         'satuan',
@@ -42,6 +44,7 @@ class TransaksiItem extends Model
 
     protected $casts = [
         'harga' => 'decimal:2',
+        'ukuran' => 'decimal:4',
         'qty' => 'decimal:2',
         'qty_return' => 'decimal:2',
         'qty_sisa' => 'decimal:2',
@@ -132,6 +135,54 @@ class TransaksiItem extends Model
     public function isPartiallyReturned(): bool
     {
         return $this->qty_return > 0 && $this->qty_sisa > 0;
+    }
+
+    /**
+     * Relasi ke TransaksiItemSumber (alias untuk transaksiItemSumber)
+     */
+    public function sumber()
+    {
+        return $this->transaksiItemSumber();
+    }
+
+    /**
+     * Hitung total COGS untuk item ini
+     */
+    public function getTotalCogsAttribute(): float
+    {
+        $totalCogs = 0;
+        
+        foreach ($this->sumber as $sumber) {
+            $totalCogs += $sumber->qty_diambil * $sumber->harga_modal;
+        }
+        
+        return $totalCogs;
+    }
+
+    /**
+     * Hitung COGS per unit untuk item ini
+     */
+    public function getCogsPerUnitAttribute(): float
+    {
+        if ($this->qty == 0) return 0;
+        return $this->total_cogs / $this->qty;
+    }
+
+    /**
+     * Hitung margin untuk item ini
+     */
+    public function getMarginAttribute(): float
+    {
+        return $this->total - $this->total_cogs;
+    }
+
+    /**
+     * Hitung persentase margin untuk item ini
+     */
+    public function getMarginPercentageAttribute(): float
+    {
+        if ($this->total == 0) return 0;
+        return ($this->margin / $this->total) * 100;
     }
 }
 

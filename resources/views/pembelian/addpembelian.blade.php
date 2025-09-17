@@ -24,6 +24,10 @@
                             <input type="text" class="form-control" id="no_surat_jalan" name="no_surat_jalan" placeholder="Masukkan nomor referensi">
                             <small class="form-text text-muted">Masukkan nomor referensi</small>
                         </div>
+                        <div class="form-group">
+                            <label for="no_po">No. PO</label>
+                            <input type="text" class="form-control" id="no_po" name="no_po" placeholder="Masukkan nomor PO" required>
+                        </div>
                         
                         <div class="form-group">
                             <label for="tanggal">Tanggal</label>
@@ -42,6 +46,13 @@
                                 <input type="hidden" id="kode_supplier" name="kode_supplier">
                                 <div class="dropdown-menu" id="supplierDropdown" style="display: none; max-height: 200px; overflow-y: auto; width: 100%;"></div>
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="mode_pembelian">Mode Pembelian</label>
+                            <select class="form-control" id="mode_pembelian">
+                                <option value="kecil" selected>Satuan Kecil</option>
+                                <option value="besar">Satuan Besar</option>
+                            </select>
                         </div>
                     </div>
                     
@@ -76,10 +87,10 @@
         </div>
     </div>
 
-    <!-- Items Section -->
-    <div class="card mb-4">
+    <!-- Items Section (Satuan Kecil) -->
+    <div class="card mb-4" id="cardSmallItems">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Rincian Barang</h5>
+            <h5 class="mb-0">Rincian Barang (Satuan Kecil)</h5>
         </div>
         <div class="card-body">
             <!-- Form Tambah Barang seperti Sales Order -->
@@ -173,6 +184,94 @@
         </div>
     </div>
 
+    <!-- Items Section (Satuan Besar) -->
+    <div class="card mb-4" id="cardLargeItems" style="display:none;">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Rincian Barang (Satuan Besar)</h5>
+        </div>
+        <div class="card-body">
+            <div id="items-container-large">
+                <div class="item-row-large" data-index="0">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Barang</label>
+                                <select class="form-control item-barang-large" id="kode_barang_select_large">
+                                    <option value="">Pilih Barang</option>
+                                    @if(isset($kodeBarangs) && $kodeBarangs)
+                                        @foreach($kodeBarangs as $barang)
+                                            <option value="{{ $barang->id }}" 
+                                                data-harga="{{ $barang->cost }}"
+                                                data-unit-dasar="{{ $barang->unit_dasar }}"
+                                                data-kode="{{ $barang->kode_barang }}"
+                                                data-nama="{{ $barang->name }}"
+                                                data-merek="{{ $barang->merek }}"
+                                                data-ukuran="{{ $barang->ukuran }}">
+                                                {{ $barang->kode_barang }} - {{ $barang->name }}@if($barang->merek || $barang->ukuran) ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})@endif
+                                            </option>
+                                        @endforeach
+                                    @else
+                                        <option value="">Tidak ada data barang</option>
+                                    @endif
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Qty</label>
+                                <input type="number" class="form-control item-qty-large" id="quantity_large" step="0.01" min="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Satuan Besar</label>
+                                <select class="form-control item-satuan-besar-large" id="satuanBesarLarge"></select>
+                                <input type="hidden" class="item-satuan-large" id="satuan_large" value="">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Harga Beli</label>
+                                <input type="number" class="form-control item-harga-large" id="harga_large" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="form-group">
+                                <label>Total</label>
+                                <input type="number" class="form-control item-total-large" id="item_total_large" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Diskon (%)</label>
+                                <input type="number" class="form-control" id="diskon_large" placeholder="0" min="0" max="100">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Panjang</label>
+                                <input type="number" class="form-control" id="panjang_large" placeholder="0" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="form-group">
+                                <label>Keterangan</label>
+                                <input type="text" class="form-control" id="keterangan_large" placeholder="Keterangan">
+                            </div>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end justify-content-end">
+                            <button type="button" class="btn btn-success btn-sm" id="addItemBtnLarge">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Items List -->
     <div class="card mb-4">
         <div class="card-header">
@@ -185,6 +284,8 @@
                         <tr>
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
+                            <th>Merek</th>
+                            <th>Ukuran</th>
                             <th>Keterangan</th>
                             <th>Harga Beli</th>
                             <th>Qty & Satuan</th>
@@ -345,6 +446,7 @@
     window.kodeBarangSearchUrl = "{{ route('kodeBarang.search') }}";
     window.getPanelInfoUrl = "{{ route('panel.by.kodeBarang') }}";
     window.availableUnitsUrl = "{{ route('sales-order.available-units', '') }}";
+    window.unitConversionListUrl = "{{ url('unit-conversion') }}";
 
     window.csrfToken = "{{ csrf_token() }}";
 </script>

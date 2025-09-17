@@ -19,7 +19,7 @@ class UnitConversion extends Model
     ];
 
     protected $casts = [
-        'nilai_konversi' => 'integer',
+        'nilai_konversi' => 'decimal:2',  // FIX: Gunakan decimal untuk desimal
         'is_active' => 'boolean',
     ];
 

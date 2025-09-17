@@ -83,6 +83,7 @@ class SalesOrderController extends Controller
     {
         $request->validate([
             'no_so' => 'required|unique:sales_orders,no_so',
+            'no_po' => 'required|string|max:50',
             'tanggal' => 'required|date',
             'customer_id' => 'required|exists:customers,id',
             'salesman_id' => 'required|exists:stok_owners,id',
@@ -119,6 +120,7 @@ class SalesOrderController extends Controller
             // Buat Sales Order
             $salesOrder = SalesOrder::create([
                 'no_so' => $request->no_so,
+                'no_po' => $request->no_po,
                 'tanggal' => $request->tanggal,
                 'customer_id' => $request->customer_id,
                 'salesman_id' => $request->salesman_id,

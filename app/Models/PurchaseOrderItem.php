@@ -13,6 +13,13 @@ class PurchaseOrderItem extends Model
         'keterangan', 'harga', 'panjang', 'qty', 'total', 'diskon',
     ];
 
+    protected $casts = [
+        'harga' => 'decimal:2',
+        'qty' => 'decimal:2',
+        'total' => 'decimal:2',
+        'diskon' => 'decimal:2',
+    ];
+
     public function purchaseOrder()
     {
         return $this->belongsTo(PurchaseOrder::class);

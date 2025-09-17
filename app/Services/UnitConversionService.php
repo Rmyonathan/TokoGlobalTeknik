@@ -16,9 +16,10 @@ class UnitConversionService
      * @param int $kodeBarangId
      * @param float $qty
      * @param string $fromUnit
+     * @param bool $roundUp Apakah pembulatan ke atas (default: true untuk stok)
      * @return float
      */
-    public function convertToBaseUnit(int $kodeBarangId, float $qty, string $fromUnit): float
+    public function convertToBaseUnit(int $kodeBarangId, float $qty, string $fromUnit, bool $roundUp = true): float
     {
         $kodeBarang = KodeBarang::find($kodeBarangId);
         if (!$kodeBarang) {
@@ -41,7 +42,14 @@ class UnitConversionService
             return $qty;
         }
 
-        return $qty * $conversion->nilai_konversi;
+        $result = $qty * $conversion->nilai_konversi;
+        
+        // Pembulatan untuk menghindari pecahan
+        if ($roundUp) {
+            return ceil($result); // Pembulatan ke atas untuk stok
+        } else {
+            return round($result, 2); // Pembulatan normal untuk harga
+        }
     }
 
     /**
@@ -50,9 +58,10 @@ class UnitConversionService
      * @param int $kodeBarangId
      * @param float $qty
      * @param string $toUnit
+     * @param bool $roundUp Apakah pembulatan ke atas (default: false untuk penjualan)
      * @return float
      */
-    public function convertFromBaseUnit(int $kodeBarangId, float $qty, string $toUnit): float
+    public function convertFromBaseUnit(int $kodeBarangId, float $qty, string $toUnit, bool $roundUp = false): float
     {
         $kodeBarang = KodeBarang::find($kodeBarangId);
         if (!$kodeBarang) {
@@ -75,7 +84,72 @@ class UnitConversionService
             return $qty;
         }
 
-        return $qty / $conversion->nilai_konversi;
+        $result = $qty / $conversion->nilai_konversi;
+        
+        // Pembulatan untuk menghindari pecahan
+        if ($roundUp) {
+            return ceil($result); // Pembulatan ke atas
+        } else {
+            return round($result, 2); // Pembulatan normal
+        }
+    }
+
+    /**
+     * Konversi quantity dengan aturan pembulatan khusus untuk lusin
+     * 
+     * @param int $kodeBarangId
+     * @param float $qty
+     * @param string $fromUnit
+     * @param string $toUnit
+     * @param string $roundingRule 'up', 'down', 'normal'
+     * @return float
+     */
+    public function convertWithRounding(int $kodeBarangId, float $qty, string $fromUnit, string $toUnit, string $roundingRule = 'normal'): float
+    {
+        $kodeBarang = KodeBarang::find($kodeBarangId);
+        if (!$kodeBarang) {
+            throw new Exception("Kode barang tidak ditemukan");
+        }
+
+        // Jika unit sama, return qty as is
+        if ($fromUnit === $toUnit) {
+            return $qty;
+        }
+
+        // Cari konversi unit dari fromUnit ke toUnit
+        $conversion = UnitConversion::where('kode_barang_id', $kodeBarangId)
+            ->where('unit_turunan', $fromUnit)
+            ->active()
+            ->first();
+
+        if (!$conversion) {
+            // Jika tidak ada konversi, coba sebaliknya
+            $conversion = UnitConversion::where('kode_barang_id', $kodeBarangId)
+                ->where('unit_turunan', $toUnit)
+                ->active()
+                ->first();
+            
+            if (!$conversion) {
+                return $qty;
+            }
+            
+            // Konversi terbalik
+            $result = $qty / $conversion->nilai_konversi;
+        } else {
+            // Konversi normal
+            $result = $qty * $conversion->nilai_konversi;
+        }
+        
+        // Terapkan aturan pembulatan
+        switch ($roundingRule) {
+            case 'up':
+                return ceil($result);
+            case 'down':
+                return floor($result);
+            case 'normal':
+            default:
+                return round($result, 2);
+        }
     }
 
     /**
@@ -151,6 +225,8 @@ class UnitConversionService
         // Konversi dari unit dasar ke unit target
         $qtyInTargetUnit = $this->convertToBaseUnit($kodeBarangId, 1, $toUnit);
         
+        // Harga per unit target = harga per unit dasar * (1 unit target dalam unit dasar)
+        // Karena 1 LUSIN = 12 PCS, maka harga per LUSIN = harga per PCS * 12
         return $hargaPerBaseUnit * $qtyInTargetUnit;
     }
 
