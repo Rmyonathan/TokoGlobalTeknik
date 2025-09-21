@@ -79,6 +79,9 @@
             <div>
                 <strong>No. Surat Jalan:</strong> {{ $suratJalan->no_suratjalan ?? '-' }}<br>
                 <strong>No. Pesanan:</strong> {{ $suratJalan->no_transaksi ?? '-' }}
+                @if(isset($relatedSjNumbers) && $relatedSjNumbers->count())
+                <br><strong>SJ Terkait (satu faktur):</strong> {{ $relatedSjNumbers->join(', ') }}
+                @endif
             </div>
             <div class="right">
                 <strong>Tanggal:</strong> {{ \Carbon\Carbon::parse($suratJalan->tanggal)->format('d M Y') }}<br>
@@ -125,6 +128,31 @@
                     <td class="center">{{ $displayUnit }}</td>
                 </tr>
                 @endforeach
+
+                {{-- Jika ada SJ terkait dalam faktur yang sama, gabungkan barangnya untuk ditampilkan di bawah pemisah --}}
+                @if(isset($relatedSjs) && $relatedSjs->count())
+                    <!-- <tr>
+                        <td colspan="6" class="center"><strong>Barang dari SJ Terkait</strong>: {{ $relatedSjNumbers->join(', ') }}</td>
+                    </tr> -->
+                    @php $offset = count($suratJalan->items); @endphp
+                    @foreach ($relatedSjs as $related)
+                        @foreach ($related->items as $j => $ritem)
+                            @php
+                                $kb2 = \App\Models\KodeBarang::where('kode_barang', $ritem->kode_barang)->first();
+                                $unitDasar2 = $kb2 ? $kb2->unit_dasar : 'Pcs';
+                            @endphp
+                            <tr>
+                                <td class="center">{{ $offset + $j + 1 }}</td>
+                                <td>{{ $ritem->kode_barang }}</td>
+                                <td>{{ $ritem->nama_barang }}</td>
+                                <td class="center">{{ $ritem->panjang ?? '-' }}</td>
+                                <td class="center">{{ $ritem->qty }}</td>
+                                <td class="center">{{ $unitDasar2 }}</td>
+                            </tr>
+                        @endforeach
+                        @php $offset += count($related->items); @endphp
+                    @endforeach
+                @endif
 
                 {{-- Menambahkan baris kosong otomatis --}}
                 @php

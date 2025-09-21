@@ -145,6 +145,12 @@ class Stock extends Model
         $toConnection = $toDatabase === 'primary' ? 'mysql' : 'mysql_second';
 
         try {
+            \Log::info('Stock::transferStock start', [
+                'kode_barang' => $kodeBarang,
+                'qty' => $qty,
+                'from' => $fromDatabase,
+                'to' => $toDatabase,
+            ]);
             // Start transaction
             \DB::beginTransaction();
 
@@ -154,6 +160,11 @@ class Stock extends Model
                 ->first();
 
             if (!$fromStock || $fromStock->good_stock < $qty) {
+                \Log::warning('Insufficient stock at source', [
+                    'available' => $fromStock->good_stock ?? null,
+                    'required' => $qty,
+                    'from' => $fromDatabase
+                ]);
                 throw new \Exception('Insufficient stock in source database');
             }
 
@@ -182,10 +193,14 @@ class Stock extends Model
             static::ensureKodeBarangExists($kodeBarang, $toDatabase, $fromStock);
 
             \DB::commit();
+            \Log::info('Stock::transferStock success');
             return true;
 
         } catch (\Exception $e) {
             \DB::rollback();
+            \Log::error('Stock::transferStock error', [
+                'error' => $e->getMessage(),
+            ]);
             throw $e;
         }
     }
@@ -234,6 +249,39 @@ class Stock extends Model
             foreach ($optionalColumns as $column) {
                 if (isset($sourceKodeBarang->$column)) {
                     $insertData[$column] = $sourceKodeBarang->$column;
+                }
+            }
+
+            // Resolve grup_barang_id FK in destination
+            if (array_key_exists('grup_barang_id', $insertData) && $insertData['grup_barang_id']) {
+                try {
+                    // Get group name from source
+                    $sourceGroup = \DB::table('grup_barang')->where('id', $insertData['grup_barang_id'])->first();
+                    if ($sourceGroup) {
+                        // Find or create same group in destination by name
+                        $destGroup = \DB::connection($toConnection)->table('grup_barang')->where('name', $sourceGroup->name)->first();
+                        if (!$destGroup) {
+                            $newId = \DB::connection($toConnection)->table('grup_barang')->insertGetId([
+                                'name' => $sourceGroup->name,
+                                'keterangan' => $sourceGroup->keterangan ?? null,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                            $insertData['grup_barang_id'] = $newId;
+                        } else {
+                            $insertData['grup_barang_id'] = $destGroup->id;
+                        }
+                    } else {
+                        // Source group missing; nullify to avoid FK violation
+                        $insertData['grup_barang_id'] = null;
+                    }
+                } catch (\Exception $e) {
+                    // If anything fails, remove the FK to avoid violation
+                    \Log::warning('Failed to resolve grup_barang for destination', [
+                        'kode_barang' => $kodeBarang,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $insertData['grup_barang_id'] = null;
                 }
             }
             

@@ -115,6 +115,28 @@ use Riskihajar\Terbilang\Facades\Terbilang;
                             <td><strong>Pembayaran:</strong></td>
                             <td>{{ $transaction->cara_bayar ?? 'Tunai' }}</td>
                         </tr>
+                        @if(isset($suratJalans) && $suratJalans->count())
+                        <tr>
+                            <td><strong>Referensi SJ:</strong></td>
+                            <td>
+                                {{ $suratJalans->pluck('no_suratjalan')->join(', ') }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>No PO (Faktur):</strong></td>
+                            <td>{{ $transaction->no_po ?? '-' }}</td>
+                        </tr>
+                        @php
+                            $poPerSj = $suratJalans->map(function($sj){ return ($sj->no_po ? ($sj->no_suratjalan.' → '.$sj->no_po) : ($sj->no_suratjalan.' → -')); })->join(', ');
+                            $distinctPo = $suratJalans->pluck('no_po')->filter()->unique();
+                        @endphp
+                        @if($distinctPo->count() > 1)
+                        <tr>
+                            <td><strong>No PO per SJ:</strong></td>
+                            <td>{{ $poPerSj }}</td>
+                        </tr>
+                        @endif
+                        @endif
                     </table>
                 </td>
             </tr>

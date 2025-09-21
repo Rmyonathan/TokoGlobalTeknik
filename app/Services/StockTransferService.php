@@ -135,31 +135,44 @@ class StockTransferService
         string $createdBy,
         string $note
     ): void {
-        StockTransferLog::create([
-            'transfer_no' => $transferNo,
-            'kode_barang' => $kodeBarang->kode_barang,
-            'kode_barang_id' => $kodeBarang->id,
-            'qty' => $qty,
-            'avg_cost' => $avgCost,
-            'unit' => $unit,
-            'source_db' => $sourceConnection,
-            'target_db' => $targetConnection,
-            'role' => $role,
-            'created_by' => $createdBy,
-            'note' => $note,
-        ]);
+        try {
+            StockTransferLog::create([
+                'transfer_no' => $transferNo,
+                'kode_barang' => $kodeBarang->kode_barang,
+                'kode_barang_id' => $kodeBarang->id,
+                'qty' => $qty,
+                'avg_cost' => $avgCost,
+                'unit' => $unit,
+                'source_db' => $sourceConnection,
+                'target_db' => $targetConnection,
+                'role' => $role,
+                'created_by' => $createdBy,
+                'note' => $note,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Failed to create stock transfer log', [
+                'error' => $e->getMessage(),
+                'transfer_no' => $transferNo,
+                'kode_barang' => $kodeBarang->kode_barang
+            ]);
+        }
     }
 
     private function generateTransferNo(): string
     {
         $prefix = 'TF-'.now()->format('Ymd').'-';
-        $last = StockTransferLog::where('transfer_no', 'like', $prefix.'%')
-            ->orderBy('transfer_no', 'desc')
-            ->first();
-        $n = 1;
-        if ($last) {
-            $num = (int) substr($last->transfer_no, strlen($prefix));
-            $n = $num + 1;
+        try {
+            $last = StockTransferLog::where('transfer_no', 'like', $prefix.'%')
+                ->orderBy('transfer_no', 'desc')
+                ->first();
+            $n = 1;
+            if ($last) {
+                $num = (int) substr($last->transfer_no, strlen($prefix));
+                $n = $num + 1;
+            }
+        } catch (\Exception $e) {
+            // If table doesn't exist or connection fails, use timestamp
+            $n = (int) now()->format('His');
         }
         return $prefix . str_pad($n, 4, '0', STR_PAD_LEFT);
     }

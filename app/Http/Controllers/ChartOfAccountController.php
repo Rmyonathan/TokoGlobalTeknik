@@ -61,9 +61,28 @@ class ChartOfAccountController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(ChartOfAccount $chart_of_account)
+    public function show(Request $request, ChartOfAccount $chart_of_account)
     {
-        return view('chart_of_accounts.show', ['account' => $chart_of_account->load(['type', 'parent', 'children'])]);
+        $account = $chart_of_account->load(['type', 'parent', 'children']);
+        $jdQuery = $chart_of_account->journalDetails()->with('journal');
+
+        // Optional date filtering by journal_date
+        $start = $request->query('tanggal_awal');
+        $end   = $request->query('tanggal_akhir');
+        if ($start) {
+            $jdQuery->whereHas('journal', function($q) use ($start) {
+                $q->whereDate('journal_date', '>=', $start);
+            });
+        }
+        if ($end) {
+            $jdQuery->whereHas('journal', function($q) use ($end) {
+                $q->whereDate('journal_date', '<=', $end);
+            });
+        }
+
+        $journalDetails = $jdQuery->orderByDesc('id')->paginate(20)->appends($request->only(['tanggal_awal','tanggal_akhir']));
+
+        return view('chart_of_accounts.show', compact('account', 'journalDetails', 'start', 'end'));
     }
 
     /**

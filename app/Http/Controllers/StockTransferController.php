@@ -11,6 +11,7 @@ use App\Models\ChartOfAccount;
 use App\Models\Journal;
 use App\Models\JournalDetail;
 use App\Services\AccountingService;
+use App\Services\StockTransferService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Exception;
@@ -157,19 +158,32 @@ class StockTransferController extends Controller
                 'approved_at' => now(),
             ]);
 
+            // Normalize db keys for backward compatibility (e.g., DB1/DB2)
+            $fromDb = $this->normalizeDatabaseKey($stockTransfer->from_database);
+            $toDb   = $this->normalizeDatabaseKey($stockTransfer->to_database);
+
+            \Log::info('Approving stock transfer', [
+                'transfer_id' => $stockTransfer->id,
+                'no_transfer' => $stockTransfer->no_transfer,
+                'from' => $stockTransfer->from_database,
+                'to' => $stockTransfer->to_database,
+            ]);
+
             // Process stock transfer for each item
             foreach ($stockTransfer->items as $item) {
-                // Transfer stock between databases
-                Stock::transferStock(
-                    $item->kode_barang,
-                    $item->qty_transfer,
-                    $stockTransfer->from_database,
-                    $stockTransfer->to_database,
-                    $item->harga_per_unit
-                );
+                \Log::info('Processing transfer item', [
+                    'kode_barang' => $item->kode_barang,
+                    'qty' => $item->qty_transfer,
+                    'from' => $fromDb,
+                    'to' => $toDb,
+                ]);
+                
+                // Transfer stock using FIFO
+                $this->transferStockWithFIFO($item, $fromDb, $toDb, $stockTransfer->no_transfer);
 
                 // Create accounting entries
                 $this->createAccountingEntries($stockTransfer, $item);
+                \Log::info('Transfer item processed');
             }
 
             // Mark as completed
@@ -181,8 +195,24 @@ class StockTransferController extends Controller
 
         } catch (Exception $e) {
             DB::rollback();
+            \Log::error('Approve transfer failed', [
+                'transfer_id' => $stockTransfer->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->withErrors(['error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Map various DB aliases to configured keys
+     */
+    private function normalizeDatabaseKey(string $key): string
+    {
+        $k = strtolower(trim($key));
+        if (in_array($k, ['db1', 'db_1', 'database1', 'primary', 'utama'])) return 'primary';
+        if (in_array($k, ['db2', 'db_2', 'database2', 'secondary', 'kedua'])) return 'secondary';
+        return $key; // fallback to original; MultiDatabaseTrait will validate
     }
 
     /**
@@ -245,77 +275,61 @@ class StockTransferController extends Controller
 
         $desc = "Transfer stok {$item->nama_barang} dari {$transfer->from_database} ke {$transfer->to_database}";
 
-        // Default: gunakan skema in-transit intercompany
-        $inTransitDr = $this->findAccountByName('Persediaan Transit (Intercompany Aset)');
-        $inTransitCr = $this->findAccountByName('Hutang Transit (Intercompany Kewajiban)');
-
-        if ($inTransitDr && $inTransitCr) {
-            // Journal 1 (Source DB perspective): Dr In-Transit / Cr Inventory Source
-            $jr1 = Journal::create([
-                'journal_no' => $transfer->no_transfer.'-SRC',
-                'journal_date' => $transfer->tanggal_transfer,
-                'description' => $desc.' [SOURCE]'
-            ]);
-
-            JournalDetail::create([
-                'journal_id' => $jr1->id,
-                'account_id' => $inTransitDr->id,
-                'debit' => $item->total_value,
-                'credit' => 0,
-                'memo' => 'Piutang in-transit transfer stok'
-            ]);
-            JournalDetail::create([
-                'journal_id' => $jr1->id,
-                'account_id' => $inventoryAccountFrom->id,
-                'debit' => 0,
-                'credit' => $item->total_value,
-                'memo' => 'Pengiriman stok (keluar)'
-            ]);
-
-            // Journal 2 (Target DB perspective): Dr Inventory Target / Cr In-Transit
-            $jr2 = Journal::create([
-                'journal_no' => $transfer->no_transfer.'-DST',
-                'journal_date' => $transfer->tanggal_transfer,
-                'description' => $desc.' [TARGET]'
-            ]);
-
-            JournalDetail::create([
-                'journal_id' => $jr2->id,
-                'account_id' => $inventoryAccountTo->id,
-                'debit' => $item->total_value,
-                'credit' => 0,
-                'memo' => 'Penerimaan stok (masuk)'
-            ]);
-            JournalDetail::create([
-                'journal_id' => $jr2->id,
-                'account_id' => $inTransitCr->id,
-                'debit' => 0,
-                'credit' => $item->total_value,
-                'memo' => 'Hutang in-transit transfer stok'
-            ]);
-        } else {
-            // Single journal: Dr Inventory Target / Cr Inventory Source
-            $journal = Journal::create([
-                'journal_no' => $transfer->no_transfer,
-                'journal_date' => $transfer->tanggal_transfer,
-                'description' => $desc,
-            ]);
-
-            JournalDetail::create([
-                'journal_id' => $journal->id,
-                'account_id' => $inventoryAccountTo->id,
-                'debit' => $item->total_value,
-                'credit' => 0,
-                'memo' => 'Penerimaan stok (tanpa in-transit)'
-            ]);
-            JournalDetail::create([
-                'journal_id' => $journal->id,
-                'account_id' => $inventoryAccountFrom->id,
-                'debit' => 0,
-                'credit' => $item->total_value,
-                'memo' => 'Pengiriman stok (tanpa in-transit)'
-            ]);
+        // Wajib: gunakan satu akun transit intercompany (debit di DB1, kredit di DB2)
+        $transitAccount = $this->findAccountByName('Hutang Transit');
+        if (!$transitAccount) {
+            $transitAccount = $this->findAccountByName('Hutang Transit Intercompany');
         }
+        if (!$transitAccount) {
+            $transitAccount = $this->findAccountByName('Hutang Transit (Intercompany Kewajiban)');
+        }
+        if (!$transitAccount) {
+            throw new Exception('Akun "Hutang Transit" tidak ditemukan.');
+        }
+
+        // Journal 1 (DB1/source): Dr Transit / Cr Inventory Source
+        $jr1 = Journal::create([
+            'journal_no' => $transfer->no_transfer.'-SRC',
+            'journal_date' => $transfer->tanggal_transfer,
+            'description' => $desc.' [SOURCE]'
+        ]);
+
+        JournalDetail::create([
+            'journal_id' => $jr1->id,
+            'account_id' => $transitAccount->id,
+            'debit' => $item->total_value,
+            'credit' => 0,
+            'memo' => 'Hutang Transit Intercompany (debit di DB1)'
+        ]);
+        JournalDetail::create([
+            'journal_id' => $jr1->id,
+            'account_id' => $inventoryAccountFrom->id,
+            'debit' => 0,
+            'credit' => $item->total_value,
+            'memo' => 'Kredit Persediaan (keluar DB1)'
+        ]);
+
+        // Journal 2 (DB2/target): Dr Inventory Target / Cr Transit
+        $jr2 = Journal::create([
+            'journal_no' => $transfer->no_transfer.'-DST',
+            'journal_date' => $transfer->tanggal_transfer,
+            'description' => $desc.' [TARGET]'
+        ]);
+
+        JournalDetail::create([
+            'journal_id' => $jr2->id,
+            'account_id' => $inventoryAccountTo->id,
+            'debit' => $item->total_value,
+            'credit' => 0,
+            'memo' => 'Debit Persediaan (masuk DB2)'
+        ]);
+        JournalDetail::create([
+            'journal_id' => $jr2->id,
+            'account_id' => $transitAccount->id,
+            'debit' => 0,
+            'credit' => $item->total_value,
+            'memo' => 'Hutang Transit Intercompany (kredit di DB2)'
+        ]);
     }
 
     private function findAccountByName(string $name): ?ChartOfAccount
@@ -325,5 +339,62 @@ class StockTransferController extends Controller
         // fallback contains
         $acc = ChartOfAccount::where('name', 'like', '%'.$name.'%')->first();
         return $acc;
+    }
+
+    /**
+     * Transfer stock using FIFO method
+     */
+    private function transferStockWithFIFO(StockTransferItem $item, string $fromDb, string $toDb, string $transferNo = null)
+    {
+        try {
+            // Get KodeBarang
+            $kodeBarang = KodeBarang::where('kode_barang', $item->kode_barang)->first();
+            if (!$kodeBarang) {
+                throw new \Exception("KodeBarang {$item->kode_barang} not found");
+            }
+
+            // Convert database names to connection names
+            $fromConnection = $fromDb === 'primary' ? 'mysql' : 'mysql_second';
+            $toConnection = $toDb === 'primary' ? 'mysql' : 'mysql_second';
+
+            // Use StockTransferService for FIFO transfer
+            $stockTransferService = app(StockTransferService::class);
+            
+            $result = $stockTransferService->transferBetweenDatabases(
+                $kodeBarang->id,
+                $item->qty_transfer,
+                $fromConnection,
+                $toConnection,
+                [
+                    'unit' => $item->satuan ?? 'PCS',
+                    'note' => "Transfer from {$fromDb} to {$toDb}" . ($transferNo ? " - {$transferNo}" : ''),
+                    'created_by' => Auth::user()->name ?? 'SYSTEM'
+                ]
+            );
+
+            // Update item with actual transferred quantity and average cost
+            $item->update([
+                'qty_transfer' => $result['qty'],
+                'harga_per_unit' => $result['avg_cost'],
+                'total_value' => $result['qty'] * $result['avg_cost']
+            ]);
+
+            \Log::info('FIFO transfer completed', [
+                'kode_barang' => $item->kode_barang,
+                'qty_transferred' => $result['qty'],
+                'avg_cost' => $result['avg_cost'],
+                'transfer_no' => $result['transfer_no']
+            ]);
+
+            return $result;
+
+        } catch (\Exception $e) {
+            \Log::error('FIFO transfer failed', [
+                'kode_barang' => $item->kode_barang,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 }

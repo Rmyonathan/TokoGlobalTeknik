@@ -34,6 +34,58 @@
     <a href="{{ route('chart-of-accounts.edit', $account) }}" class="btn btn-warning">Edit</a>
     <button type="button" class="btn btn-success" onclick="recalculateBalance({{ $account->id }})">Recalculate Saldo</button>
     <a href="{{ route('chart-of-accounts.index') }}" class="btn btn-secondary">Kembali</a>
+
+    <hr>
+    <h3>Jurnal Terkait</h3>
+    <form method="GET" class="row g-2 mb-2">
+        <div class="col-auto">
+            <label for="tanggal_awal" class="col-form-label">Dari</label>
+        </div>
+        <div class="col-auto">
+            <input type="date" id="tanggal_awal" name="tanggal_awal" value="{{ $start }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-auto">
+            <label for="tanggal_akhir" class="col-form-label">Sampai</label>
+        </div>
+        <div class="col-auto">
+            <input type="date" id="tanggal_akhir" name="tanggal_akhir" value="{{ $end }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+            <a href="{{ route('chart-of-accounts.show', $account) }}" class="btn btn-sm btn-secondary">Reset</a>
+        </div>
+    </form>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>No. Jurnal</th>
+                    <th>Keterangan</th>
+                    <th class="text-end">Debit</th>
+                    <th class="text-end">Kredit</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($journalDetails as $jd)
+                    <tr>
+                        <td>{{ optional($jd->journal)->journal_date }}</td>
+                        <td>{{ optional($jd->journal)->journal_no }}</td>
+                        <td>{{ optional($jd->journal)->description }}</td>
+                        <td class="text-end">{{ number_format($jd->debit, 2) }}</td>
+                        <td class="text-end">{{ number_format($jd->credit, 2) }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="text-center">Belum ada jurnal untuk akun ini.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    <div>
+        {{ $journalDetails->links() }}
+    </div>
 </div>
 
 <script>

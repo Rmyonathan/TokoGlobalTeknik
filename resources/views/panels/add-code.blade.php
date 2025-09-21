@@ -93,7 +93,7 @@
                             @enderror
                             <small class="form-text text-muted">Satuan terkecil untuk perhitungan harga.</small>
                         </div>
-                        <div class="form-row">
+                        <!-- <div class="form-row">
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="satuan_dasar">Satuan Dasar</label>
@@ -112,7 +112,7 @@
                                     <input type="number" class="form-control" id="nilai_konversi" name="nilai_konversi" value="{{ old('nilai_konversi', 12) }}" min="1">
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
                         <div class="form-group">
                             <label for="harga_jual"><i class="fas fa-tag mr-1"></i> Harga Jual per Satuan Dasar</label>
                             <input type="number" step="0.01" class="form-control @error('harga_jual') is-invalid @enderror" id="harga_jual" name="harga_jual" value="{{ old('harga_jual') }}">
@@ -278,14 +278,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Prefill default conversion when unit dasar is PCS
-    unitDasarSelect.addEventListener('change', function(){
-        const v = (unitDasarSelect.value||'').toUpperCase();
-        if(v === 'PCS'){
-            if(!satuanDasarInput.value){ satuanDasarInput.value = 'PCS'; }
-            if(!satuanBesarInput.value){ satuanBesarInput.value = 'LUSIN'; }
-            if(!nilaiKonversiInput.value){ nilaiKonversiInput.value = 12; }
-        }
-    });
+    // unitDasarSelect.addEventListener('change', function(){
+    //     const v = (unitDasarSelect.value||'').toUpperCase();
+    //     if(v === 'PCS'){
+    //         if(!satuanDasarInput.value){ satuanDasarInput.value = 'PCS'; }
+    //         if(!satuanBesarInput.value){ satuanBesarInput.value = 'LUSIN'; }
+    //         if(!nilaiKonversiInput.value){ nilaiKonversiInput.value = 12; }
+    //     }
+    // });
 
     // Function to show messages
     function showMessage(message, type) {

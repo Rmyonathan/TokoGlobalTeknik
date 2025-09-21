@@ -263,7 +263,20 @@ class SuratJalanController extends Controller
         // FIX: Added 'transaksi.items' to ensure all data is available for the view,
         // which prevents potential errors if the view accesses it.
         $suratJalan = SuratJalan::with(['items', 'customer', 'transaksi.items'])->findOrFail($id);
-        return view('suratjalan.detail', compact('suratJalan'));
+
+        // Kumpulkan SJ lain yang memiliki no_transaksi yang sama (saudara satu faktur)
+        $relatedSjNumbers = collect();
+        $relatedSjs = collect();
+        if (!empty($suratJalan->no_transaksi)) {
+            $relatedSjs = SuratJalan::with(['items'])
+                ->where('no_transaksi', $suratJalan->no_transaksi)
+                ->where('id', '<>', $suratJalan->id)
+                ->orderBy('tanggal')
+                ->get();
+            $relatedSjNumbers = $relatedSjs->pluck('no_suratjalan');
+        }
+
+        return view('suratjalan.detail', compact('suratJalan', 'relatedSjNumbers', 'relatedSjs'));
     }
 
     /**
@@ -369,6 +382,8 @@ class SuratJalanController extends Controller
                 'harga_jual_default' => (float) ($kb?->harga_jual ?? 0),
                 'unit_dasar' => $kb?->unit_dasar ?? 'PCS',
                 'kode_barang_id' => $kb?->id,
+                'merek' => $kb?->merek,
+                'ukuran' => $kb?->ukuran,
             ];
         }
 

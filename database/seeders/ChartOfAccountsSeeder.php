@@ -45,10 +45,16 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '1100', 'name' => 'Aset Lancar', 'type' => 'A', 'parent' => null],
             ['code' => '1101', 'name' => 'Kas Kecil', 'type' => 'A', 'parent' => '1100'],
             ['code' => '1102', 'name' => 'Kas Besar', 'type' => 'A', 'parent' => '1100'],
-            ['code' => '1103', 'name' => 'Bank', 'type' => 'A', 'parent' => '1100'],
-            ['code' => '1104', 'name' => 'Piutang Usaha', 'type' => 'A', 'parent' => '1100'],
+            ['code' => '1103', 'name' => 'Piutang Usaha', 'type' => 'A', 'parent' => '1100'],
+            ['code' => '1104', 'name' => 'Bank', 'type' => 'A', 'parent' => '1100'],
+            // Sub-akun bank per nama (format 1104-x)
+            ['code' => '1104-1', 'name' => 'Bank Mandiri', 'type' => 'A', 'parent' => '1104'],
+            ['code' => '1104-2', 'name' => 'Bank BNI', 'type' => 'A', 'parent' => '1104'],
+            ['code' => '1104-3', 'name' => 'Bank BRI', 'type' => 'A', 'parent' => '1104'],
+            ['code' => '1104-4', 'name' => 'Bank BCA', 'type' => 'A', 'parent' => '1104'],
             ['code' => '1105', 'name' => 'Persediaan Barang Dagang', 'type' => 'A', 'parent' => '1100'],
-            ['code' => '1106', 'name' => 'Piutang PPN (PPN Masukan)', 'type' => 'A', 'parent' => '1100'],
+            ['code' => '1106', 'name' => 'PPN Masukan', 'type' => 'A', 'parent' => '1100'],
+            ['code' => '1107', 'name' => 'Persediaan Transit (Intercompany Aset)', 'type' => 'A', 'parent' => '1100'],
             ['code' => '1200', 'name' => 'Aset Tetap', 'type' => 'A', 'parent' => null],
             ['code' => '1201', 'name' => 'Peralatan Toko', 'type' => 'A', 'parent' => '1200'],
             ['code' => '1202', 'name' => 'Akumulasi Penyusutan - Peralatan', 'type' => 'A', 'parent' => '1200'],
@@ -56,8 +62,9 @@ class ChartOfAccountsSeeder extends Seeder
             // 2. LIABILITAS
             ['code' => '2100', 'name' => 'Liabilitas Jangka Pendek', 'type' => 'L', 'parent' => null],
             ['code' => '2101', 'name' => 'Utang Usaha', 'type' => 'L', 'parent' => '2100'],
-            ['code' => '2102', 'name' => 'Utang PPN (PPN Keluaran)', 'type' => 'L', 'parent' => '2100'],
+            ['code' => '2102', 'name' => 'PPN Keluaran', 'type' => 'L', 'parent' => '2100'],
             ['code' => '2103', 'name' => 'Utang Bank', 'type' => 'L', 'parent' => '2100'],
+            ['code' => '2104', 'name' => 'Hutang Transit', 'type' => 'L', 'parent' => '2100'],
             
             // 2.1. LIABILITAS TOKO 2 (Database Kedua)
             ['code' => '2200', 'name' => 'Liabilitas Toko 2', 'type' => 'L', 'parent' => null],
@@ -70,11 +77,15 @@ class ChartOfAccountsSeeder extends Seeder
 
             // 4. PENDAPATAN
             ['code' => '4101', 'name' => 'Pendapatan Penjualan', 'type' => 'R', 'parent' => null],
+            ['code' => '4800', 'name' => 'Pendapatan Lain-lain', 'type' => 'R', 'parent' => null],
             ['code' => '4102', 'name' => 'Retur Penjualan', 'type' => 'R', 'parent' => '4101'],
 
             // 5. BEBAN
             ['code' => '5100', 'name' => 'Harga Pokok Penjualan (HPP)', 'type' => 'X', 'parent' => null],
             ['code' => '5200', 'name' => 'Beban Operasional', 'type' => 'X', 'parent' => null],
+            ['code' => '5205', 'name' => 'Diskon Pembelian', 'type' => 'X', 'parent' => '5200'],
+            ['code' => '5206', 'name' => 'Diskon Penjualan', 'type' => 'X', 'parent' => '5200'],
+            ['code' => '5900', 'name' => 'Beban Lain-lain', 'type' => 'X', 'parent' => null],
             ['code' => '5201', 'name' => 'Beban Gaji Karyawan', 'type' => 'X', 'parent' => '5200'],
             ['code' => '5202', 'name' => 'Beban Listrik, Air, & Telepon', 'type' => 'X', 'parent' => '5200'],
             ['code' => '5203', 'name' => 'Beban Sewa Toko', 'type' => 'X', 'parent' => '5200'],

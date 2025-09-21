@@ -104,7 +104,8 @@
                         <div class="form-group">
                             <label for="metode_pembayaran">Metode Pembayaran</label>
                             <select class="form-control" id="metode_pembayaran" name="metode_pembayaran">
-                                <option value="Non Tunai" selected>Non Tunai</option>
+                                <option value="Tunai">TUNAI</option>
+                                <option value="Non Tunai">NON TUNAI</option>
                             </select>
                             <small class="form-text text-muted">Semua pembayaran menggunakan kredit/tempo</small>
                         </div>
@@ -242,6 +243,8 @@
                         <tr>
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
+                            <th>Merek</th>
+                            <th>Ukuran</th>
                             <th>Keterangan</th>
                             <th>Harga Jual</th>
                             <th>Qty & Satuan</th>
@@ -451,6 +454,7 @@
         // Auto-load from Surat Jalan if URL has ?no_suratjalan=...
         const urlParams = new URLSearchParams(window.location.search);
         const noSj = urlParams.get('no_suratjalan');
+        const isFromSuratJalan = !!noSj;
         let suratJalanId = null;
         if (noSj) {
             $.get(`{{ route('suratjalan.api.by-no', '') }}/${encodeURIComponent(noSj)}`)
@@ -505,8 +509,10 @@
             $('#kode_sales').val('{{ $salesOrder->salesman->kode_stok_owner }}');
             
             // Set payment method to kredit/tempo
-            $('#metode_pembayaran').val('Non Tunai');
-            $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+            if (!isFromSuratJalan) {
+                $('#metode_pembayaran').val('Non Tunai');
+                $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+            }
             $('#hariTempoGroup').show();
             $('#jatuhTempoGroup').show();
             // Fill tempo fields from Sales Order if available
@@ -556,8 +562,10 @@
         // Metode Pembayaran
         // Force kredit/tempo mode (only if not coming from surat jalan)
         @if(!isset($suratJalan) || !$suratJalan)
-            $('#metode_pembayaran').val('Non Tunai');
-            $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+            if (!isFromSuratJalan) {
+                $('#metode_pembayaran').val('Non Tunai');
+                $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+            }
         @endif
         function recalcJatuhTempoPenjualan(){
             const base = $('#tanggal').val();
@@ -570,6 +578,20 @@
             const dd = String(d.getDate()).padStart(2,'0');
             $('#tanggal_jatuh_tempo').val(`${yyyy}-${mm}-${dd}`);
         }
+        function toggleTempoVisibility(metodeLabel, caraLabel){
+            const metode = (metodeLabel||'').toString().trim().toLowerCase();
+            const cara = (caraLabel||'').toString().trim().toLowerCase();
+            const isCash = (metode === 'tunai') || (cara === 'tunai') || (cara === 'cash') || (cara === 'kontan');
+            if (isCash){
+                $('#hariTempoGroup').hide();
+                $('#jatuhTempoGroup').hide();
+                $('#hari_tempo').val(0);
+                $('#tanggal_jatuh_tempo').val('');
+            } else {
+                $('#hariTempoGroup').show();
+                $('#jatuhTempoGroup').show();
+            }
+        }
         $('#tanggal').on('change', recalcJatuhTempoPenjualan);
         $('#hari_tempo').on('input', recalcJatuhTempoPenjualan);
 
@@ -578,6 +600,10 @@
             $('#cara_bayar_akhir')
                 .html(`<option value="${selected}">${selected}</option>`)
                 .val(selected);
+            toggleTempoVisibility($('#metode_pembayaran').val(), selected);
+        });
+        $('#metode_pembayaran').on('change', function(){
+            toggleTempoVisibility($(this).val(), $('#cara_bayar').val());
         });
 
         // Search customers (show name only in dropdown)
@@ -633,8 +659,10 @@
 
             // Auto apply credit terms when adding manual invoice
             if (limitKredit > 0) {
-                $('#metode_pembayaran').val('Non Tunai');
-                $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+                if (!isFromSuratJalan) {
+                    $('#metode_pembayaran').val('Non Tunai');
+                    $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+                }
                 $('#hariTempoGroup').show();
                 $('#jatuhTempoGroup').show();
                 $('#hari_tempo').val(hariTempo);
@@ -729,8 +757,10 @@
             }
 
             // Force kredit/tempo and fill tempo values
-            $('#metode_pembayaran').val('Non Tunai');
-            $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+            if (!isFromSuratJalan) {
+                $('#metode_pembayaran').val('Non Tunai');
+                $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
+            }
             $('#hariTempoGroup').show();
             $('#jatuhTempoGroup').show();
             if (hariTempo !== undefined && hariTempo !== '') {
@@ -841,16 +871,25 @@
                     console.log('Surat Jalan Items Data:', data);
                     
                     // Update payment and tempo fields from surat jalan data
-                    if (data.metode_pembayaran) {
-                        $('#metode_pembayaran').val(data.metode_pembayaran);
+                    // Set pembayaran & cara bayar from SJ, robust mapping (case-insensitive, synonyms)
+                    const metodeFromSjRaw = (data.metode_pembayaran || '').toString().trim().toLowerCase();
+                    const caraFromSjRaw = (data.cara_bayar || '').toString().trim();
+
+                    // Normalize metode: map various forms to the exact option labels used in the select
+                    let metodeNormalized = 'Tunai';
+                    if (['non tunai', 'non-tunai', 'kredit', 'credit'].includes(metodeFromSjRaw)) {
+                        metodeNormalized = 'Non Tunai';
+                    } else if (['tunai', 'cash', 'kontan'].includes(metodeFromSjRaw)) {
+                        metodeNormalized = 'Tunai';
+                    } else if (metodeFromSjRaw) {
+                        // Fallback: if unknown but present, prefer Tunai unless it looks like non tunai
+                        metodeNormalized = metodeFromSjRaw.includes('non') ? 'Non Tunai' : 'Tunai';
                     }
-                    if (data.cara_bayar) {
-                        if (data.cara_bayar === 'Tunai') {
-                            $('#cara_bayar').html('<option value="Tunai">Tunai</option>').val('Tunai');
-                        } else {
-                            $('#cara_bayar').html('<option value="Kredit">Kredit</option>').val('Kredit');
-                        }
-                    }
+                    $('#metode_pembayaran').val(metodeNormalized).trigger('change');
+
+                    // Cara bayar: preserve original label (e.g., CASH) when present; otherwise derive from metode
+                    const caraLabel = caraFromSjRaw || (metodeNormalized === 'Tunai' ? 'Tunai' : 'Kredit');
+                    $('#cara_bayar').html(`<option value="${caraLabel}">${caraLabel}</option>`).val(caraLabel).trigger('change');
                     if (data.no_po) {
                         $('#no_po').val(data.no_po);
                         console.log('Set no_po from surat jalan:', data.no_po);
@@ -890,15 +929,19 @@
                         
                         // Satuan kecil selalu unit dasar
                         // Satuan besar dari surat jalan
-                        const newItem = {
+                const unitPrice = parseFloat(item.harga_jual_default||0);
+                const lineTotal = (parseFloat(item.qty||0) * unitPrice);
+                const newItem = {
                             kodeBarang: item.kode_barang,
                             namaBarang: item.nama_barang,
-                            keterangan: item.nama_barang,
-                            harga: item.harga_jual_default || 0,
-                            qty: item.qty,
-                            satuan: unitDasar, // Satuan kecil selalu unit dasar
+                            // keterangan: item.nama_barang,
+                            merek: item.merek || '',
+                            ukuran: item.ukuran || '',
+                    harga: unitPrice,
+                            qty: item.qty,  
+                            satuan: satuanSJ || unitDasar, // Gunakan satuan SJ agar sesuai
                             satuanBesar: satuanBesarSJ, // Satuan besar dari surat jalan
-                            total: (item.qty * item.harga_jual_default) || 0,
+                    total: lineTotal,
                             diskon: 0,
                             ongkosKuli: 0
                         };
@@ -907,6 +950,14 @@
                         items.push(newItem);
                     });
                     
+                    // Re-assert payment fields after item rendering in case other code modified them
+                    $('#metode_pembayaran').val(metodeNormalized).trigger('change');
+                    $('#cara_bayar').html(`<option value="${caraLabel}">${caraLabel}</option>`).val(caraLabel).trigger('change');
+                    toggleTempoVisibility(metodeNormalized, caraLabel);
+                    $('#metode_pembayaran').val(metodeNormalized).trigger('change');
+                    $('#cara_bayar').html(`<option value="${caraLabel}">${caraLabel}</option>`).val(caraLabel).trigger('change');
+                    toggleTempoVisibility(metodeNormalized, caraLabel);
+
                     // Update items table
                     renderItems();
                     calculateTotals();
@@ -1293,6 +1344,8 @@
                     <tr>
                         <td>${item.kodeBarang}</td>
                         <td>${item.namaBarang}</td>
+                        <td>${item.merek || '-'}</td>
+                        <td>${item.ukuran || '-'}</td>
                         <td>${item.keterangan || '-'}</td>
                         <td class="text-right">${formatCurrency(item.harga)}</td>
                         <td>${item.qty} ${item.satuan || ''}</td>

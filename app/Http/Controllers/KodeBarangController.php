@@ -193,13 +193,13 @@ class KodeBarangController extends Controller
         $validated['cost'] = 0; // set default cost dari master barang
         
         // Set default values if not provided
-        $validated['unit_dasar'] = $validated['unit_dasar'] ?? 'LBR';
+        // $validated['unit_dasar'] = $validated['unit_dasar'] ?? 'LBR';
         // Default conversion: PCS -> LUSIN (12) if unit dasar PCS
-        if (($validated['unit_dasar'] ?? '') === 'PCS') {
-            $validated['satuan_dasar'] = 'PCS';
-            $validated['satuan_besar'] = 'LUSIN';
-            $validated['nilai_konversi'] = $validated['nilai_konversi'] ?? 12;
-        }
+        // if (($validated['unit_dasar'] ?? '') === 'PCS') {
+        //     $validated['satuan_dasar'] = 'PCS';
+        //     $validated['satuan_besar'] = 'LUSIN';
+        //     $validated['nilai_konversi'] = $validated['nilai_konversi'] ?? 12;
+        // }
         $validated['price'] = $validated['price'] ?? 0;
         $validated['harga_jual'] = $validated['harga_jual'] ?? $validated['price'];
         $validated['ongkos_kuli_default'] = $validated['ongkos_kuli_default'] ?? 0;
@@ -214,16 +214,16 @@ class KodeBarangController extends Controller
         $kodeBarang = KodeBarang::create($validated);
 
         // Auto-create default conversion when unit dasar is PCS
-        if (($validated['unit_dasar'] ?? '') === 'PCS') {
-            $defaultSatuanBesar = $validated['satuan_besar'] ?? 'LUSIN';
-            $defaultNilai = (int) ($validated['nilai_konversi'] ?? 12);
-            if ($defaultSatuanBesar && $defaultNilai > 0) {
-                \App\Models\UnitConversion::updateOrCreate(
-                    [ 'kode_barang_id' => $kodeBarang->id, 'unit_turunan' => strtoupper($defaultSatuanBesar) ],
-                    [ 'nilai_konversi' => $defaultNilai, 'is_active' => true ]
-                );
-            }
-        }
+        // if (($validated['unit_dasar'] ?? '') === 'PCS') {
+        //     $defaultSatuanBesar = $validated['satuan_besar'] ?? 'LUSIN';
+        //     $defaultNilai = (int) ($validated['nilai_konversi'] ?? 12);
+        //     if ($defaultSatuanBesar && $defaultNilai > 0) {
+        //         \App\Models\UnitConversion::updateOrCreate(
+        //             [ 'kode_barang_id' => $kodeBarang->id, 'unit_turunan' => strtoupper($defaultSatuanBesar) ],
+        //             [ 'nilai_konversi' => $defaultNilai, 'is_active' => true ]
+        //         );
+        //     }
+        // }
 
         // Handle inline unit conversions payload (JSON array)
         $ucPayload = $request->input('unit_conversions');

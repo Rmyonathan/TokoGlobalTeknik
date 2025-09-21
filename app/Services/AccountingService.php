@@ -51,10 +51,10 @@ class AccountingService
     }
 
     // Sales Invoice:
-    // - Tunai: Dr Cash/Bank; Kredit: Dr Accounts Receivable
-    // - Cr Sales Revenue (DPP)
-    // - Cr VAT Payable (if PPN active/exists on transaction)
-    // - Dr COGS; Cr Inventory for FIFO-based cost
+    // - Tunai: Dr Kas Besar/Kecil; Kredit: Dr Piutang Usaha; Non Tunai: Dr Bank 1104-x
+    // - Cr Pendapatan Penjualan (= DPP)
+    // - Cr PPN Keluaran (= PPN) [DB2]
+    // - Dr HPP; Cr Persediaan (= COGS)
     public function createJournalFromSale($transaksi): ?Journal
     {
         $date = optional($transaksi->tanggal)->format('Y-m-d') ?: now()->format('Y-m-d');
@@ -78,29 +78,54 @@ class AccountingService
         $grand = (float)($transaksi->grand_total ?? 0);
         $sales = max(0.0, $grand - $ppn);
 
-        // Decide cash vs credit
+        // Decide payment method: cash, credit, or non-cash
         $isCash = false;
+        $isCredit = false;
         $caraBayar = strtolower((string)($transaksi->cara_bayar ?? ''));
         $pembayaran = strtolower((string)($transaksi->pembayaran ?? ''));
+        
         if (in_array($caraBayar, ['tunai','cash']) || in_array($pembayaran, ['tunai','cash'])) {
             $isCash = true;
+        } elseif (in_array($caraBayar, ['kredit','credit','tempo','utang']) || in_array($pembayaran, ['kredit','credit','tempo','utang'])) {
+            $isCredit = true;
         }
 
         $lines = [];
-        if ($isCash && $kasOrBank) {
-            $lines[] = ['account_id'=>$kasOrBank->id,'debit'=>$grand,'credit'=>0,'memo'=>'Penerimaan penjualan tunai'];
+        if ($isCash) {
+            // Penjualan Tunai: Dr Kas Besar/Kecil
+            $kasAccount = $this->findAccountAny(['Kas Besar', 'Kas Kecil', 'Kas']);
+            if ($kasAccount) {
+                $lines[] = ['account_id'=>$kasAccount->id,'debit'=>$grand,'credit'=>0,'memo'=>'Penerimaan penjualan tunai'];
+            } else {
+                Log::warning('COA Kas Besar/Kecil not found for cash sales');
+                return null;
+            }
+        } elseif ($isCredit) {
+            // Penjualan Kredit: Dr Piutang Usaha
+            if ($piutang) {
+                $lines[] = ['account_id'=>$piutang->id,'debit'=>$grand,'credit'=>0,'memo'=>'Piutang usaha penjualan'];
+            } else {
+                Log::warning('COA Piutang Usaha not found for credit sales');
+                return null;
+            }
         } else {
-            // default to AR
-            $lines[] = ['account_id'=>$piutang->id,'debit'=>$grand,'credit'=>0,'memo'=>'Piutang usaha penjualan'];
+            // Penjualan Non Tunai (Bank Transfer): Dr Bank 1104-x
+            $bankAccount = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4']);
+            if ($bankAccount) {
+                $lines[] = ['account_id'=>$bankAccount->id,'debit'=>$grand,'credit'=>0,'memo'=>'Penerimaan penjualan non tunai'];
+            } else {
+                // Fallback to AR if no bank account found
+                $lines[] = ['account_id'=>$piutang->id,'debit'=>$grand,'credit'=>0,'memo'=>'Piutang usaha penjualan'];
+            }
         }
         $lines[] = ['account_id'=>$pendapatan->id,'debit'=>0,'credit'=>$sales,'memo'=>'Pendapatan penjualan'];
         if ($ppn > 0 && $utangPpn) {
             $lines[] = ['account_id'=>$utangPpn->id,'debit'=>0,'credit'=>$ppn,'memo'=>'PPN Keluaran'];
         }
-        // Tambahkan jurnal HPP jika data modal tersedia dan akun ditemukan
+        // HPP: Dr HPP; Cr Persediaan (= cogs)
         if ($hpp && $persediaan) {
             try {
-                $modal = 0.0;
+                $cogs = 0.0;
                 if (method_exists($transaksi, 'loadMissing')) {
                     $transaksi->loadMissing('items.transaksiItemSumber.stockBatch');
                 }
@@ -108,13 +133,13 @@ class AccountingService
                     $sumbers = $item->transaksiItemSumber ?? ($item->sumber ?? []);
                     foreach ($sumbers as $sumber) {
                         if ($sumber->stockBatch) {
-                            $modal += ((float)$sumber->qty_diambil) * ((float)$sumber->stockBatch->harga_beli);
+                            $cogs += ((float)$sumber->qty_diambil) * ((float)$sumber->stockBatch->harga_beli);
                         }
                     }
                 }
-                if ($modal > 0) {
-                    $lines[] = ['account_id'=>$hpp->id,'debit'=>$modal,'credit'=>0,'memo'=>'HPP'];
-                    $lines[] = ['account_id'=>$persediaan->id,'debit'=>0,'credit'=>$modal,'memo'=>'Pengurangan persediaan (HPP)'];
+                if ($cogs > 0) {
+                    $lines[] = ['account_id'=>$hpp->id,'debit'=>$cogs,'credit'=>0,'memo'=>'HPP'];
+                    $lines[] = ['account_id'=>$persediaan->id,'debit'=>0,'credit'=>$cogs,'memo'=>'Pengurangan persediaan (HPP)'];
                 }
             } catch (\Exception $e) {
                 Log::warning('Failed to compute HPP for sales journal', ['message'=>$e->getMessage(), 'ref'=>$reference]);
@@ -123,7 +148,9 @@ class AccountingService
         return $this->createJournal($date, $reference, $desc, $lines);
     }
 
-    // Purchase: Dr Inventory, Dr VAT Receivable, Cr Cash/AP
+    // Purchase: 
+    // - Tunai/Transfer: Dr Persediaan, Dr PPN Masukan, Cr Bank 1104-x
+    // - Kredit: Dr Persediaan, Dr PPN Masukan, Cr Utang Usaha
     public function createJournalFromPurchase($pembelian): ?Journal
     {
         $date = optional($pembelian->tanggal)->format('Y-m-d') ?: now()->format('Y-m-d');
@@ -148,49 +175,76 @@ class AccountingService
             $lines[] = ['account_id'=>$piutangPpn->id,'debit'=>$ppn,'credit'=>0,'memo'=>'PPN Masukan'];
         }
 
-        // If paid -> cash; else AP
-        // FIX: Perbaikan logika jurnal - Non Tunai = Credit, Tunai = Cash
-        $isCredit = ($pembelian->pembayaran ?? '') === 'Non Tunai' || 
-                   in_array($pembelian->cara_bayar ?? '', ['tempo','kredit','utang']);
-        $creditAccount = $isCredit && $utangUsaha ? $utangUsaha : ($kas ?: $utangUsaha);
-        if (!$creditAccount) { Log::warning('COA Kas/Utang Usaha not found'); return null; }
-        $lines[] = ['account_id'=>$creditAccount->id,'debit'=>0,'credit'=>$grand,'memo'=>'Kredit pembelian'];
+        // Determine payment method: Tunai/Transfer = Bank, Kredit = Utang Usaha
+        $isCredit = in_array($pembelian->cara_bayar ?? '', ['tempo','kredit','utang']);
+        
+        if ($isCredit) {
+            // Pembelian Kredit: Cr Utang Usaha
+            if ($utangUsaha) {
+                $lines[] = ['account_id'=>$utangUsaha->id,'debit'=>0,'credit'=>$grand,'memo'=>'Utang pembelian'];
+            } else {
+                Log::warning('COA Utang Usaha not found for credit purchase');
+                return null;
+            }
+        } else {
+            // Pembelian Tunai/Transfer: Cr Bank 1104-x
+            $bankAccount = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4']);
+            if ($bankAccount) {
+                $lines[] = ['account_id'=>$bankAccount->id,'debit'=>0,'credit'=>$grand,'memo'=>'Pembayaran pembelian tunai/transfer'];
+            } else {
+                // Fallback to Kas if no bank account found
+                $kasAccount = $this->findAccountAny(['Kas Besar', 'Kas Kecil', 'Kas']);
+                if ($kasAccount) {
+                    $lines[] = ['account_id'=>$kasAccount->id,'debit'=>0,'credit'=>$grand,'memo'=>'Pembayaran pembelian tunai'];
+                } else {
+                    Log::warning('COA Bank/Kas not found for cash purchase');
+                    return null;
+                }
+            }
+        }
 
         return $this->createJournal($date, $reference, $desc, $lines);
     }
 
-    // AR Payment: Dr Cash/Bank, Cr Accounts Receivable
-    // If discount/selisih provided on payment:
-    //   Positive selisih (diskon untuk customer): Dr Sales Discount; reduce credit to AR
-    //   Negative selisih (kelebihan bayar): Cr Other Income
+    // AR Payment: Dr Bank 1104-x / Kas Besar/Kecil, Cr Piutang Usaha
+    // Jika selisih: Dr Diskon Penjualan (potongan) / Cr Pendapatan Lain-lain (kelebihan)
     public function createJournalFromPaymentAR($payment): ?Journal
     {
         $date = optional($payment->tanggal)->format('Y-m-d') ?: now()->format('Y-m-d');
         $reference = $payment->no_pembayaran ?? 'PAY-AR';
         $desc = 'Pembayaran Piutang '.$reference;
 
-        $kas = $this->findAccount('Kas') ?: $this->findAccount('Bank');
+        // Prioritas akun: Bank 1104-x → Kas Besar/Kecil → Kas
+        $bankOrKas = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4', 'Kas Besar', 'Kas Kecil', 'Kas']);
         $piutang = $this->findAccount('Piutang Usaha');
         $diskonPenjualan = $this->findAccountAny(['Diskon Penjualan']);
         $pendapatanLain = $this->findAccountAny(['Pendapatan Lain-lain','Pend. Lain-lain','Pendapatan Lain lain']);
-        if (!$kas || !$piutang) { Log::warning('COA Kas/Bank or Piutang not found'); return null; }
-        $amount = (float)($payment->total_bayar ?? $payment->total_dibayar ?? $payment->jumlah ?? 0);
-
-        // Optional discount/selisih on payment object
-        $selisih = (float)($payment->diskon ?? $payment->selisih ?? 0);
-        $lines = [];
-        // Cash received
-        if ($amount > 0) {
-            $lines[] = ['account_id'=>$kas->id,'debit'=>$amount,'credit'=>0,'memo'=>'Terima pembayaran pelanggan'];
+        
+        if (!$bankOrKas || !$piutang) { 
+            Log::warning('COA Bank/Kas or Piutang not found'); 
+            return null; 
         }
-        // Discount given to customer reduces AR
+        
+        $amount = (float)($payment->total_bayar ?? $payment->total_dibayar ?? $payment->jumlah ?? 0);
+        $selisih = (float)($payment->diskon ?? $payment->selisih ?? 0);
+        
+        $lines = [];
+        
+        // Dr Bank 1104-x / Kas Besar/Kecil (= diterima)
+        if ($amount > 0) {
+            $lines[] = ['account_id'=>$bankOrKas->id,'debit'=>$amount,'credit'=>0,'memo'=>'Terima pembayaran pelanggan'];
+        }
+        
+        // Jika selisih: Dr Diskon Penjualan (potongan) / Cr Pendapatan Lain-lain (kelebihan)
         if ($selisih > 0 && $diskonPenjualan) {
+            // Positive selisih = potongan untuk customer
             $lines[] = ['account_id'=>$diskonPenjualan->id,'debit'=>$selisih,'credit'=>0,'memo'=>'Diskon penjualan saat pelunasan'];
         } elseif ($selisih < 0 && $pendapatanLain) {
-            // Negative selisih -> extra income
+            // Negative selisih = kelebihan bayar
             $lines[] = ['account_id'=>$pendapatanLain->id,'debit'=>0,'credit'=>abs($selisih),'memo'=>'Selisih lebih pembayaran pelanggan'];
         }
 
+        // Cr Piutang Usaha (= diterima)
         $creditToAr = $amount + max(0.0, $selisih) - max(0.0, -$selisih);
         if ($creditToAr > 0) {
             $lines[] = ['account_id'=>$piutang->id,'debit'=>0,'credit'=>$creditToAr,'memo'=>'Pelunasan piutang'];
@@ -198,49 +252,56 @@ class AccountingService
         return $this->createJournal($date, $reference, $desc, $lines);
     }
 
-    // AP Payment: Dr Accounts Payable, Cr Cash/Bank
-    // If potongan/selisih provided on payment:
-    //   Positive selisih (potongan dari supplier): Cr Purchase Discount
-    //   Negative selisih (biaya lain-lain): Dr Other Expense
+    // AP Payment: Dr Utang Usaha, Cr Bank 1104-x / Kas Besar/Kecil
+    // Jika potongan: Cr Diskon Pembelian (potongan) / Dr Beban Lain-lain (selisih biaya)
     public function createJournalFromPaymentAP($payment): ?Journal
     {
         $date = optional($payment->tanggal)->format('Y-m-d') ?: now()->format('Y-m-d');
         $reference = $payment->no_pembayaran ?? 'PAY-AP';
         $desc = 'Pembayaran Utang '.$reference;
 
+        // Prioritas akun: Bank 1104-x → Kas Besar/Kecil → Kas
+        $bankOrKas = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4', 'Kas Besar', 'Kas Kecil', 'Kas']);
         $utang = $this->findAccountAny(['Utang Usaha']);
-        $kas = $this->findAccountAny(['Kas','Bank']);
         $diskonPembelian = $this->findAccountAny(['Diskon Pembelian']);
         $bebanLain = $this->findAccountAny(['Beban Lain-lain','Beban Lain lain']);
-        if (!$utang || !$kas) { Log::warning('COA Utang/Kas not found'); return null; }
+        
+        if (!$utang || !$bankOrKas) { 
+            Log::warning('COA Utang Usaha or Bank/Kas not found'); 
+            return null; 
+        }
+        
         $amount = (float)($payment->total_bayar ?? $payment->total_dibayar ?? $payment->jumlah ?? 0);
-        $selisih = (float)($payment->potongan ?? $payment->selisih ?? 0);
-
+        $potongan = (float)($payment->potongan ?? $payment->selisih ?? 0);
+        
         $lines = [];
-        // Debit AP for total settlement (cash + positive potongan - negative selisih)
-        $debitToAp = $amount + max(0.0,$selisih) - max(0.0,-$selisih);
-        if ($debitToAp > 0) {
-            $lines[] = ['account_id'=>$utang->id,'debit'=>$debitToAp,'credit'=>0,'memo'=>'Pelunasan utang'];
-        }
-        // Cash out
+        
+        // Dr Utang Usaha (= dibayar)
         if ($amount > 0) {
-            $lines[] = ['account_id'=>$kas->id,'debit'=>0,'credit'=>$amount,'memo'=>'Pembayaran kepada supplier'];
+            $lines[] = ['account_id'=>$utang->id,'debit'=>$amount,'credit'=>0,'memo'=>'Pelunasan utang'];
         }
-        // Positive potongan -> discount purchase (credit)
-        if ($selisih > 0 && $diskonPembelian) {
-            $lines[] = ['account_id'=>$diskonPembelian->id,'debit'=>0,'credit'=>$selisih,'memo'=>'Potongan pembelian saat pelunasan'];
-        } elseif ($selisih < 0 && $bebanLain) {
-            // Negative selisih -> other expense (debit)
-            $lines[] = ['account_id'=>$bebanLain->id,'debit'=>abs($selisih),'credit'=>0,'memo'=>'Selisih biaya saat pelunasan utang'];
+        
+        // Cr Bank 1104-x / Kas Besar/Kecil (= dibayar)
+        if ($amount > 0) {
+            $lines[] = ['account_id'=>$bankOrKas->id,'debit'=>0,'credit'=>$amount,'memo'=>'Pembayaran kepada supplier'];
+        }
+        
+        // Jika potongan: Cr Diskon Pembelian (potongan) / Dr Beban Lain-lain (selisih biaya)
+        if ($potongan > 0 && $diskonPembelian) {
+            // Positive potongan = diskon dari supplier
+            $lines[] = ['account_id'=>$diskonPembelian->id,'debit'=>0,'credit'=>$potongan,'memo'=>'Potongan pembelian saat pelunasan'];
+        } elseif ($potongan < 0 && $bebanLain) {
+            // Negative potongan = selisih biaya
+            $lines[] = ['account_id'=>$bebanLain->id,'debit'=>abs($potongan),'credit'=>0,'memo'=>'Selisih biaya saat pelunasan utang'];
         }
         return $this->createJournal($date, $reference, $desc, $lines);
     }
 
     // Sales Return (Nota Kredit):
-    // - Dr Sales Return (DPP)
-    // - Dr VAT Output (reverse) if applicable
-    // - Cr AR/Cash/Bank (grand total)
-    // - If goods returned: Dr Inventory; Cr COGS (FIFO value of returned qty)
+    // - Dr Retur Penjualan (= DPP)
+    // - Dr PPN Keluaran (= PPN) [DB2]
+    // - Cr Piutang Usaha / Kas/Bank (= grand total)
+    // - Jika barang kembali: Dr Persediaan; Cr HPP (= nilai FIFO kembali)
     public function createJournalFromSalesReturn($retur): ?Journal
     {
         $date = optional($retur->tanggal)->format('Y-m-d') ?: now()->format('Y-m-d');
@@ -248,7 +309,8 @@ class AccountingService
         $desc = 'Retur Penjualan '.$reference;
         $returPenjualan = $this->findAccountAny(['Retur Penjualan']);
         $piutang = $this->findAccountAny(['Piutang Usaha']);
-        $kasOrBank = $this->findAccountAny(['Kas','Bank','Kas Besar','Kas Kecil']);
+        // Prioritas akun: Bank 1104-x → Kas Besar/Kecil → Kas
+        $kasOrBank = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4', 'Kas Besar', 'Kas Kecil', 'Kas']);
         $ppnKeluaran = $this->findAccountAny(['PPN Keluaran','Utang PPN', 'Utang PPN (PPN Keluaran)']);
         $hpp = $this->findAccountAny(['COGS','Harga Pokok Penjualan (HPP)', 'Harga Pokok Penjualan']);
         $persediaan = $this->findAccountAny(['Persediaan','Persediaan Barang Dagang']);
@@ -271,14 +333,17 @@ class AccountingService
         // Decide whether refund reduces AR or cash received
         $creditAccount = $piutang ?: $kasOrBank;
         $lines = [
+            // Dr Retur Penjualan (= DPP)
             ['account_id'=>$returPenjualan->id,'debit'=>$dpp,'credit'=>0,'memo'=>'Retur penjualan (DPP)'],
         ];
+        // Dr PPN Keluaran (= PPN) [DB2]
         if ($ppnAmount > 0 && $ppnKeluaran) {
             $lines[] = ['account_id'=>$ppnKeluaran->id,'debit'=>$ppnAmount,'credit'=>0,'memo'=>'Pembalikan PPN Keluaran'];
         }
+        // Cr Piutang Usaha / Kas/Bank (= grand total)
         $lines[] = ['account_id'=>$creditAccount->id,'debit'=>0,'credit'=>$amountGrand,'memo'=>'Koreksi piutang/kas'];
 
-        // Inventory back if goods returned
+        // Jika barang kembali: Dr Persediaan; Cr HPP (= nilai FIFO kembali)
         if ($hpp && $persediaan) {
             try {
                 if (method_exists($retur, 'loadMissing')) {
@@ -291,7 +356,7 @@ class AccountingService
                     $originalQty = (float)($ti->qty ?? 0);
                     $returnedQty = (float)($ritem->qty_retur ?? 0);
                     if ($originalQty <= 0 || $returnedQty <= 0) { continue; }
-                    // Weighted average COGS/unit from original sumber
+                    // Weighted average COGS/unit from original sumber (FIFO)
                     $totalCogsItem = 0.0; $totalQtyTaken = 0.0;
                     foreach (($ti->sumber ?? []) as $s) {
                         $totalCogsItem += ((float)$s->qty_diambil) * ((float)$s->harga_modal);
@@ -301,6 +366,7 @@ class AccountingService
                     $cogsBack += $cogsPerUnit * $returnedQty;
                 }
                 if ($cogsBack > 0) {
+                    // Dr Persediaan; Cr HPP (= nilai FIFO kembali)
                     $lines[] = ['account_id'=>$persediaan->id,'debit'=>$cogsBack,'credit'=>0,'memo'=>'Barang retur masuk ke persediaan'];
                     $lines[] = ['account_id'=>$hpp->id,'debit'=>0,'credit'=>$cogsBack,'memo'=>'Pembalikan HPP atas retur'];
                 }
@@ -447,6 +513,37 @@ class AccountingService
             if ($acc) return $acc;
         }
         return null;
+    }
+
+    /**
+     * Resolve default Cash/Bank account by priority when user doesn't pick one.
+     * Priority: Kas Besar → Kas Kecil → 1104-1 → 1104-2 → 1104-3 → 1104-4 → Bank (1104)
+     */
+    public function resolveDefaultCashBank(): ?ChartOfAccount
+    {
+        // 1) Names priority
+        $orderByName = ['Kas Besar', 'Kas Kecil'];
+        foreach ($orderByName as $n) {
+            $acc = $this->findAccount($n);
+            if ($acc) return $acc;
+        }
+        // 2) Bank sub-accounts by codes
+        $orderByCode = ['1104-1','1104-2','1104-3','1104-4'];
+        foreach ($orderByCode as $code) {
+            $acc = $this->findAccountByCode($code);
+            if ($acc) return $acc;
+        }
+        // 3) Fallback to Bank (group) by name or code 1104
+        $bank = $this->findAccount('Bank');
+        if ($bank) return $bank;
+        $bankByCode = $this->findAccountByCode('1104');
+        if ($bankByCode) return $bankByCode;
+        return null;
+    }
+
+    private function findAccountByCode(string $code): ?ChartOfAccount
+    {
+        return ChartOfAccount::where('code', $code)->first();
     }
 
     private function generateJournalNo(string $date): string

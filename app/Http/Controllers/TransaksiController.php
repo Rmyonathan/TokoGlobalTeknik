@@ -1215,19 +1215,30 @@ class TransaksiController extends Controller
     {
         $transaction = Transaksi::with('items', 'customer', 'salesOrder', 'editedBy')->findOrFail($id);
 
+        // Ambil semua surat jalan yang direferensikan oleh faktur ini (jika ada)
+        $suratJalans = \App\Models\SuratJalan::where('no_transaksi', $transaction->no_transaksi)
+            ->orderBy('tanggal')
+            ->get();
+
         // Split items into chunks of 10 per page
         $itemsPerPage = 10;
         $groupedItems = $transaction->items->chunk($itemsPerPage);
         
         return view('transaksi.nota', [
             'transaction' => $transaction,
-            'groupedItems' => $groupedItems
+            'groupedItems' => $groupedItems,
+            'suratJalans' => $suratJalans,
         ]);
     }
 
     public function nota($id)
     {
         $transaction = Transaksi::with('items', 'customer', 'salesOrder')->findOrFail($id);
+
+        // Ambil semua surat jalan yang direferensikan oleh faktur ini (jika ada)
+        $suratJalans = \App\Models\SuratJalan::where('no_transaksi', $transaction->no_transaksi)
+            ->orderBy('tanggal')
+            ->get();
 
         // Split items into chunks of 10 per page
         $itemsPerPage = 10;
@@ -1236,7 +1247,8 @@ class TransaksiController extends Controller
         // Load the new print-specific view for PDF generation
         $pdf = Pdf::loadView('transaksi.print_nota', [ // Changed from 'transaksi.nota' to 'transaksi.print_nota'
             'transaction' => $transaction,
-            'groupedItems' => $groupedItems
+            'groupedItems' => $groupedItems,
+            'suratJalans' => $suratJalans,
         ]);
 
         // Set PDF options for paper size, orientation, and DPI
