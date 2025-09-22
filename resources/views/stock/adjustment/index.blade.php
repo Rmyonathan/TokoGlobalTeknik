@@ -45,6 +45,10 @@
                             <th>No.</th>
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
+                            <th>Merek</th>
+                            <th>Ukuran</th>
+                            <th>Grup</th>
+                            <th>Satuan Kecil</th>
                             <th>Current Stock</th>
                             <th>Action</th>
                         </tr>
@@ -56,6 +60,10 @@
                                 <td>{{ $key + 1 }}</td>
                                 <td>{{ $item['group_id'] }}</td>
                                 <td>{{ $item['name'] }}</td>
+                                <td>{{ $item['merek'] ?? '-' }}</td>
+                                <td>{{ $item['ukuran'] ?? '-' }}</td>
+                                <td>{{ $item['group'] ?? '-' }}</td>
+                                <td>{{ $item['unit_dasar'] ?? '-' }}</td>
                                 <td>{{ $item['quantity'] }}</td>
                                 <td>
                                     <a href="{{ route('stock.adjustment.adjust', $item['group_id']) }}" class="btn btn-sm btn-primary">
@@ -66,7 +74,7 @@
                             @endforeach
                         @else
                             <tr>
-                                <td colspan="5" class="text-center">No items found</td>
+                                <td colspan="9" class="text-center">No items found</td>
                             </tr>
                         @endif
                     </tbody>

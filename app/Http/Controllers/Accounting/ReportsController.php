@@ -10,28 +10,95 @@ use App\Models\Journal;
 use App\Models\JournalDetail;
 use App\Models\AccountingPeriod;
 use App\Models\ReportHistory;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportsController extends Controller
 {
     public function generalLedger(Request $request)
     {
-        $periodId = $request->get('period_id');
+        $from = $request->get('from', now()->startOfMonth()->toDateString());
+        $to = $request->get('to', now()->endOfMonth()->toDateString());
         $accountId = $request->get('account_id');
-        $periods = AccountingPeriod::orderByDesc('start_date')->get();
         $accounts = ChartOfAccount::orderBy('code')->get();
 
         $entries = collect();
-        if ($periodId && $accountId) {
+        $account = null;
+        if ($accountId) {
+            $account = ChartOfAccount::find($accountId);
             $entries = JournalDetail::with(['journal'])
                 ->where('account_id', $accountId)
-                ->whereHas('journal', function($q) use ($periodId){
-                    $q->where('accounting_period_id', $periodId);
+                ->whereHas('journal', function($q) use ($from, $to){
+                    $q->whereBetween('journal_date', [$from, $to]);
                 })
-                ->orderByDesc('id')
+                ->orderBy('journal_id')
+                ->orderBy('id')
                 ->get();
         }
 
-        return view('accounting.reports.general_ledger', compact('periods','accounts','entries','periodId','accountId'));
+        // Export handlers
+        $export = $request->get('export');
+        if ($export && $accountId) {
+            if ($export === 'csv') {
+                return $this->exportGeneralLedgerCsv($entries, $account, $from, $to);
+            } elseif ($export === 'pdf') {
+                return $this->exportGeneralLedgerPdf($entries, $account, $from, $to);
+            }
+        }
+
+        return view('accounting.reports.general_ledger', compact('accounts','entries','from','to','accountId'));
+    }
+
+    private function exportGeneralLedgerCsv($entries, ?ChartOfAccount $account, string $from, string $to): StreamedResponse
+    {
+        $filename = 'general_ledger_'.$account->code.'_'.$from.'_to_'.$to.'.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ];
+
+        $callback = function() use ($entries, $account, $from, $to) {
+            $handle = fopen('php://output', 'w');
+            // Header info row
+            fputcsv($handle, ['Buku Besar (General Ledger)']);
+            fputcsv($handle, ['Akun', $account->code.' - '.$account->name]);
+            fputcsv($handle, ['Periode', $from.' s/d '.$to]);
+            fputcsv($handle, []);
+            // Table header
+            fputcsv($handle, ['Tanggal', 'No. Jurnal', 'Referensi', 'Keterangan', 'Debet', 'Kredit']);
+            $totalD = 0; $totalK = 0;
+            foreach ($entries as $e) {
+                $totalD += (float) $e->debit;
+                $totalK += (float) $e->credit;
+                fputcsv($handle, [
+                    optional($e->journal->journal_date)->format('Y-m-d'),
+                    $e->journal->journal_no,
+                    $e->journal->reference,
+                    $e->memo ?: $e->journal->description,
+                    number_format((float)$e->debit, 2, '.', ''),
+                    number_format((float)$e->credit, 2, '.', ''),
+                ]);
+            }
+            // Totals
+            fputcsv($handle, []);
+            fputcsv($handle, ['TOTAL', '', '', '', number_format($totalD, 2, '.', ''), number_format($totalK, 2, '.', '')]);
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    private function exportGeneralLedgerPdf($entries, ?ChartOfAccount $account, string $from, string $to)
+    {
+        $pdf = Pdf::loadView('accounting.reports.general_ledger_pdf', [
+            'entries' => $entries,
+            'account' => $account,
+            'from' => $from,
+            'to' => $to,
+        ])->setPaper('a4', 'portrait');
+
+        $filename = 'general_ledger_'.$account->code.'_'.$from.'_to_'.$to.'.pdf';
+        return $pdf->download($filename);
     }
 
     public function trialBalance(Request $request)

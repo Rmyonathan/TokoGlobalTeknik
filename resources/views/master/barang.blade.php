@@ -4,6 +4,11 @@
 <section id="barang">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Master Barang</h2>
+        <div>
+            <a href="{{ route('code.import.form') }}" class="btn btn-outline-primary btn-sm me-2">
+                <i class="fas fa-file-upload"></i> Import CSV
+            </a>
+        </div>
     </div>
 
     <div class="card">
@@ -52,7 +57,7 @@
                 @if(isset($inventory) && count($inventory['inventory_by_length']) > 0)
                     <div class="table-responsive">
                         <table class="table table-striped table-bordered">
-                                                            <thead>
+                            <thead>
                                     <tr>
                                         <th>ID</th>
                                         <th>Kode Barang</th>

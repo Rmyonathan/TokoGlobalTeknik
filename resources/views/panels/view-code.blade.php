@@ -8,9 +8,7 @@
             <a href="{{ route('code.create-code') }}" class="btn btn-primary mr-2">
                 <i class="fas fa-plus"></i> Tambah Kode Barang
             </a>
-            <a href="{{ route('code.import.form') }}" class="btn btn-outline-primary">
-                <i class="fas fa-file-upload"></i> Import CSV
-            </a>
+            
             <button type="button" class="btn btn-outline-secondary ml-2" data-toggle="modal" data-target="#manageUnitModal">
                 <i class="fas fa-ruler-combined"></i> Kelola Satuan Besar
             </button>

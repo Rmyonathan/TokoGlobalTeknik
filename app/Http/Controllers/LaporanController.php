@@ -32,8 +32,13 @@ class LaporanController extends Controller
      */
     public function penjualanDanRetur(Request $request)
     {
-        $startDate = $request->get('start_date', now()->startOfMonth());
-        $endDate = $request->get('end_date', now()->endOfMonth());
+        // Ensure Carbon instances for date range
+        $startDate = $request->filled('start_date')
+            ? Carbon::parse($request->input('start_date'))->startOfDay()
+            : now()->startOfMonth();
+        $endDate = $request->filled('end_date')
+            ? Carbon::parse($request->input('end_date'))->endOfDay()
+            : now()->endOfMonth();
         $customerId = $request->get('customer_id');
         
         try {
@@ -62,75 +67,38 @@ class LaporanController extends Controller
             // Hitung summary penjualan
             $penjualanSummary = [
                 'total_faktur' => $penjualanData->count(),
-                'total_omset' => $penjualanData->sum('grand_total'),
                 'total_subtotal' => $penjualanData->sum('subtotal'),
-                'total_diskon' => $penjualanData->sum('discount') + $penjualanData->sum('disc_rupiah'),
+                'total_diskon' => $penjualanData->sum(function($t){ return (float)($t->discount + $t->disc_rupiah); }),
                 'total_ppn' => $penjualanData->sum('ppn'),
-                'rata_omset_per_faktur' => $penjualanData->count() > 0 ? $penjualanData->sum('grand_total') / $penjualanData->count() : 0,
+                'total_omset' => $penjualanData->sum('grand_total'),
             ];
 
             // Hitung summary retur
             $returSummary = [
                 'total_retur' => $returData->count(),
                 'total_nilai_retur' => $returData->sum('total_retur'),
-                'rata_nilai_per_retur' => $returData->count() > 0 ? $returData->sum('total_retur') / $returData->count() : 0,
             ];
 
-            // Hitung net sales (penjualan - retur)
-            $netSales = $penjualanSummary['total_omset'] - $returSummary['total_nilai_retur'];
+            $netSales = max(0, (float)$penjualanSummary['total_omset'] - (float)$returSummary['total_nilai_retur']);
 
-            // Group penjualan by customer
-            $penjualanByCustomer = $penjualanData->groupBy('kode_customer')->map(function($transaksi, $kodeCustomer) {
-                $customer = $transaksi->first()->customer;
+            // Group by customer
+            $penjualanByCustomer = $penjualanData->groupBy('kode_customer')->map(function($items) {
+                $first = $items->first();
                 return [
-                    'kode_customer' => $kodeCustomer,
-                    'nama_customer' => $customer->nama ?? 'Unknown',
-                    'jumlah_faktur' => $transaksi->count(),
-                    'total_omset' => $transaksi->sum('grand_total'),
-                    'transaksi_list' => $transaksi->map(function($t) {
-                        return [
-                            'no_transaksi' => $t->no_transaksi,
-                            'tanggal' => $t->tanggal,
-                            'grand_total' => $t->grand_total,
-                            'status_piutang' => $t->status_piutang,
-                        ];
-                    })->values()
+                    'nama_customer' => optional($first->customer)->nama ?? 'N/A',
+                    'jumlah_faktur' => $items->count(),
+                    'total_omset' => $items->sum('grand_total'),
                 ];
             })->values();
 
-            // Group retur by customer
-            $returByCustomer = $returData->groupBy('kode_customer')->map(function($retur, $kodeCustomer) {
-                $customer = $retur->first()->customer;
+            $returByCustomer = $returData->groupBy('kode_customer')->map(function($items) {
+                $first = $items->first();
                 return [
-                    'kode_customer' => $kodeCustomer,
-                    'nama_customer' => $customer->nama ?? 'Unknown',
-                    'jumlah_retur' => $retur->count(),
-                    'total_nilai_retur' => $retur->sum('total_retur'),
-                    'retur_list' => $retur->map(function($r) {
-                        return [
-                            'no_retur' => $r->no_retur,
-                            'tanggal' => $r->tanggal,
-                            'no_transaksi' => $r->no_transaksi,
-                            'total_retur' => $r->total_retur,
-                            'status' => $r->status,
-                            'alasan_retur' => $r->alasan_retur,
-                        ];
-                    })->values()
+                    'nama_customer' => optional($first->customer)->nama ?? 'N/A',
+                    'jumlah_retur' => $items->count(),
+                    'total_nilai_retur' => $items->sum('total_retur'),
                 ];
             })->values();
-
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'penjualan_data' => $penjualanData,
-                    'retur_data' => $returData,
-                    'penjualan_summary' => $penjualanSummary,
-                    'retur_summary' => $returSummary,
-                    'net_sales' => $netSales,
-                    'penjualan_by_customer' => $penjualanByCustomer,
-                    'retur_by_customer' => $returByCustomer,
-                ]);
-            }
 
             return view('laporan.penjualan_dan_retur', compact(
                 'penjualanData', 

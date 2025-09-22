@@ -181,6 +181,10 @@ Route::middleware(['web', 'auth'])->group(function () {
 
         // Year End Closing
         Route::resource('year-end', YearEndClosingController::class)->only(['index','create','store','show']);
+        Route::get('year-end/{yearEnd}/export/pdf', [YearEndClosingController::class, 'exportPdf'])->name('year-end.export.pdf');
+        Route::get('year-end/{yearEnd}/export/csv', [YearEndClosingController::class, 'exportCsv'])->name('year-end.export.csv');
+        Route::get('year-end/{yearEnd}/export/all-accounts.csv', [YearEndClosingController::class, 'exportAllAccountsCsv'])->name('year-end.export.all-accounts');
+        
     });
     
     // Master Barang routes
