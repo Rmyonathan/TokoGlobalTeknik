@@ -52,7 +52,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="itemDetailModalLabel">Detail Item - <span id="modalNoTransaksi"></span></h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -66,7 +66,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -151,6 +151,23 @@ function showItemDetail(transaksiId, noTransaksi) {
         }
     });
 }
+// Bootstrap 4/5 close fallback
+document.addEventListener('click', function(e){
+    const btn = e.target.closest('[data-dismiss="modal"], [data-bs-dismiss="modal"]');
+    if (!btn) return;
+    const modalEl = btn.closest('.modal');
+    if (!modalEl) return;
+    // Try BS5 way
+    if (window.bootstrap && window.bootstrap.Modal) {
+        const inst = bootstrap.Modal.getOrCreateInstance(modalEl);
+        inst.hide();
+        return;
+    }
+    // Fallback to BS4/jQuery
+    if (window.$) {
+        $(modalEl).modal('hide');
+    }
+});
 </script>
 @endsection
 

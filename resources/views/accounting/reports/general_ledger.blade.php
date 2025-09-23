@@ -7,7 +7,7 @@
 		@if(($entries ?? collect())->isNotEmpty() && ($accountId ?? null))
 			<div>
 				<a class="btn btn-sm btn-outline-secondary text-white" href="{{ route('accounting.reports.gl', array_merge(request()->query(), ['export' => 'csv'])) }}">Export CSV</a>
-				<a class="btn btn-sm btn-outline-secondary text-white" href="{{ route('accounting.reports.gl', array_merge(request()->query(), ['export' => 'pdf'])) }}">Export PDF</a>
+				<a class="btn btn-sm btn-outline-secondary " href="{{ route('accounting.reports.gl', array_merge(request()->query(), ['export' => 'pdf'])) }}">Export PDF</a>
 			</div>
 		@endif
 	</div>
