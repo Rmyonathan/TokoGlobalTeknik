@@ -54,7 +54,7 @@ class AccountingService
     // - Tunai: Dr Kas Besar/Kecil; Kredit: Dr Piutang Usaha; Non Tunai: Dr Bank 1104-x
     // - Cr Pendapatan Penjualan (= DPP)
     // - Cr PPN Keluaran (= PPN) [DB2]
-    // - Dr HPP; Cr Persediaan (= COGS)
+    // - Dr HPP; Cr Persediaan (= cogs)
     public function createJournalFromSale($transaksi): ?Journal
     {
         $date = optional($transaksi->tanggal)->format('Y-m-d') ?: now()->format('Y-m-d');
@@ -92,10 +92,13 @@ class AccountingService
 
         $lines = [];
         if ($isCash) {
-            // Penjualan Tunai: Dr Kas Besar/Kecil
-            $kasAccount = $this->findAccountAny(['Kas Besar', 'Kas Kecil', 'Kas']);
-            if ($kasAccount) {
-                $lines[] = ['account_id'=>$kasAccount->id,'debit'=>$grand,'credit'=>0,'memo'=>'Penerimaan penjualan tunai'];
+            // Prefer specific Kas Kecil/Kas Besar if indicated
+            $preferredKas = $this->resolveKasAccountByText($transaksi->cara_bayar ?? null, $transaksi->pembayaran ?? null);
+            if (!$preferredKas) {
+                $preferredKas = $this->findAccountAny(['Kas Besar', 'Kas Kecil', 'Kas']);
+            }
+            if ($preferredKas) {
+                $lines[] = ['account_id'=>$preferredKas->id,'debit'=>$grand,'credit'=>0,'memo'=>'Penerimaan penjualan tunai'];
             } else {
                 Log::warning('COA Kas Besar/Kecil not found for cash sales');
                 return null;
@@ -109,8 +112,9 @@ class AccountingService
                 return null;
             }
         } else {
-            // Penjualan Non Tunai (Bank Transfer): Dr Bank 1104-x
-            $bankAccount = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4']);
+            // Penjualan Non Tunai (Bank Transfer): Dr Bank spesifik bila ada, else 1104-x
+            $preferredBank = $this->resolveBankAccountByText($transaksi->cara_bayar ?? null, $transaksi->pembayaran ?? null);
+            $bankAccount = $preferredBank ?: $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4']);
             if ($bankAccount) {
                 $lines[] = ['account_id'=>$bankAccount->id,'debit'=>$grand,'credit'=>0,'memo'=>'Penerimaan penjualan non tunai'];
             } else {
@@ -172,7 +176,7 @@ class AccountingService
             ['account_id'=>$persediaan->id,'debit'=>$net,'credit'=>0,'memo'=>'Persediaan dari pembelian'],
         ];
         if ($ppn > 0 && $piutangPpn) {
-            $lines[] = ['account_id'=>$piutangPpn->id,'debit'=>$ppn,'credit'=>0,'memo'=>'PPN Masukan'];
+            $lines[] = ['account_id'=>$piutangPpn->id,'debit'=>0,'credit'=>0 + $ppn,'memo'=>'PPN Masukan'];
         }
 
         // Determine payment method: Tunai/Transfer = Bank, Kredit = Utang Usaha
@@ -187,13 +191,14 @@ class AccountingService
                 return null;
             }
         } else {
-            // Pembelian Tunai/Transfer: Cr Bank 1104-x
-            $bankAccount = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4']);
+            // Pembelian Tunai/Transfer: Cr Bank (spesifik jika ada)
+            $preferredBank = $this->resolveBankAccountByText($pembelian->cara_bayar ?? null, $pembelian->pembayaran ?? null);
+            $bankAccount = $preferredBank ?: $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4']);
             if ($bankAccount) {
                 $lines[] = ['account_id'=>$bankAccount->id,'debit'=>0,'credit'=>$grand,'memo'=>'Pembayaran pembelian tunai/transfer'];
             } else {
-                // Fallback to Kas if no bank account found
-                $kasAccount = $this->findAccountAny(['Kas Besar', 'Kas Kecil', 'Kas']);
+                // Fallback to Kas jika tidak ada akun bank
+                $kasAccount = $this->resolveKasAccountByText($pembelian->cara_bayar ?? null, $pembelian->pembayaran ?? null) ?: $this->findAccountAny(['Kas Besar', 'Kas Kecil', 'Kas']);
                 if ($kasAccount) {
                     $lines[] = ['account_id'=>$kasAccount->id,'debit'=>0,'credit'=>$grand,'memo'=>'Pembayaran pembelian tunai'];
                 } else {
@@ -214,8 +219,10 @@ class AccountingService
         $reference = $payment->no_pembayaran ?? 'PAY-AR';
         $desc = 'Pembayaran Piutang '.$reference;
 
-        // Prioritas akun: Bank 1104-x → Kas Besar/Kecil → Kas
-        $bankOrKas = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4', 'Kas Besar', 'Kas Kecil', 'Kas']);
+        // Prioritas akun: Bank spesifik → 1104-x → Kas Besar/Kecil → Kas
+        $preferredKas = $this->resolveKasAccountByText($payment->cara_bayar ?? null, $payment->pembayaran ?? null);
+        $preferredBank = $this->resolveBankAccountByText($payment->cara_bayar ?? null, $payment->pembayaran ?? null);
+        $bankOrKas = $preferredBank ?: ($preferredKas ?: $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4', 'Kas Besar', 'Kas Kecil', 'Kas']));
         $piutang = $this->findAccount('Piutang Usaha');
         $diskonPenjualan = $this->findAccountAny(['Diskon Penjualan']);
         $pendapatanLain = $this->findAccountAny(['Pendapatan Lain-lain','Pend. Lain-lain','Pendapatan Lain lain']);
@@ -260,8 +267,10 @@ class AccountingService
         $reference = $payment->no_pembayaran ?? 'PAY-AP';
         $desc = 'Pembayaran Utang '.$reference;
 
-        // Prioritas akun: Bank 1104-x → Kas Besar/Kecil → Kas
-        $bankOrKas = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4', 'Kas Besar', 'Kas Kecil', 'Kas']);
+        // Prioritas akun: Bank spesifik → 1104-x → Kas Besar/Kecil → Kas
+        $preferredKas = $this->resolveKasAccountByText($payment->cara_bayar ?? null, $payment->pembayaran ?? null);
+        $preferredBank = $this->resolveBankAccountByText($payment->cara_bayar ?? null, $payment->pembayaran ?? null);
+        $bankOrKas = $preferredBank ?: ($preferredKas ?: $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4', 'Kas Besar', 'Kas Kecil', 'Kas']));
         $utang = $this->findAccountAny(['Utang Usaha']);
         $diskonPembelian = $this->findAccountAny(['Diskon Pembelian']);
         $bebanLain = $this->findAccountAny(['Beban Lain-lain','Beban Lain lain']);
@@ -490,7 +499,7 @@ class AccountingService
         $total = $principalAmount + $interestAmount;
         $lines = [
             ['account_id'=>$loan->id,'debit'=>$principalAmount,'credit'=>0,'memo'=>'Angsuran pokok utang bank'],
-            ['account_id'=>$interestExp->id,'debit'=>$interestAmount,'credit'=>0,'memo'=>'Beban bunga'],
+            ['account_id'=>$interestExp->id,'debit'=>0,'credit'=>$interestAmount,'memo'=>'Beban bunga'],
             ['account_id'=>$bank->id,'debit'=>0,'credit'=>$total,'memo'=>'Pembayaran angsuran ke bank'],
         ];
         return $this->createJournal($date, $reference, 'Angsuran Pinjaman Bank '.$reference, $lines);
@@ -609,6 +618,61 @@ class AccountingService
     {
         $accounts = $this->getAccountsByType($accountTypeName, $periodId);
         return $accounts->sum('current_balance');
+    }
+
+    /**
+     * Pick specific Kas account by payment text. Returns Kas Kecil if the text contains "kecil",
+     * returns Kas Besar if it contains "besar". Case-insensitive. Falls back to null.
+     */
+    private function resolveKasAccountByText(?string $caraBayar, ?string $pembayaran): ?ChartOfAccount
+    {
+        $text = strtolower(trim(($caraBayar ?? '').' '.($pembayaran ?? '')));
+        if ($text === '') { return null; }
+        if (strpos($text, 'kecil') !== false) {
+            return $this->findAccount('Kas Kecil');
+        }
+        if (strpos($text, 'besar') !== false) {
+            return $this->findAccount('Kas Besar');
+        }
+        // Also catch exact names like "cash (kas kecil)" or "cash (kas besar)"
+        if (strpos($text, 'cash (kas kecil)') !== false) {
+            return $this->findAccount('Kas Kecil');
+        }
+        if (strpos($text, 'cash (kas besar)') !== false) {
+            return $this->findAccount('Kas Besar');
+        }
+        return null;
+    }
+
+    /**
+     * Pick specific Bank account by payment text. Prefers names containing BCA/BRI/MANDIRI/BNI.
+     * Looks by exact account names like "Bank BCA" first, then by LIKE name contains.
+     */
+    private function resolveBankAccountByText(?string $caraBayar, ?string $pembayaran): ?ChartOfAccount
+    {
+        $text = strtoupper(trim(($caraBayar ?? '').' '.($pembayaran ?? '')));
+        if ($text === '') { return null; }
+        $banks = [
+            'BCA' => ['Bank BCA','BCA'],
+            'BRI' => ['Bank BRI','BRI'],
+            'MANDIRI' => ['Bank Mandiri','MANDIRI'],
+            'BNI' => ['Bank BNI','BNI'],
+        ];
+        foreach ($banks as $key => $candidates) {
+            if (strpos($text, $key) !== false) {
+                // Try exact common names first
+                foreach ($candidates as $name) {
+                    $acc = $this->findAccount($name);
+                    if ($acc) return $acc;
+                }
+                // Then LIKE search
+                foreach ($candidates as $name) {
+                    $acc = ChartOfAccount::where('name', 'like', "%{$name}%")->first();
+                    if ($acc) return $acc;
+                }
+            }
+        }
+        return null;
     }
 }
 

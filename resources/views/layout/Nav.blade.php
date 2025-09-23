@@ -706,9 +706,9 @@
                                 </a>
                                 <div class="collapse bg-dark border-0" id="pembelian">
                                     <ul class="nav flex-column ml-2">
-                                        <li class="nav-item">
+                                        <!-- <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('transaksi.purchaseorder')); ?>"><i class="fas fa-clipboard-check"></i> Purchase Order</a>
-                                        </li>
+                                        </li> -->
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembelian.index') }}"><i class="fas fa-circle-plus"></i> Tambah Pembelian</a>
                                         </li>
@@ -758,6 +758,9 @@
                                         <li class="nav-item">
                                             <a class="nav-link" href="{{ route('pembayaran-utang-supplier.index') }}"><i class="fas fa-list"></i> Daftar Pembayaran</a>
                                         </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ route('laporan.utang-supplier') }}"><i class="fas fa-file-invoice-dollar"></i> Laporan Utang Supplier</a>
+                                        </li>
                                     </ul>
                                 </div>
                             </li>
@@ -774,12 +777,12 @@
                     </a>
                             <div class="collapse bg-dark border-0" id="barang">
                                     <ul class="nav flex-column ml-2">
-                                        <li class="nav-item">
+                                        <!-- <li class="nav-item">
                                             <a class="nav-link" href="{{ route('panels.repack') }}"><i class="fas fa-boxes"></i> Repack</a>
-                                        </li>
-                                        <li class="nav-item">
+                                        </li> -->
+                                        <!-- <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('stock.mutasi')); ?>"><i class="fas fa-exchange-alt"></i> Mutasi Stok Barang</a>
-                                        </li>
+                                        </li> -->
                                         <li class="nav-item">
                                             <a class="nav-link" href="<?php echo e(route('stock.adjustment.index')); ?>"><i class="bi bi-arrow-repeat"></i> Stok adjustment</a>
                                         </li>
@@ -885,9 +888,7 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('laporan.piutang') }}"><i class="fas fa-credit-card"></i> Laporan Piutang Pelanggan</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('laporan.utang-supplier') }}"><i class="fas fa-file-invoice-dollar"></i> Laporan Utang Supplier</a>
-                            </li>
+                            
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('laporan.retur') }}"><i class="fas fa-undo-alt"></i> Laporan Retur Barang</a>
                             </li>

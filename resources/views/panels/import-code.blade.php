@@ -4,7 +4,7 @@
 <section id="import-kode-barang">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Import Barang (CSV)</h2>
-        <a href="{{ route('code.view-code') }}" class="btn btn-secondary">Kembali</a>
+        <a href="{{ route('master.barang') }}" class="btn btn-secondary">Kembali</a>
     </div>
 
     @if ($errors->any())

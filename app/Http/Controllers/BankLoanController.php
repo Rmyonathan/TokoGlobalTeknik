@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\ChartOfAccount;
 use App\Models\Journal;
 use App\Models\JournalDetail;
+use App\Models\AccountType;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -169,11 +170,23 @@ class BankLoanController extends Controller
         $acc = $this->findAccountByName($name);
         if ($acc) return $acc;
 
-        // Minimal seed jika tidak ada
+        $typeId = $this->resolveAccountTypeId($type);
+        if (!$typeId) {
+            // fallback: create AccountType if missing
+            $map = $this->accountTypeMap();
+            $meta = $map[strtolower($type)] ?? ['code' => 'X', 'name' => 'Expense'];
+            $typeModel = AccountType::firstOrCreate(
+                ['code' => $meta['code']],
+                ['name' => $meta['name'], 'normal_balance' => ($meta['code'] === 'A' || $meta['code'] === 'X') ? 'D' : 'C']
+            );
+            $typeId = $typeModel->id;
+        }
+
         return ChartOfAccount::create([
             'code' => $this->generateCodeFor($name),
             'name' => $name,
-            'type' => $type,
+            'account_type_id' => $typeId,
+            'is_active' => true,
         ]);
     }
 
@@ -200,6 +213,35 @@ class BankLoanController extends Controller
         $base = substr($slug, 0, 4);
         $seq = str_pad((string) rand(1, 999), 3, '0', STR_PAD_LEFT);
         return $base.'-'.$seq;
+    }
+
+    private function resolveAccountTypeId(string $typeLabel): ?int
+    {
+        $map = $this->accountTypeMap();
+        $key = strtolower(trim($typeLabel));
+        $meta = $map[$key] ?? null;
+        if ($meta) {
+            $type = AccountType::where('code', $meta['code'])->first();
+            if ($type) return $type->id;
+            $type = AccountType::whereRaw('LOWER(name)=?', [mb_strtolower($meta['name'])])->first();
+            if ($type) return $type->id;
+        }
+        return null;
+    }
+
+    private function accountTypeMap(): array
+    {
+        return [
+            'asset' => ['code' => 'A', 'name' => 'Assets'],
+            'assets' => ['code' => 'A', 'name' => 'Assets'],
+            'liability' => ['code' => 'L', 'name' => 'Liabilities'],
+            'liabilities' => ['code' => 'L', 'name' => 'Liabilities'],
+            'equity' => ['code' => 'E', 'name' => 'Equity'],
+            'revenue' => ['code' => 'R', 'name' => 'Revenue'],
+            'income' => ['code' => 'R', 'name' => 'Revenue'],
+            'expense' => ['code' => 'X', 'name' => 'Expense'],
+            'expenses' => ['code' => 'X', 'name' => 'Expense'],
+        ];
     }
 }
 

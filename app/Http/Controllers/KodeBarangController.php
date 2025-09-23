@@ -63,20 +63,73 @@ class KodeBarangController extends Controller
         $rows = [];
         while (($row = fgetcsv($handle, 0, ',')) !== false) {
             if ($header === null) {
-                $header = array_map('trim', $row);
+                $header = array_map(function($h){
+                    $h = trim((string)$h);
+                    if ($h === '' || in_array(strtolower($h), ['null','nul','-'])) return null;
+                    return $h;
+                }, $row);
                 continue;
             }
-            $rows[] = array_combine($header, $row);
+            // Normalize row values: treat textual 'null'/'nul' as empty
+            $row = array_map(function($v){
+                $v = is_string($v) ? trim($v) : $v;
+                if (is_string($v) && in_array(strtolower($v), ['null','nul','-'])) return '';
+                return $v;
+            }, $row);
+            $assoc = [];
+            foreach ($header as $idx => $col) {
+                if ($col === null) continue; // skip 'null' columns
+                $assoc[$col] = $row[$idx] ?? null;
+            }
+            $rows[] = $assoc;
         }
         fclose($handle);
 
+        // Header alias mapping: support alternative header names/order
+        $aliasMap = [
+            'nama_barang/name' => 'name',
+            'nama_barang' => 'name',
+            'name' => 'name',
+            'Merek' => 'merek',
+            'merek' => 'merek',
+            'Ukuran' => 'ukuran',
+            'ukuran' => 'ukuran',
+            'qty' => 'qty', // currently ignored (no stock creation)
+            'harga_satuan_dasar' => 'harga_jual',
+            'harga_jual' => 'harga_jual',
+            'kode_barang' => 'kode_barang',
+            'attribute' => 'attribute',
+            'unit_dasar' => 'unit_dasar',
+            'satuan_dasar' => 'satuan_dasar',
+            'satuan_besar' => 'satuan_besar',
+            'nilai_konversi' => 'nilai_konversi',
+            'ongkos_kuli_default' => 'ongkos_kuli_default',
+        ];
+
+        // Normalize each row keys via alias map
+        $normalizedRows = [];
+        foreach ($rows as $row) {
+            $norm = [];
+            foreach ($row as $k => $v) {
+                $key = $aliasMap[$k] ?? $aliasMap[strtolower($k)] ?? null;
+                if ($key) {
+                    $norm[$key] = $v;
+                }
+            }
+            $normalizedRows[] = $norm;
+        }
+
         $created = 0; $updated = 0; $errors = [];
-        foreach ($rows as $index => $data) {
+        foreach ($normalizedRows as $index => $data) {
             try {
-                $kode = trim($data['kode_barang'] ?? '');
-                $name = trim($data['name'] ?? '');
-                if ($kode === '' || $name === '') {
-                    throw new \Exception('kode_barang dan name wajib diisi');
+                $kode = trim((string)($data['kode_barang'] ?? ''));
+                $name = trim((string)($data['name'] ?? ''));
+                if ($kode === '') {
+                    // Generate kode if missing (AUTO-YYYYMMDD-###)
+                    $kode = 'AUTO-'.date('Ymd').'-'.str_pad((string)($index+1), 3, '0', STR_PAD_LEFT);
+                }
+                if ($name === '') {
+                    throw new \Exception('Kolom nama barang (name) wajib diisi');
                 }
 
                 $payload = [
@@ -88,9 +141,9 @@ class KodeBarangController extends Controller
                     'unit_dasar' => $data['unit_dasar'] ?? 'PCS',
                     'satuan_dasar' => $data['satuan_dasar'] ?? null,
                     'satuan_besar' => $data['satuan_besar'] ?? null,
-                    'nilai_konversi' => isset($data['nilai_konversi']) ? (int) $data['nilai_konversi'] : null,
-                    'harga_jual' => isset($data['harga_jual']) ? (float) $data['harga_jual'] : 0,
-                    'ongkos_kuli_default' => isset($data['ongkos_kuli_default']) ? (float) $data['ongkos_kuli_default'] : 0,
+                    'nilai_konversi' => isset($data['nilai_konversi']) && $data['nilai_konversi'] !== '' ? (int) $data['nilai_konversi'] : null,
+                    'harga_jual' => isset($data['harga_jual']) && $data['harga_jual'] !== '' ? (float) $data['harga_jual'] : 0,
+                    'ongkos_kuli_default' => isset($data['ongkos_kuli_default']) && $data['ongkos_kuli_default'] !== '' ? (float) $data['ongkos_kuli_default'] : 0,
                     'status' => 'Active',
                     'cost' => 0,
                 ];
@@ -129,7 +182,7 @@ class KodeBarangController extends Controller
                 ->withErrors(['detail' => implode("\n", $errors)]);
         }
 
-        return redirect()->route('code.view-code')
+        return redirect()->route('master.barang')
             ->with('success', "Import selesai. Created: {$created}, Updated: {$updated}");
     }
 
@@ -213,18 +266,6 @@ class KodeBarangController extends Controller
         // Create the new KodeBarang
         $kodeBarang = KodeBarang::create($validated);
 
-        // Auto-create default conversion when unit dasar is PCS
-        // if (($validated['unit_dasar'] ?? '') === 'PCS') {
-        //     $defaultSatuanBesar = $validated['satuan_besar'] ?? 'LUSIN';
-        //     $defaultNilai = (int) ($validated['nilai_konversi'] ?? 12);
-        //     if ($defaultSatuanBesar && $defaultNilai > 0) {
-        //         \App\Models\UnitConversion::updateOrCreate(
-        //             [ 'kode_barang_id' => $kodeBarang->id, 'unit_turunan' => strtoupper($defaultSatuanBesar) ],
-        //             [ 'nilai_konversi' => $defaultNilai, 'is_active' => true ]
-        //         );
-        //     }
-        // }
-
         // Handle inline unit conversions payload (JSON array)
         $ucPayload = $request->input('unit_conversions');
         if ($ucPayload) {
@@ -288,6 +329,7 @@ class KodeBarangController extends Controller
     {
         // Validate the request
         $validated = $request->validate([
+            'name' => 'required|string|max:255',
             'grup_barang_id' => 'required|string|max:255',
             'attribute' => 'required|string|max:255',
             'merek' => 'nullable|string|max:255',
@@ -296,16 +338,18 @@ class KodeBarangController extends Controller
             'unit_dasar' => 'required|string|max:20',
             'harga_jual' => 'required|numeric|min:0',
             'ongkos_kuli_default' => 'nullable|numeric|min:0',
-            // 'length' => 'required|numeric|min:0.1',
+            'cost' => 'nullable|numeric|min:0',
+            'satuan_besar' => 'nullable|string|max:50',
+            'satuan_dasar' => 'nullable|string|max:50',
+            'nilai_konversi' => 'nullable|integer|min:1',
         ], [
+            'name.required' => 'Nama barang harus diisi',
             'grup_barang_id.required' => 'Grup barang harus dipilih',
             'grup_barang_id.string' => 'Grup barang harus berupa string',
             'grup_barang_id.max' => 'Grup barang maksimal 255 karakter',
-            
             'kode_barang.required' => 'Item code is required',
             'kode_barang.string' => 'Item code must be a valid string',
             'kode_barang.max' => 'Item code may not be greater than 255 characters',
-
             'attribute.required' => 'Panel name is required',
             'attribute.string' => 'Panel name must be a valid string',
             'attribute.max' => 'Panel name may not be greater than 255 characters',
@@ -316,25 +360,22 @@ class KodeBarangController extends Controller
             'harga_jual.min' => 'Harga jual minimal 0',
             'ongkos_kuli_default.numeric' => 'Ongkos kuli harus berupa angka',
             'ongkos_kuli_default.min' => 'Ongkos kuli minimal 0',
-
-            // 'length.required' => 'Panel length is required',
-            // 'length.numeric' => 'Panel length must be a number',
-            // 'length.min' => 'Panel length must be at least 0.1 meters',
+            'cost.numeric' => 'Harga beli harus berupa angka',
+            'cost.min' => 'Harga beli minimal 0',
         ]);
 
         $code = KodeBarang::findOrFail($id);
         
-        // Cari grup barang berdasarkan nama yang dipilih
+        // Map grup barang name to its ID
         $grupBarang = \App\Models\GrupBarang::where('name', $validated['grup_barang_id'])->first();
         if ($grupBarang) {
-            $validated['kategori_id'] = $grupBarang->id;
+            $validated['grup_barang_id'] = $grupBarang->id;
+        } else {
+            unset($validated['grup_barang_id']);
         }
         
-        // Update attribute berdasarkan grup barang yang dipilih
-        $validated['attribute'] = $validated['grup_barang_id'];
-        
-        // Hapus grup_barang_id dari data yang akan diupdate
-        unset($validated['grup_barang_id']);
+        // Keep attribute synced to selected group name (from form)
+        $validated['attribute'] = $request->input('grup_barang_id', $code->attribute);
         
         $code->update($validated);
 
@@ -438,7 +479,7 @@ class KodeBarangController extends Controller
             
             foreach ($existingKodeBarangs as $existingCode) {
                 // Cari nomor urut dengan format "NAMA GRUP - 001"
-                if (preg_match('/^' . preg_quote($prefix, '/') . '\s*-\s*(\d+)$/', $existingCode, $matches)) {
+                if (preg_match('/^' . preg_quote($prefix, '/') . '\\s*-\\s*(\\d+)$/', $existingCode, $matches)) {
                     $number = intval($matches[1]);
                     $maxNumber = max($maxNumber, $number);
                 }

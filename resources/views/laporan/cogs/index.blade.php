@@ -120,8 +120,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Laporan COGS Per Periode</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
+                <button type="button" class="close btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
@@ -167,8 +167,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Laporan COGS Per Transaksi</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
+                <button type="button" class="close btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
@@ -205,8 +205,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Laporan COGS Per Barang</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
+                <button type="button" class="close btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
@@ -251,8 +251,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Nilai Persediaan Saat Ini</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
+                <button type="button" class="close btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
@@ -285,8 +285,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Grafik COGS</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
+                <button type="button" class="close btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
@@ -407,6 +407,14 @@ $(document).ready(function() {
     $('#cogsChartForm').on('submit', function(e) {
         e.preventDefault();
         generateCogsChart();
+    });
+
+    // Ensure modals close on both Bootstrap 4 and 5
+    $(document).on('click', '.btn-close, .close[data-dismiss="modal"], .close[data-bs-dismiss="modal"]', function(){
+        const $modal = $(this).closest('.modal');
+        if ($modal.length && typeof $modal.modal === 'function') {
+            $modal.modal('hide');
+        }
     });
 });
 
@@ -894,62 +902,68 @@ function displayInventoryValue(data) {
 }
 
 function displayCogsChart(data) {
-    const ctx = document.getElementById('cogsChart').getContext('2d');
-    
-    // Destroy existing chart if any
-    if (window.cogsChartInstance) {
-        window.cogsChartInstance.destroy();
-    }
-    
-    window.cogsChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.chart_data.map(item => item.tanggal),
-            datasets: [{
-                label: 'Penjualan',
-                data: data.chart_data.map(item => item.penjualan),
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.1
-            }, {
-                label: 'COGS',
-                data: data.chart_data.map(item => item.cogs),
-                borderColor: 'rgb(255, 99, 132)',
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                tension: 0.1
-            }, {
-                label: 'Margin',
-                data: data.chart_data.map(item => item.margin),
-                borderColor: 'rgb(54, 162, 235)',
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'Rp ' + new Intl.NumberFormat('id-ID').format(value);
-                        }
-                    }
-                }
-            },
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': Rp ' + new Intl.NumberFormat('id-ID').format(context.parsed.y);
-                        }
-                    }
-                }
-            }
-        }
-    });
-    
-    $('#cogsChartResult').show();
+	const container = document.getElementById('cogsChartResult');
+	if (!container) { return; }
+	// Rebuild canvas to ensure fresh context even after spinners/HTML changes
+	container.innerHTML = '<canvas id="cogsChart" width="400" height="200"></canvas>';
+	const canvas = document.getElementById('cogsChart');
+	if (!canvas) { return; }
+	const ctx = canvas.getContext('2d');
+	
+	// Destroy existing chart if any
+	if (window.cogsChartInstance) {
+		window.cogsChartInstance.destroy();
+	}
+	
+	window.cogsChartInstance = new Chart(ctx, {
+		type: 'line',
+		data: {
+			labels: data.chart_data.map(item => item.tanggal),
+			datasets: [{
+				label: 'Penjualan',
+				data: data.chart_data.map(item => item.penjualan),
+				borderColor: 'rgb(75, 192, 192)',
+				backgroundColor: 'rgba(75, 192, 192, 0.2)',
+				tension: 0.1
+			}, {
+				label: 'COGS',
+				data: data.chart_data.map(item => item.cogs),
+				borderColor: 'rgb(255, 99, 132)',
+				backgroundColor: 'rgba(255, 99, 132, 0.2)',
+				tension: 0.1
+			}, {
+				label: 'Margin',
+				data: data.chart_data.map(item => item.margin),
+				borderColor: 'rgb(54, 162, 235)',
+				backgroundColor: 'rgba(54, 162, 235, 0.2)',
+				tension: 0.1
+			}]
+		},
+		options: {
+			responsive: true,
+			scales: {
+				y: {
+					beginAtZero: true,
+					ticks: {
+						callback: function(value) {
+							return 'Rp ' + new Intl.NumberFormat('id-ID').format(value);
+						}
+					}
+				}
+			},
+			plugins: {
+				tooltip: {
+					callbacks: {
+						label: function(context) {
+							return context.dataset.label + ': Rp ' + new Intl.NumberFormat('id-ID').format(context.parsed.y);
+						}
+					}
+				}
+			}
+		}
+	});
+	
+	$('#cogsChartResult').show();
 }
 
 function viewTransactionDetail(transaksiId) {

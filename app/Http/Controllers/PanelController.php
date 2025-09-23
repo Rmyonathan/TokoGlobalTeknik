@@ -368,9 +368,11 @@ class PanelController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'group_id' => 'required|string|max:255',
-            // 'length' => 'required|numeric|min:0.1',
             'status' => 'required',
             'quantity' => 'required|integer|min:0',
+            'merek' => 'nullable|string|max:255',
+            'ukuran' => 'nullable|string|max:100',
+            'grup_barang_id' => 'nullable|string|max:255',
         ], [
             'group_id.required' => 'Item code is required',
             'group_id.string' => 'Item code must be a valid string',
@@ -380,35 +382,45 @@ class PanelController extends Controller
             'name.string' => 'Panel name must be a valid string',
             'name.max' => 'Panel name may not be greater than 255 characters',
 
-            // 'length.required' => 'Panel length is required',
-            // 'length.numeric' => 'Panel length must be a number',
-            // 'length.min' => 'Panel length must be at least 0.1 meters',
-
             'quantity.required' => 'Quantity is required',
             'quantity.integer' => 'Quantity must be a whole number',
             'quantity.min' => 'Quantity must be at least 0',
         ]);
 
         $name = $validated['name'];
-        // $length = $validated['length'];
         $group_id = $validated['group_id'];
         $cost = 0; // Set default cost, harga beli hanya diinput dari pembelian
         $quantity = $validated['quantity'];
         $status = $validated['status'];
-        // dd($validated);
+
+        // Hapus panel stok granular (akan direbuild sesuai quantity terkini)
         Panel::where('group_id', $group_id)->delete();
 
+        // Update master barang (KodeBarang)
         $kode = KodeBarang::where('kode_barang', $group_id)->first();
-        $kode->name = $name;
-        // $kode->length = $length;
-        $kode->cost = $cost;
-        $kode->status = $status;
-        $kode->save();
+        if ($kode) {
+            $kode->name = $name;
+            $kode->cost = $cost;
+            $kode->status = $status;
+            // Optional fields
+            if (array_key_exists('merek', $validated)) {
+                $kode->merek = $validated['merek'];
+            }
+            if (array_key_exists('ukuran', $validated)) {
+                $kode->ukuran = $validated['ukuran'];
+            }
+            if (!empty($validated['grup_barang_id'])) {
+                $grup = \App\Models\GrupBarang::where('name', $validated['grup_barang_id'])->first();
+                if ($grup) {
+                    $kode->grup_barang_id = $grup->id;
+                    $kode->attribute = $grup->name; // sync attribute dengan nama grup
+                }
+            }
+            $kode->save();
+        }
 
-        // $parts = explode('-', $group_id);
-        // $group_id = $parts[0];
-
-        $result = $this->addPanelsToInventory($name, $cost, $group_id, $quantity); // price = 0 karena sudah dihapus
+        // Rebuild panels in inventory (price=0 karena sudah dihapus)
+        $result = $this->addPanelsToInventory($name, $cost, $group_id, $quantity);
 
         return redirect()->route('master.barang')
             ->with('success', $result['message']);
@@ -1058,8 +1070,11 @@ class PanelController extends Controller
                     'name' => $panel->name,
                     'cost' => $panel->cost,
                     'price' => $panel->price,
+                    'merek' => $panel->merek,
+                    'ukuran' => $panel->ukuran,
                     'group_id' => $panel->kode_barang,
                     'group' => $panel->attribute,
+                    'unit_dasar' => $panel->unit_dasar,
                     'status' => $panel->status,
                     'quantity' => Panel::where('group_id', $panel->kode_barang)->where('available', True)->count()
                 ];

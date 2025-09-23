@@ -26,6 +26,16 @@
                 @method('PUT')
                 
                 <div class="form-group row">
+                    <label for="name" class="col-sm-3 col-form-label">Nama Barang</label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $code->name) }}" required>
+                        @error('name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+                
+                <div class="form-group row">
                     <label for="grup_barang_id" class="col-sm-3 col-form-label">Grup Barang</label>
                     <div class="col-sm-9">
                         <select class="form-control @error('grup_barang_id') is-invalid @enderror" id="grup_barang_id" name="grup_barang_id" required>
@@ -120,6 +130,16 @@
                 </div>
 
                 <div class="form-group row">
+                    <label for="cost" class="col-sm-3 col-form-label">Harga Beli (per satuan dasar)</label>
+                    <div class="col-sm-9">
+                        <input type="number" class="form-control @error('cost') is-invalid @enderror" id="cost" name="cost" step="0.01" value="{{ old('cost', $code->cost) }}">
+                        @error('cost')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="form-group row">
                     <label for="harga_jual" class="col-sm-3 col-form-label">Harga Jual per Satuan Dasar</label>
                     <div class="col-sm-9">
                         <input type="number" class="form-control @error('harga_jual') is-invalid @enderror" id="harga_jual" name="harga_jual" step="0.01" 
@@ -199,14 +219,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Function to generate next kode barang
-    function generateNextKodeBarang(grupBarangName) {
+    function generateNextKodeBarang(selectedGrupBarang) {
         // Show loading state
         kodeBarangInput.value = 'Generating...';
         kodeBarangInput.disabled = true;
         regenerateBtn.disabled = true;
 
         // Call API to get next kode barang
-        fetch(`/kode_barang/get-next-code?grup_barang_name=${encodeURIComponent(grupBarangName)}`)
+        fetch(`/kode_barang/get-next-code?grup_barang_name=${encodeURIComponent(selectedGrupBarang)}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -298,97 +318,26 @@ document.addEventListener('DOMContentLoaded', function() {
         
         fetch(`/unit-conversion/${kodeBarangId}`, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ unit_turunan: unit, nilai_konversi: value })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                console.log('Add successful:', data);
-                ucUnit.value = '';
-                ucValue.value = '';
-                loadConversions();
-            } else {
-                // Handle validation errors
-                if (data.errors) {
-                    const errorMessages = Object.values(data.errors).flat();
-                    alert('Error: ' + errorMessages.join(', '));
-                } else {
-                    alert('Gagal menambah satuan konversi');
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Add failed:', error);
-            alert('Gagal menambah satuan konversi: ' + error.message);
-        });
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+            body: JSON.stringify({ unit_turunan: unit.toUpperCase(), nilai_konversi: value })
+        }).then(()=> loadConversions());
+        ucUnit.value=''; ucValue.value='';
     });
 
     ucContainer.addEventListener('click', function(e){
-        const btn = e.target.closest('button[data-id]');
-        if(!btn) return;
-        const id = btn.getAttribute('data-id');
-        const action = btn.getAttribute('data-action');
-        if(action === 'toggle'){
-            fetch(`/unit-conversion/${kodeBarangId}/${id}/toggle`, { 
-                method: 'POST', 
-                headers: { 
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Toggle successful:', data);
-                loadConversions();
-            })
-            .catch(error => {
-                console.error('Toggle failed:', error);
-                alert('Gagal mengubah status satuan konversi: ' + error.message);
-            });
-        } else if(action === 'delete'){
-            if(!confirm('Hapus satuan ini?')) return;
-            fetch(`/unit-conversion/${kodeBarangId}/${id}`, { 
-                method: 'DELETE', 
-                headers: { 
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Delete successful:', data);
-                loadConversions();
-            })
-            .catch(error => {
-                console.error('Delete failed:', error);
-                alert('Gagal menghapus satuan konversi: ' + error.message);
-            });
+        const btnToggle = e.target.closest('button[data-action="toggle"]');
+        const btnDelete = e.target.closest('button[data-action="delete"]');
+        const id = (btnToggle || btnDelete)?.getAttribute('data-id');
+        if(!id) return;
+        if(btnToggle){
+            fetch(`/unit-conversion/${kodeBarangId}/${id}/toggle`, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') } })
+                .then(()=> loadConversions());
+        }
+        if(btnDelete){
+            fetch(`/unit-conversion/${kodeBarangId}/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') } })
+                .then(()=> loadConversions());
         }
     });
 });
 </script>
-
 @endsection

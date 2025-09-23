@@ -32,11 +32,39 @@
                             <small class="form-text text-muted">Enter the name of the item code.</small>
                         </div>
 
+                        <div class="form-group">
+                            <label for="merek"><i class="fas fa-trademark mr-1"></i> Merek</label>
+                            <input type="text" class="form-control @error('merek') is-invalid @enderror" id="merek" name="merek" value="{{ $panel->merek ?? '' }}">
+                            @error('merek')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ukuran"><i class="fas fa-text-height mr-1"></i> Ukuran</label>
+                            <input type="text" class="form-control @error('ukuran') is-invalid @enderror" id="ukuran" name="ukuran" value="{{ $panel->ukuran ?? '' }}">
+                            @error('ukuran')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="grup_barang_id"><i class="fas fa-tags mr-1"></i> Grup Barang</label>
+                            <select class="form-control @error('grup_barang_id') is-invalid @enderror" id="grup_barang_id" name="grup_barang_id">
+                                <option value="">Pilih Grup Barang</option>
+                                @foreach(\App\Models\GrupBarang::where('status','Active')->orderBy('name')->pluck('name') as $group_name)
+                                    <option value="{{ $group_name }}" {{ (old('grup_barang_id') ?? ($panel->attribute ?? '')) == $group_name ? 'selected' : '' }}>{{ $group_name }}</option>
+                                @endforeach
+                            </select>
+                            @error('grup_barang_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Pilih grup barang yang sesuai.</small>
+                        </div>
 
                         <!-- Field price sudah dihapus -->
 
                         <!-- Field length sudah dihapus -->
-
 
                         <div class="form-group">
                             <label for="quantity"><i class="fas fa-layer-group mr-1"></i> Quantity</label>

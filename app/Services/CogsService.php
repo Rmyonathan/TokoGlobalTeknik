@@ -332,19 +332,30 @@ class CogsService
             $totalValue += $batchValue;
             $totalQty += $batch->qty_sisa;
 
-            $kode = $batch->kodeBarang->kode_barang;
+            $kode = optional($batch->kodeBarang)->kode_barang;
+            if (!$kode) { // skip batch without linked item
+                $kode = $batch->kode_barang ?? 'UNKNOWN';
+            }
+
             if (!isset($barangDetails[$kode])) {
+                $kb = $batch->kodeBarang;
+                $nama = $kb ? ($kb->name ?? $kb->nama_barang ?? '-') : '-';
                 $barangDetails[$kode] = [
                     'kode_barang' => $kode,
-                    'nama_barang' => $batch->kodeBarang->nama_barang,
+                    'nama_barang' => $nama,
                     'total_qty' => 0,
                     'total_value' => 0,
+                    'average_cost' => 0,
                     'batches' => []
                 ];
             }
 
-            $barangDetails[$kode]['total_qty'] += $batch->qty_sisa;
-            $barangDetails[$kode]['total_value'] += $batchValue;
+            $barangDetails[$kode]['total_qty'] += (float) $batch->qty_sisa;
+            $barangDetails[$kode]['total_value'] += (float) $batchValue;
+            $barangDetails[$kode]['average_cost'] = $barangDetails[$kode]['total_qty'] > 0
+                ? $barangDetails[$kode]['total_value'] / $barangDetails[$kode]['total_qty']
+                : 0;
+
             $barangDetails[$kode]['batches'][] = [
                 'batch_id' => $batch->id,
                 'qty_sisa' => $batch->qty_sisa,
