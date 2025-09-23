@@ -35,6 +35,9 @@ class DatabaseSeeder extends Seeder
         // Accounting seeders
         $this->call(AccountingPeriodSeeder::class);
         $this->call(ChartOfAccountsSeeder::class);
+        
+        // Complete accounting system seeders (optional - uncomment to run)
+        // $this->call(CompleteAccountingSeeder::class);
     }
     
     /**
