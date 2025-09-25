@@ -59,7 +59,7 @@
                         <table class="table table-striped table-bordered">
                             <thead>
                                     <tr>
-                                        <th>ID</th>
+                                        <th>No.</th>
                                         <th>Kode Barang</th>
                                         <th>Nama</th>
                                         <th>Group</th>
@@ -67,6 +67,8 @@
                                         <th>Harga Jual per Satuan Dasar</th>
                                         <th>Merek</th>
                                         <th>Ukuran</th>
+                                        <th>Keterangan</th>
+                                        <th>BY</th>
                                         <th>Stok DB 1</th>
                                         <th>Stok DB 2</th>
                                         <th>Total Stok</th>
@@ -78,8 +80,12 @@
                                 </thead>
                             <tbody>
                                 @foreach($inventory['inventory_by_length'] as $item)
-                                    <tr>
-                                        <td>{{ $item['id'] }}</td>
+                                    @php
+                                        $minStock = $item['min_stock'] ?? null;
+                                        $isLow = $minStock !== null && (int)($item['quantity'] ?? 0) <= (int)$minStock;
+                                    @endphp
+                                    <tr @if($isLow) style="background-color:#fff3cd" @endif>
+                                        <td>{{ $loop->iteration + (($inventory['paginator']->currentPage() - 1) * $inventory['paginator']->perPage()) }}</td>
                                         <td>{{ $item['group_id'] }}</td>
                                         <td>{{ $item['name'] }}</td>
                                         <td>{{ $item['group'] }}</td>
@@ -91,6 +97,8 @@
                                         </td>
                                         <td>{{ $item['merek'] }}</td>
                                         <td>{{ $item['ukuran'] }}</td>
+                                        <td>{{ $item['keterangan'] ?? '-' }}</td>
+                                        <td>{{ $item['input_by'] ?? '-' }}</td>
                                         <td>
                                             <span class="badge {{ ($item['stock_db1'] ?? 0) > 0 ? 'bg-white' : 'bg-white' }}">
                                                 {{ number_format($item['stock_db1'] ?? 0, 0, ',', '.') }}
@@ -105,6 +113,9 @@
                                             <span class="badge {{ ($item['quantity'] ?? 0) > 0 ? 'bg-white' : 'bg-white' }}">
                                                 {{ number_format($item['quantity'] ?? 0, 0, ',', '.') }}
                                             </span>
+                                            @if($isLow)
+                                                <span class="badge bg-warning text-dark">Min {{ number_format($minStock) }}</span>
+                                            @endif
                                         </td>
                                         <td>
                                             <span class="badge bg-white">{{ $item['unit_dasar'] ?? 'PCS' }}</span>
@@ -167,6 +178,8 @@
                                 </th>
                                 <th>-</th> <!-- Merek -->
                                 <th>-</th> <!-- Ukuran -->
+                                <th>-</th> <!-- Keterangan -->
+                                <th>-</th> <!-- BY -->
                                 <th>
                                     @php
                                         $totalStockDb1 = 0;

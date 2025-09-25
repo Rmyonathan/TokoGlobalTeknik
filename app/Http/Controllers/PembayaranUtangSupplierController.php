@@ -11,6 +11,7 @@ use App\Models\PembayaranUtangSupplierDetail;
 use App\Models\PembayaranUtangSupplierNotaDebit;
 use App\Models\Pembelian;
 use App\Models\Supplier;
+use App\Models\CaraBayar;
 use App\Models\NotaDebit;
 use App\Models\Kas;
 use Carbon\Carbon;
@@ -44,8 +45,9 @@ class PembayaranUtangSupplierController extends Controller
     {
         $suppliers = Supplier::orderBy('nama')->get();
         $noPembayaran = PembayaranUtangSupplier::generateNoPembayaran();
-        
-        return view('pembayaran_utang_supplier.create', compact('suppliers', 'noPembayaran'));
+
+        $caraBayars = CaraBayar::orderBy('metode')->orderBy('nama')->get()->groupBy('metode');
+        return view('pembayaran_utang_supplier.create', compact('suppliers', 'noPembayaran','caraBayars'));
     }
 
     /**

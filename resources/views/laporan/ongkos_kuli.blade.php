@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="card">
-	<div class="card-header">Laporan Ongkos Kuli</div>
+<div class="card-header">Laporan Expense</div>
 	<div class="card-body">
 		<form class="form-inline mb-3" method="get">
 			<input type="date" name="start_date" class="form-control mr-2" value="{{ request('start_date', isset($startDate) ? \Illuminate\Support\Carbon::parse($startDate)->format('Y-m-d') : now()->startOfMonth()->format('Y-m-d')) }}">

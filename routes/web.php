@@ -880,6 +880,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/cogs/transaction', [App\Http\Controllers\CogsController::class, 'transactionReport'])->name('laporan.cogs.transaction');
         Route::get('/cogs/product', [App\Http\Controllers\CogsController::class, 'productReport'])->name('laporan.cogs.product');
         Route::get('/cogs/inventory', [App\Http\Controllers\CogsController::class, 'inventoryValue'])->name('laporan.cogs.inventory');
+        Route::get('/cogs/inventory/{kodeBarang}', [App\Http\Controllers\CogsController::class, 'inventoryItem'])->name('laporan.cogs.inventory_item');
         Route::get('/cogs/detail/{transaksiId}', [App\Http\Controllers\CogsController::class, 'transactionDetail'])->name('laporan.cogs.detail');
     });
 

@@ -235,14 +235,14 @@ function populateItemsTable() {
                            min="0.01" 
                            max="${item.qty}" 
                            step="0.01" 
-                           value="0">
+                           value="0.01">
                 </td>
                 <td>${item.satuan}</td>
                 <td class="text-right">Rp ${parseFloat(item.harga).toLocaleString()}</td>
                 <td class="text-right item-total">Rp 0</td>
                 <td>
                     <input type="text" class="form-control item-alasan" 
-                           data-item-id="${item.id}" 
+                           data-item-id="${item.id}"
                            placeholder="Alasan retur">
                 </td>
                 <td>

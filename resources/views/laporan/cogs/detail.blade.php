@@ -93,6 +93,7 @@
                                                         <th>Harga Jual</th>
                                                         <th>Total Jual</th>
                                                         <th>COGS/Unit</th>
+                                                        <th>Margin/Unit</th>
                                                         <th>Total COGS</th>
                                                         <th>Margin</th>
                                                         <th>Margin %</th>
@@ -108,6 +109,7 @@
                                                         <td class="text-right">Rp {{ number_format($item['harga_jual'], 0, ',', '.') }}</td>
                                                         <td class="text-right">Rp {{ number_format($item['total_jual'], 0, ',', '.') }}</td>
                                                         <td class="text-right">Rp {{ number_format($item['cogs_per_unit'], 0, ',', '.') }}</td>
+                                                        <td class="text-right">Rp {{ number_format(($item['harga_jual'] - $item['cogs_per_unit']), 0, ',', '.') }}</td>
                                                         <td class="text-right">Rp {{ number_format($item['total_cogs'], 0, ',', '.') }}</td>
                                                         <td class="text-right">Rp {{ number_format($item['margin'], 0, ',', '.') }}</td>
                                                         <td class="text-right">{{ number_format($item['margin_percentage'], 2) }}%</td>

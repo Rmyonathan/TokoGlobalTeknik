@@ -85,10 +85,9 @@
                                     <label for="metode_pembayaran">Metode Pembayaran <span class="text-danger">*</span></label>
                                     <select class="form-control" id="metode_pembayaran" name="metode_pembayaran" required>
                                         <option value="">Pilih Metode</option>
-                                        <option value="Tunai" {{ old('metode_pembayaran') == 'Tunai' ? 'selected' : '' }}>Tunai</option>
-                                        <option value="Transfer" {{ old('metode_pembayaran') == 'Transfer' ? 'selected' : '' }}>Transfer</option>
-                                        <option value="Cek" {{ old('metode_pembayaran') == 'Cek' ? 'selected' : '' }}>Cek</option>
-                                        <option value="Giro" {{ old('metode_pembayaran') == 'Giro' ? 'selected' : '' }}>Giro</option>
+                                        @foreach(($caraBayars ?? collect()) as $metode => $items)
+                                            <option value="{{ $metode }}" {{ old('metode_pembayaran') == $metode ? 'selected' : '' }}>{{ $metode }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                             </div>
@@ -98,8 +97,16 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="cara_bayar">Cara Bayar <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="cara_bayar" name="cara_bayar" 
-                                           value="{{ old('cara_bayar') }}" required placeholder="Contoh: Bank BCA, Kas, dll">
+                                    <select class="form-control" id="cara_bayar" name="cara_bayar" required>
+                                        <option value="">Pilih Cara Bayar</option>
+                                        @foreach(($caraBayars ?? collect()) as $metode => $items)
+                                            <optgroup label="{{ $metode }}">
+                                                @foreach($items as $cb)
+                                                    <option value="{{ $cb->nama }}" {{ old('cara_bayar') == $cb->nama ? 'selected' : '' }}>{{ $cb->nama }}</option>
+                                                @endforeach
+                                            </optgroup>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-6">

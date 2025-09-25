@@ -49,6 +49,14 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="min_stock"><i class="fas fa-exclamation-triangle mr-1"></i> Minimum Stok (opsional)</label>
+                            <input type="number" class="form-control @error('min_stock') is-invalid @enderror" id="min_stock" name="min_stock" value="{{ $panel->min_stock ?? '' }}" min="0" placeholder="Biarkan kosong jika tidak memakai minimum">
+                            @error('min_stock')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
                             <label for="grup_barang_id"><i class="fas fa-tags mr-1"></i> Grup Barang</label>
                             <select class="form-control @error('grup_barang_id') is-invalid @enderror" id="grup_barang_id" name="grup_barang_id">
                                 <option value="">Pilih Grup Barang</option>

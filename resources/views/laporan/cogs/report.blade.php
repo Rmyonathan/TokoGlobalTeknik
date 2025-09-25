@@ -91,6 +91,7 @@
                                                         <th>Total Margin</th>
                                                         <th>Margin %</th>
                                                         <th>COGS/Unit</th>
+                                                        <th>Margin/Unit</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -104,6 +105,7 @@
                                                         <td class="text-right">Rp {{ number_format($barang['total_margin'], 0, ',', '.') }}</td>
                                                         <td class="text-right">{{ number_format($barang['margin_percentage'], 2) }}%</td>
                                                         <td class="text-right">Rp {{ number_format($barang['cogs_per_unit'], 0, ',', '.') }}</td>
+                                                        <td class="text-right">Rp {{ number_format($barang['margin_per_unit'] ?? 0, 0, ',', '.') }}</td>
                                                     </tr>
                                                     @endforeach
                                                 </tbody>

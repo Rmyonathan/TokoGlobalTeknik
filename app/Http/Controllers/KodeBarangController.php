@@ -90,20 +90,27 @@ class KodeBarangController extends Controller
             'nama_barang/name' => 'name',
             'nama_barang' => 'name',
             'name' => 'name',
+            'NAMA BRG' => 'name',
             'Merek' => 'merek',
+            'MERK' => 'merek',
             'merek' => 'merek',
             'Ukuran' => 'ukuran',
+            'TYPE/UKURAN' => 'ukuran',
             'ukuran' => 'ukuran',
             'qty' => 'qty', // currently ignored (no stock creation)
             'harga_satuan_dasar' => 'harga_jual',
+            'HARGA' => 'harga_jual',
             'harga_jual' => 'harga_jual',
             'kode_barang' => 'kode_barang',
             'attribute' => 'attribute',
             'unit_dasar' => 'unit_dasar',
+            'SAT' => 'unit_dasar',
             'satuan_dasar' => 'satuan_dasar',
             'satuan_besar' => 'satuan_besar',
             'nilai_konversi' => 'nilai_konversi',
             'ongkos_kuli_default' => 'ongkos_kuli_default',
+            'KETERANGAN BRG /(TGL BELI)' => 'keterangan',
+            'BY' => 'input_by',
         ];
 
         // Normalize each row keys via alias map
@@ -120,8 +127,24 @@ class KodeBarangController extends Controller
         }
 
         $created = 0; $updated = 0; $errors = [];
+        $parseNumber = function($value) {
+            if ($value === null || $value === '') return 0;
+            if (is_numeric($value)) return (float)$value;
+            $s = (string)$value;
+            $s = str_replace(["\xC2\xA0", ' '], '', $s); // remove nbsp and spaces
+            $s = preg_replace('/[^0-9,\.\-]/', '', $s);
+            // Remove thousand separators (both . and ,), keep sign
+            $s = str_replace([',', '.'], '', $s);
+            if ($s === '' || $s === '-' ) return 0;
+            return (float)$s;
+        };
         foreach ($normalizedRows as $index => $data) {
             try {
+                // Skip completely empty rows (all values empty after trim)
+                $hasAny = false;
+                foreach ($data as $vv) { if (trim((string)$vv) !== '') { $hasAny = true; break; } }
+                if (!$hasAny) { continue; }
+
                 $kode = trim((string)($data['kode_barang'] ?? ''));
                 $name = trim((string)($data['name'] ?? ''));
                 if ($kode === '') {
@@ -129,23 +152,45 @@ class KodeBarangController extends Controller
                     $kode = 'AUTO-'.date('Ymd').'-'.str_pad((string)($index+1), 3, '0', STR_PAD_LEFT);
                 }
                 if ($name === '') {
-                    throw new \Exception('Kolom nama barang (name) wajib diisi');
+                    // Fallback: build name from merek/ukuran/keterangan
+                    $nameCandidates = [
+                        trim((string)($data['merek'] ?? '')),
+                        trim((string)($data['ukuran'] ?? '')),
+                        trim((string)($data['keterangan'] ?? '')),
+                    ];
+                    $name = trim(implode(' ', array_filter($nameCandidates)));
+                    if ($name === '' && $kode !== '') {
+                        // Last fallback: use kode as name to allow importing
+                        $name = $kode;
+                    }
+                    if ($name === '') {
+                        $errors[] = 'Baris ' . ($index + 2) . ': dilewati karena kolom nama kosong';
+                        continue;
+                    }
+                }
+
+                // Ensure attribute is not null (DB constraint). Default to 'GENERAL' if missing
+                $attribute = trim((string)($data['attribute'] ?? ''));
+                if ($attribute === '') {
+                    $attribute = 'GENERAL';
                 }
 
                 $payload = [
                     'kode_barang' => $kode,
                     'name' => $name,
-                    'attribute' => $data['attribute'] ?? null,
+                    'attribute' => $attribute,
                     'merek' => $data['merek'] ?? null,
                     'ukuran' => $data['ukuran'] ?? null,
                     'unit_dasar' => $data['unit_dasar'] ?? 'PCS',
                     'satuan_dasar' => $data['satuan_dasar'] ?? null,
                     'satuan_besar' => $data['satuan_besar'] ?? null,
                     'nilai_konversi' => isset($data['nilai_konversi']) && $data['nilai_konversi'] !== '' ? (int) $data['nilai_konversi'] : null,
-                    'harga_jual' => isset($data['harga_jual']) && $data['harga_jual'] !== '' ? (float) $data['harga_jual'] : 0,
+                    'harga_jual' => isset($data['harga_jual']) && $data['harga_jual'] !== '' ? $parseNumber($data['harga_jual']) : 0,
                     'ongkos_kuli_default' => isset($data['ongkos_kuli_default']) && $data['ongkos_kuli_default'] !== '' ? (float) $data['ongkos_kuli_default'] : 0,
                     'status' => 'Active',
                     'cost' => 0,
+                    'keterangan' => $data['keterangan'] ?? null,
+                    'input_by' => $data['input_by'] ?? null,
                 ];
 
                 // Map grup automatically by attribute if exists
@@ -342,6 +387,7 @@ class KodeBarangController extends Controller
             'satuan_besar' => 'nullable|string|max:50',
             'satuan_dasar' => 'nullable|string|max:50',
             'nilai_konversi' => 'nullable|integer|min:1',
+            'min_stock' => 'nullable|integer|min:0',
         ], [
             'name.required' => 'Nama barang harus diisi',
             'grup_barang_id.required' => 'Grup barang harus dipilih',

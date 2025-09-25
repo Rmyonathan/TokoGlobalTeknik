@@ -235,7 +235,7 @@ function populateItemsTable() {
                            min="0.01" 
                            max="${item.qty}" 
                            step="0.01" 
-                           value="0">
+                           value="0.01">
                 </td>
                 <td>${item.satuan}</td>
                 <td class="text-right">Rp ${parseFloat(item.harga).toLocaleString()}</td>

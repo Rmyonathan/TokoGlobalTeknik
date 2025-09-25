@@ -116,6 +116,9 @@ class PanelController extends Controller
                     'name' => $panel->name,
                     'cost' => $costPerUnit,
                     'price' => $pricePerUnit,
+                    'keterangan' => $panel->keterangan,
+                    'input_by' => $panel->input_by,
+                    'min_stock' => $panel->min_stock,
                     'harga_per_satuan_dasar' => $panel->harga_jual ?? $panel->price,
                     'unit_dasar' => $panel->unit_dasar ?? 'PCS',
                     'group_id' => $panel->kode_barang,
@@ -373,6 +376,7 @@ class PanelController extends Controller
             'merek' => 'nullable|string|max:255',
             'ukuran' => 'nullable|string|max:100',
             'grup_barang_id' => 'nullable|string|max:255',
+            'min_stock' => 'nullable|integer|min:0',
         ], [
             'group_id.required' => 'Item code is required',
             'group_id.string' => 'Item code must be a valid string',
@@ -408,6 +412,9 @@ class PanelController extends Controller
             }
             if (array_key_exists('ukuran', $validated)) {
                 $kode->ukuran = $validated['ukuran'];
+            }
+            if (array_key_exists('min_stock', $validated)) {
+                $kode->min_stock = $validated['min_stock'];
             }
             if (!empty($validated['grup_barang_id'])) {
                 $grup = \App\Models\GrupBarang::where('name', $validated['grup_barang_id'])->first();

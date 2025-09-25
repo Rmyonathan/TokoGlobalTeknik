@@ -72,6 +72,7 @@
                                     <div class="card-body">
                                         <h6>Rata-rata COGS per Unit</h6>
                                         <h4>Rp {{ number_format($data['summary']['average_cogs_per_unit'], 0, ',', '.') }}</h4>
+                                        <small>Margin/Unit: Rp {{ number_format(max(0, ($data['summary']['average_selling_price'] - $data['summary']['average_cogs_per_unit'])), 0, ',', '.') }}</small>
                                     </div>
                                 </div>
                             </div>
@@ -104,6 +105,7 @@
                                                         <th>Batch ID</th>
                                                         <th>Qty Diambil</th>
                                                         <th>Harga Modal</th>
+                                                        <th>Margin/Unit</th>
                                                         <th>Total COGS</th>
                                                         <th>Tanggal Masuk</th>
                                                         <th>Batch Number</th>
@@ -115,6 +117,7 @@
                                                         <td>{{ $batch['batch_id'] }}</td>
                                                         <td class="text-right">{{ number_format($batch['qty_diambil'], 2) }}</td>
                                                         <td class="text-right">Rp {{ number_format($batch['harga_modal'], 0, ',', '.') }}</td>
+                                                        <td class="text-right">Rp {{ number_format((($data['summary']['average_selling_price'] ?? 0) - ($batch['harga_modal'] ?? 0)), 0, ',', '.') }}</td>
                                                         <td class="text-right">Rp {{ number_format($batch['total_cogs'], 0, ',', '.') }}</td>
                                                         <td>{{ $batch['tanggal_masuk'] ? \Carbon\Carbon::parse($batch['tanggal_masuk'])->format('d/m/Y') : '-' }}</td>
                                                         <td>{{ $batch['batch_number'] ?? '-' }}</td>

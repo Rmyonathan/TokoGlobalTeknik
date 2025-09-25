@@ -305,14 +305,50 @@
                             </div>
                         </div>
                     </div>
-                    <div class="text-center">
+                    <div class="text-center d-flex gap-2 justify-content-center">
                         <button type="submit" class="btn btn-danger">
                             <i class="fas fa-chart-bar mr-1"></i> Generate Grafik
                         </button>
+                        <button type="button" id="btnExportCogsPdf" class="btn btn-outline-secondary" disabled>
+                            <i class="fas fa-file-pdf mr-1"></i> Export PDF
+                        </button>
                     </div>
                 </form>
-                <div id="cogsChartResult" class="mt-4" style="display: none;">
+                <div class="mt-3" id="cogsChartPeriod" style="display:none;"></div>
+                <div id="cogsChartResult" class="mt-2" style="display: none;">
                     <canvas id="cogsChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Modal Inventory Batch Detail -->
+<div class="modal fade" id="inventoryBatchModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detail Batch - <span id="invBatchKodeBarang"></span></h5>
+                <button type="button" class="close btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="invBatchBody">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Batch ID</th>
+                                    <th>Qty Sisa</th>
+                                    <th>Harga Beli</th>
+                                    <th>Total Nilai</th>
+                                    <th>Tanggal Masuk</th>
+                                    <th>Batch Number</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invBatchTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -327,6 +363,9 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- html2canvas & jsPDF for PDF export -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script>
 $(document).ready(function() {
     // Initialize Select2 with error handling
@@ -565,10 +604,17 @@ function generateCogsChart() {
         data: formData,
         beforeSend: function() {
             $('#cogsChartResult').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Memproses grafik...</div>').show();
+            $('#cogsChartPeriod').hide().text('');
+            $('#btnExportCogsPdf').prop('disabled', true);
         },
         success: function(response) {
             if (response.success) {
                 displayCogsChart(response);
+                // Tampilkan periode di atas chart
+                const start = $('#chart_start_date').val();
+                const end = $('#chart_end_date').val();
+                $('#cogsChartPeriod').text(`Periode: ${new Date(start).toLocaleDateString('id-ID')} - ${new Date(end).toLocaleDateString('id-ID')}`).show();
+                $('#btnExportCogsPdf').prop('disabled', false);
             } else {
                 $('#cogsChartResult').html('<div class="alert alert-danger">' + response.message + '</div>').show();
             }
@@ -783,6 +829,7 @@ function displayProductReport(data) {
                     </div>
                 </div>
             </div>
+            <div class="col-md-3">
         </div>
     `;
 
@@ -799,12 +846,15 @@ function displayProductReport(data) {
                             <th>Total COGS</th>
                             <th>Tanggal Masuk</th>
                             <th>Batch Number</th>
+                            <th>Margin/Unit</th>
                         </tr>
                     </thead>
                     <tbody>
         `;
 
         data.batch_details.forEach(function(batch) {
+            const avgSell = (data.summary && data.summary.average_selling_price) ? data.summary.average_selling_price : 0;
+            const marginUnit = avgSell - (batch.harga_modal || 0);
             html += `
                 <tr>
                     <td>${batch.batch_id}</td>
@@ -813,6 +863,7 @@ function displayProductReport(data) {
                     <td class="text-right">Rp ${new Intl.NumberFormat('id-ID').format(batch.total_cogs)}</td>
                     <td>${batch.tanggal_masuk ? new Date(batch.tanggal_masuk).toLocaleDateString('id-ID') : '-'}</td>
                     <td>${batch.batch_number || '-'}</td>
+                    <td class="text-right">Rp ${new Intl.NumberFormat('id-ID').format(marginUnit)}</td>
                 </tr>
             `;
         });
@@ -883,9 +934,9 @@ function displayInventoryValue(data) {
                     <td class="text-right">Rp ${new Intl.NumberFormat('id-ID').format(barang.total_value)}</td>
                     <td class="text-right">Rp ${new Intl.NumberFormat('id-ID').format(barang.total_qty > 0 ? barang.total_value / barang.total_qty : 0)}</td>
                     <td>
-                        <button class="btn btn-sm btn-info" onclick="viewBatchDetail('${barang.kode_barang}')">
+                        <a class="btn btn-sm btn-info" href="{{ route('laporan.cogs.inventory_item', ':kode') }}" target="_blank" onclick="this.href=this.href.replace(':kode', '${barang.kode_barang}')">
                             <i class="fas fa-eye"></i> Lihat
-                        </button>
+                        </a>
                     </td>
                 </tr>
             `;
@@ -966,14 +1017,104 @@ function displayCogsChart(data) {
 	$('#cogsChartResult').show();
 }
 
+// Export Chart PDF
+document.addEventListener('DOMContentLoaded', function(){
+    const exportBtn = document.getElementById('btnExportCogsPdf');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', async function(){
+            try {
+                const canvas = document.getElementById('cogsChart');
+                if (!canvas) { alert('Silakan generate grafik terlebih dahulu'); return; }
+                const dataURL = canvas.toDataURL('image/png', 1.0);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                // Title and period
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(14);
+                pdf.text('Grafik COGS / Penjualan / Margin', pageWidth/2, 15, { align: 'center' });
+                const start = $('#chart_start_date').val();
+                const end = $('#chart_end_date').val();
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(11);
+                pdf.text(`Periode: ${new Date(start).toLocaleDateString('id-ID')} - ${new Date(end).toLocaleDateString('id-ID')}`, pageWidth/2, 23, { align: 'center' });
+                // Add chart image
+                const imgProps = pdf.getImageProperties(dataURL);
+                const imgWidth = pageWidth - 20; // margins 10mm
+                const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+                pdf.addImage(dataURL, 'PNG', 10, 30, imgWidth, imgHeight);
+                const filename = `COGS_Chart_${start}_to_${end}.pdf`;
+                pdf.save(filename);
+            } catch (e) {
+                console.error('Export PDF failed:', e);
+                alert('Gagal export PDF');
+            }
+        });
+    }
+});
+
 function viewTransactionDetail(transaksiId) {
     // Open transaction detail in new window or modal
     window.open('{{ route("laporan.cogs.detail", ":id") }}'.replace(':id', transaksiId), '_blank');
 }
 
 function viewBatchDetail(kodeBarang) {
-    // This would open a modal or new page showing batch details
-    alert('Detail batch untuk ' + kodeBarang + ' akan ditampilkan di sini');
+    // Cari data barang yang sudah dirender di hasil inventory value
+    const table = document.querySelector('#inventoryValueResult table');
+    if (!table) { return; }
+    const rows = table.querySelectorAll('tbody tr');
+    let batches = [];
+    // Tidak ada data batches di DOM; kita minta ulang data inventory dan ambil barang tersebut
+    const params = $('#inventoryValueForm').serialize();
+    $.ajax({
+        url: '{{ route("laporan.cogs.inventory") }}',
+        method: 'GET',
+        data: params,
+        success: function(response){
+            if (!response.success) { return; }
+            const barang = (response.barang_details || []).find(function(b){ return (b.kode_barang||'') === kodeBarang; });
+            if (!barang) { return; }
+            $('#invBatchKodeBarang').text(kodeBarang);
+            let html = '';
+            (barang.batches || []).forEach(function(batch){
+                html += `
+                    <tr>
+                        <td>${batch.batch_id}</td>
+                        <td class="text-right">${batch.qty_sisa}</td>
+                        <td class="text-right">Rp ${new Intl.NumberFormat('id-ID').format(batch.harga_beli)}</td>
+                        <td class="text-right">Rp ${new Intl.NumberFormat('id-ID').format((batch.qty_sisa||0)*(batch.harga_beli||0))}</td>
+                        <td>${batch.tanggal_masuk ? new Date(batch.tanggal_masuk).toLocaleDateString('id-ID') : '-'}</td>
+                        <td>${batch.batch_number || '-'}</td>
+                    </tr>
+                `;
+            });
+            $('#invBatchTableBody').html(html);
+            try {
+                if (window.bootstrap && typeof bootstrap.Modal !== 'undefined') {
+                    const modalEl = document.getElementById('inventoryBatchModal');
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                } else if (typeof $('#inventoryBatchModal').modal === 'function') {
+                    $('#inventoryBatchModal').modal('show');
+                } else {
+                    document.getElementById('inventoryBatchModal').style.display = 'block';
+                }
+            } catch (e) {
+                console.error('Show modal error:', e);
+            }
+        },
+        error: function(xhr){
+            console.error('Load inventory batches failed:', xhr);
+            $('#invBatchTableBody').html('<tr><td colspan="6" class="text-center text-danger">Gagal memuat detail batch</td></tr>');
+            if (window.bootstrap && typeof bootstrap.Modal !== 'undefined') {
+                const modalEl = document.getElementById('inventoryBatchModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else if (typeof $('#inventoryBatchModal').modal === 'function') {
+                $('#inventoryBatchModal').modal('show');
+            }
+        }
+    });
 }
 
 // Function to load products for regular select (fallback)

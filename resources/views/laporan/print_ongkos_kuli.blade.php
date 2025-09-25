@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Ongkos Kuli - {{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</title>
+    <title>Laporan Expense - {{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -131,7 +131,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>LAPORAN ONGKOS KULI</h1>
+        <h1>LAPORAN EXPENSE</h1>
         <h2>Dari {{ \Carbon\Carbon::parse($startDate)->format('d M Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }}</h2>
         <p style="margin: 5px 0 0 0; font-size: 12px;">
             <strong>Waktu Cetak:</strong> {{ now()->format('d/m/Y H:i:s') }} | 

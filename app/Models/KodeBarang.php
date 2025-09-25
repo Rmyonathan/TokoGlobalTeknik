@@ -30,6 +30,9 @@ class KodeBarang extends Model
         'satuan_besar',
         'harga_jual',
         'ongkos_kuli_default',
+        'keterangan',
+        'input_by',
+        'min_stock',
     ];
 
     protected $casts = [

@@ -223,6 +223,9 @@ class CogsService
             $barang['cogs_per_unit'] = $barang['total_qty'] > 0 
                 ? $barang['total_cogs'] / $barang['total_qty'] 
                 : 0;
+            $barang['margin_per_unit'] = $barang['total_qty'] > 0 
+                ? max(0, ($barang['total_penjualan'] / $barang['total_qty']) - $barang['cogs_per_unit'])
+                : 0;
         }
 
         return [

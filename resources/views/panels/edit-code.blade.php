@@ -161,6 +161,18 @@
                     </div>
                 </div>
 
+                <div class="form-group row">
+                    <label for="min_stock" class="col-sm-3 col-form-label">Minimum Stok (opsional)</label>
+                    <div class="col-sm-9">
+                        <input type="number" class="form-control @error('min_stock') is-invalid @enderror" id="min_stock" name="min_stock" min="0" 
+                            value="{{ old('min_stock', $code->min_stock) }}" placeholder="Biarkan kosong jika tidak memakai minimum">
+                        @error('min_stock')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="form-text text-muted">Jika stok total <= minimum, item akan ditandai kuning di daftar.</small>
+                    </div>
+                </div>
+
                 <hr>
                 <div class="form-group row">
                     <label class="col-sm-3 col-form-label">Konversi Satuan</label>

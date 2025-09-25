@@ -167,6 +167,35 @@ class CogsController extends Controller
     }
 
     /**
+     * Inventory value detail per item (open in new blade instead of modal)
+     */
+    public function inventoryItem(string $kodeBarang)
+    {
+        try {
+            $data = $this->cogsService->calculateCurrentInventoryValue($kodeBarang);
+            if (!$data['success']) {
+                return back()->with('error', $data['message'] ?? 'Gagal mengambil data persediaan');
+            }
+            // Ambil satu barang saja
+            $barang = collect($data['barang_details'] ?? [])->first();
+            if (!$barang) {
+                $barang = [
+                    'kode_barang' => $kodeBarang,
+                    'nama_barang' => '-',
+                    'total_qty' => 0,
+                    'total_value' => 0,
+                    'average_cost' => 0,
+                    'batches' => []
+                ];
+            }
+            return view('laporan.cogs.inventory_item', compact('barang'));
+        } catch (\Exception $e) {
+            \Log::error('COGS Inventory Item Error: '.$e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat membuka detail persediaan barang.');
+        }
+    }
+
+    /**
      * Chart data untuk COGS
      */
     public function chartData(Request $request)
