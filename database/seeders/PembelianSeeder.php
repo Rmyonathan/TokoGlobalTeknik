@@ -8,6 +8,7 @@ use App\Models\Supplier;
 use App\Models\KodeBarang;
 use App\Models\StockBatch;
 use App\Services\PpnService;
+use App\Http\Controllers\StockController;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -97,6 +98,21 @@ class PembelianSeeder extends Seeder
                     'batch_number' => 'BATCH-' . $pembelian->nota . '-' . $j,
                     'keterangan' => $supplier->nama,
                 ]);
+
+                // Record stock mutation for purchase
+                $stockController = new StockController();
+                $stockController->recordPurchase(
+                    $barang->kode_barang,
+                    $barang->name,
+                    $pembelian->nota,
+                    $tanggal->format('Y-m-d H:i:s'),
+                    $pembelian->nota,
+                    $supplier->nama,
+                    $qty,
+                    $barang->unit_dasar,
+                    'Purchase from ' . $supplier->nama,
+                    'SEEDER'
+                );
 
                 // Update stock
                 $stock = \App\Models\Stock::where('kode_barang', $barang->kode_barang)->first();

@@ -12,6 +12,7 @@ use App\Models\Customer;
 use App\Models\Supplier;
 use App\Models\KodeBarang;
 use App\Services\PpnService;
+use App\Http\Controllers\StockController;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -96,6 +97,21 @@ class ReturSeeder extends Seeder
                 if ($stock) {
                     $stock->increment('good_stock', $qtyRetur);
                 }
+
+                // Record stock mutation for sales return (stock coming back in)
+                $stockController = new StockController();
+                $stockController->recordPurchase(
+                    $transaksiItem->kode_barang,
+                    $transaksiItem->nama_barang,
+                    $returPenjualan->no_retur,
+                    $returPenjualan->tanggal->format('Y-m-d H:i:s'),
+                    $returPenjualan->no_retur,
+                    $customer->nama . ' (Return)',
+                    $qtyRetur,
+                    'PCS',
+                    'Sales return from ' . $customer->nama,
+                    'SEEDER'
+                );
             }
 
             // Update return totals
@@ -171,6 +187,21 @@ class ReturSeeder extends Seeder
                 if ($stock) {
                     $stock->decrement('good_stock', $qtyRetur);
                 }
+
+                // Record stock mutation for purchase return (stock going out)
+                $stockController = new StockController();
+                $stockController->recordSale(
+                    $pembelianItem->kode_barang,
+                    $pembelianItem->nama_barang,
+                    $returPembelian->no_retur,
+                    $returPembelian->tanggal->format('Y-m-d H:i:s'),
+                    $returPembelian->no_retur,
+                    $supplier->nama . ' (Return)',
+                    $qtyRetur,
+                    'PCS',
+                    'Purchase return to ' . $supplier->nama,
+                    'SEEDER'
+                );
             }
 
             // Update return totals

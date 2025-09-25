@@ -10,6 +10,7 @@ use App\Models\KodeBarang;
 use App\Models\StockBatch;
 use App\Services\PpnService;
 use App\Services\FifoService;
+use App\Http\Controllers\StockController;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -104,6 +105,21 @@ class PenjualanSeeder extends Seeder
                             $totalCogs += $alokasi['qty_ambil'] * $alokasi['harga_modal'];
                         }
                     }
+
+                    // Record stock mutation for sale
+                    $stockController = new StockController();
+                    $stockController->recordSale(
+                        $barang->kode_barang,
+                        $barang->name,
+                        $transaksi->no_transaksi,
+                        $tanggal->format('Y-m-d H:i:s'),
+                        $transaksi->no_transaksi,
+                        $customer->nama,
+                        $qty,
+                        $barang->unit_dasar,
+                        'Sale to ' . $customer->nama,
+                        'SEEDER'
+                    );
                 } catch (\Exception $e) {
                     $this->command->warn("FIFO allocation failed for item {$barang->kode_barang}: " . $e->getMessage());
                 }
