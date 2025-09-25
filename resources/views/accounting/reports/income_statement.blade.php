@@ -6,13 +6,8 @@
 	<div class="card-body">
 		<form class="row g-2 mb-3" method="GET">
 			<div class="col-md-6">
-				<label class="form-label">Periode</label>
-				<select name="period_id" class="form-select" required>
-					<option value="">- Pilih Periode -</option>
-					@foreach ($periods as $p)
-						<option value="{{ $p->id }}" {{ ($periodId==$p->id)?'selected':'' }}>{{ $p->name }}</option>
-					@endforeach
-				</select>
+				<label class="form-label">Bulan</label>
+				<input type="month" name="month" class="form-control" value="{{ request('month', $month ?? now()->format('Y-m')) }}" required>
 			</div>
 			<div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100">Tampilkan</button></div>
 		</form>

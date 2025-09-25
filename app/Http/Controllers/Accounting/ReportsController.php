@@ -23,6 +23,7 @@ class ReportsController extends Controller
         $accounts = ChartOfAccount::orderBy('code')->get();
 
         $entries = collect();
+        $entriesByAccount = collect();
         $account = null;
         if ($accountId) {
             $account = ChartOfAccount::find($accountId);
@@ -34,6 +35,17 @@ class ReportsController extends Controller
                 ->orderBy('journal_id')
                 ->orderBy('id')
                 ->get();
+        } else {
+            // Load all entries within date range, grouped by account
+            $entries = JournalDetail::with(['journal','account'])
+                ->whereHas('journal', function($q) use ($from, $to){
+                    $q->whereBetween('journal_date', [$from, $to]);
+                })
+                ->orderBy('account_id')
+                ->orderBy('journal_id')
+                ->orderBy('id')
+                ->get();
+            $entriesByAccount = $entries->groupBy('account_id');
         }
 
         // Export handlers
@@ -46,7 +58,7 @@ class ReportsController extends Controller
             }
         }
 
-        return view('accounting.reports.general_ledger', compact('accounts','entries','from','to','accountId'));
+        return view('accounting.reports.general_ledger', compact('accounts','entries','entriesByAccount','from','to','accountId','account'));
     }
 
     private function exportGeneralLedgerCsv($entries, ?ChartOfAccount $account, string $from, string $to): StreamedResponse
@@ -124,31 +136,32 @@ class ReportsController extends Controller
 
     public function incomeStatement(Request $request)
     {
-        $periodId = $request->get('period_id');
-        $periods = AccountingPeriod::orderByDesc('start_date')->get();
+        $month = $request->get('month', now()->format('Y-m'));
+        $from = \Carbon\Carbon::createFromFormat('Y-m', $month)->startOfMonth()->toDateString();
+        $to = \Carbon\Carbon::createFromFormat('Y-m', $month)->endOfMonth()->toDateString();
         $revenue = collect();
         $expense = collect();
-        if ($periodId) {
+        if ($month) {
             $revenue = ChartOfAccount::whereHas('accountType', fn($t)=>$t->where('name','Revenue'))
-                ->withSum(['journalDetails as credit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as credit_sum' => function($q) use ($from, $to){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$from, $to]));
                 }], 'credit')
-                ->withSum(['journalDetails as debit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as debit_sum' => function($q) use ($from, $to){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$from, $to]));
                 }], 'debit')
                 ->orderBy('code')->get();
 
             $expense = ChartOfAccount::whereHas('accountType', fn($t)=>$t->where('name','Expense'))
-                ->withSum(['journalDetails as debit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as debit_sum' => function($q) use ($from, $to){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$from, $to]));
                 }], 'debit')
-                ->withSum(['journalDetails as credit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as credit_sum' => function($q) use ($from, $to){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$from, $to]));
                 }], 'credit')
                 ->orderBy('code')->get();
         }
 
-        return view('accounting.reports.income_statement', compact('periods','revenue','expense','periodId'));
+        return view('accounting.reports.income_statement', compact('revenue','expense','month','from','to'));
     }
 
     public function balanceSheet(Request $request)
@@ -159,7 +172,9 @@ class ReportsController extends Controller
         $liab = collect();
         $equity = collect();
         if ($periodId) {
-            $assets = ChartOfAccount::whereHas('accountType', fn($t)=>$t->where('name','Asset'))
+            $assets = ChartOfAccount::whereHas('accountType', function($t){
+                    $t->whereIn('name', ['Asset','Assets']);
+                })
                 ->withSum(['journalDetails as debit_sum' => function($q) use ($periodId){
                     $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
                 }], 'debit')
@@ -168,7 +183,9 @@ class ReportsController extends Controller
                 }], 'credit')
                 ->orderBy('code')->get();
 
-            $liab = ChartOfAccount::whereHas('accountType', fn($t)=>$t->where('name','Liability'))
+            $liab = ChartOfAccount::whereHas('accountType', function($t){
+                    $t->whereIn('name', ['Liability','Liabilities']);
+                })
                 ->withSum(['journalDetails as debit_sum' => function($q) use ($periodId){
                     $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
                 }], 'debit')
