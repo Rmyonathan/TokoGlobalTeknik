@@ -176,6 +176,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('reports/general-ledger', [ReportsController::class, 'generalLedger'])->name('reports.gl');
         Route::get('reports/trial-balance', [ReportsController::class, 'trialBalance'])->name('reports.trial_balance');
         Route::get('reports/income-statement', [ReportsController::class, 'incomeStatement'])->name('reports.income_statement');
+        Route::get('reports/income-statement/export', [ReportsController::class, 'incomeStatementExport'])->name('reports.income_statement.export');
         Route::get('reports/balance-sheet', [ReportsController::class, 'balanceSheet'])->name('reports.balance_sheet');
         Route::post('reports/save', [ReportsController::class, 'saveReport'])->name('reports.save');
 
@@ -861,8 +862,8 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/laba-per-faktur', [LaporanController::class, 'labaPerFaktur'])->name('laporan.laba-per-faktur');
         Route::get('/laba-per-faktur/print', [LaporanController::class, 'printLabaPerFaktur'])->name('laporan.laba-per-faktur.print');
         Route::get('/laba-per-barang', [LaporanController::class, 'labaPerBarang'])->name('laporan.laba-per-barang');
-        Route::get('/ongkos-kuli', [LaporanController::class, 'ongkosKuli'])->name('laporan.ongkos-kuli');
-        Route::get('/ongkos-kuli/print', [LaporanController::class, 'printOngkosKuli'])->name('laporan.ongkos-kuli.print');
+        Route::get('/kas', [LaporanController::class, 'kas'])->name('laporan.kas');
+        Route::get('/kas/print', [LaporanController::class, 'printKas'])->name('laporan.kas.print');
         Route::get('/komisi-sales/detail/{salesCode}', [LaporanController::class, 'komisiSalesDetail'])->name('laporan.komisi_sales.detail');
         Route::get('/komisi-sales/invoice-detail/{transaksiId}', [LaporanController::class, 'komisiSalesInvoiceDetail'])->name('laporan.komisi_sales.invoice_detail');
         Route::get('/komisi-sales', [LaporanController::class, 'komisiSales'])->name('laporan.komisi-sales');

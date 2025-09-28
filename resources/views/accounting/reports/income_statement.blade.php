@@ -5,15 +5,21 @@
 	<div class="card-header">Laporan Laba Rugi</div>
 	<div class="card-body">
 		<form class="row g-2 mb-3" method="GET">
-			<div class="col-md-6">
-				<label class="form-label">Bulan</label>
-				<input type="month" name="month" class="form-control" value="{{ request('month', $month ?? now()->format('Y-m')) }}" required>
+			<div class="col-md-4">
+				<label class="form-label">Dari Tanggal</label>
+				<input type="date" name="from_date" class="form-control" id="from-date" value="{{ $fromDate ?? '' }}" required>
 			</div>
-			<div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100">Tampilkan</button></div>
+			<div class="col-md-4">
+				<label class="form-label">Sampai Tanggal</label>
+				<input type="date" name="to_date" class="form-control" id="to-date" value="{{ $toDate ?? '' }}" required>
+			</div>
+			<div class="col-md-4 d-flex align-items-end">
+				<button class="btn btn-primary w-100">Tampilkan</button>
+			</div>
 		</form>
 
 		<div class="d-flex justify-content-end mb-2">
-			<button type="button" id="btn-save-report" class="btn btn-success btn-sm">Simpan Laporan</button>
+			<button type="button" id="btn-save-report" class="btn btn-success btn-sm">Download CSV</button>
 		</div>
 		<div class="row" id="report-root">
 			<div class="col-md-6">
@@ -54,25 +60,46 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  const fromDate = document.getElementById('from-date');
+  const toDate = document.getElementById('to-date');
+  
+  // Form validation
+  document.querySelector('form').addEventListener('submit', function(e) {
+    const fromDateValue = fromDate.value;
+    const toDateValue = toDate.value;
+    
+    if (!fromDateValue || !toDateValue) {
+      e.preventDefault();
+      alert('Harap isi kedua tanggal');
+      return false;
+    }
+    
+    if (fromDateValue > toDateValue) {
+      e.preventDefault();
+      alert('Tanggal mulai tidak boleh lebih besar dari tanggal akhir');
+      return false;
+    }
+  });
+  
   const btn = document.getElementById('btn-save-report');
   if (!btn) return;
-  btn.addEventListener('click', async function(){
-    const periodSel = document.querySelector('select[name="period_id"]');
-    const snapshot = { html: document.querySelector('.card-body').innerHTML };
-    try {
-      const res = await fetch("{{ route('accounting.reports.save') }}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-        body: JSON.stringify({
-          report_name: 'Income Statement',
-          accounting_period_id: periodSel ? periodSel.value : null,
-          snapshot: snapshot
-        })
-      });
-      const data = await res.json();
-      if (data.success) alert('Laporan disimpan. ID: ' + data.id);
-      else alert('Gagal menyimpan laporan');
-    } catch(e){ alert('Error: ' + e.message); }
+  btn.addEventListener('click', function(){
+    const fromDateValue = fromDate.value;
+    const toDateValue = toDate.value;
+    
+    if (!fromDateValue || !toDateValue) {
+      alert('Harap isi kedua tanggal terlebih dahulu');
+      return;
+    }
+    
+    if (fromDateValue > toDateValue) {
+      alert('Tanggal mulai tidak boleh lebih besar dari tanggal akhir');
+      return;
+    }
+    
+    // Redirect to CSV export
+    const url = "{{ route('accounting.reports.income_statement.export') }}?from_date=" + fromDateValue + "&to_date=" + toDateValue;
+    window.location.href = url;
   });
 });
 </script>

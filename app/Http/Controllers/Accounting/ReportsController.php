@@ -115,96 +115,179 @@ class ReportsController extends Controller
 
     public function trialBalance(Request $request)
     {
-        $periodId = $request->get('period_id');
-        $periods = AccountingPeriod::orderByDesc('start_date')->get();
+        $fromDate = $request->get('from_date');
+        $toDate = $request->get('to_date');
 
         $rows = collect();
-        if ($periodId) {
+        if ($fromDate && $toDate) {
             $rows = ChartOfAccount::select('chart_of_accounts.*')
-                ->withSum(['journalDetails as debit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as debit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'debit')
-                ->withSum(['journalDetails as credit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as credit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'credit')
                 ->orderBy('code')
                 ->get();
         }
 
-        return view('accounting.reports.trial_balance', compact('periods','rows','periodId'));
+        return view('accounting.reports.trial_balance', compact('rows','fromDate','toDate'));
     }
 
     public function incomeStatement(Request $request)
     {
-        $month = $request->get('month', now()->format('Y-m'));
-        $from = \Carbon\Carbon::createFromFormat('Y-m', $month)->startOfMonth()->toDateString();
-        $to = \Carbon\Carbon::createFromFormat('Y-m', $month)->endOfMonth()->toDateString();
+        $fromDate = $request->get('from_date');
+        $toDate = $request->get('to_date');
         $revenue = collect();
         $expense = collect();
-        if ($month) {
+        
+        if ($fromDate && $toDate) {
             $revenue = ChartOfAccount::whereHas('accountType', fn($t)=>$t->where('name','Revenue'))
-                ->withSum(['journalDetails as credit_sum' => function($q) use ($from, $to){
-                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$from, $to]));
+                ->withSum(['journalDetails as credit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'credit')
-                ->withSum(['journalDetails as debit_sum' => function($q) use ($from, $to){
-                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$from, $to]));
+                ->withSum(['journalDetails as debit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'debit')
                 ->orderBy('code')->get();
 
             $expense = ChartOfAccount::whereHas('accountType', fn($t)=>$t->where('name','Expense'))
-                ->withSum(['journalDetails as debit_sum' => function($q) use ($from, $to){
-                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$from, $to]));
+                ->withSum(['journalDetails as debit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'debit')
-                ->withSum(['journalDetails as credit_sum' => function($q) use ($from, $to){
-                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$from, $to]));
+                ->withSum(['journalDetails as credit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'credit')
                 ->orderBy('code')->get();
         }
 
-        return view('accounting.reports.income_statement', compact('revenue','expense','month','from','to'));
+        return view('accounting.reports.income_statement', compact('revenue','expense','fromDate','toDate'));
+    }
+
+    public function incomeStatementExport(Request $request)
+    {
+        $fromDate = $request->get('from_date');
+        $toDate = $request->get('to_date');
+        
+        if (!$fromDate || !$toDate) {
+            return redirect()->back()->with('error', 'Tanggal harus diisi');
+        }
+        
+        $revenue = ChartOfAccount::whereHas('accountType', fn($t)=>$t->where('name','Revenue'))
+            ->withSum(['journalDetails as credit_sum' => function($q) use ($fromDate, $toDate){
+                $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
+            }], 'credit')
+            ->withSum(['journalDetails as debit_sum' => function($q) use ($fromDate, $toDate){
+                $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
+            }], 'debit')
+            ->orderBy('code')->get();
+
+        $expense = ChartOfAccount::whereHas('accountType', fn($t)=>$t->where('name','Expense'))
+            ->withSum(['journalDetails as debit_sum' => function($q) use ($fromDate, $toDate){
+                $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
+            }], 'debit')
+            ->withSum(['journalDetails as credit_sum' => function($q) use ($fromDate, $toDate){
+                $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
+            }], 'credit')
+            ->orderBy('code')->get();
+
+        $filename = 'laporan_laba_rugi_' . $fromDate . '_to_' . $toDate . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($revenue, $expense, $fromDate, $toDate) {
+            $file = fopen('php://output', 'w');
+            
+            // BOM for UTF-8
+            fwrite($file, "\xEF\xBB\xBF");
+            
+            // Header
+            fputcsv($file, ['LAPORAN LABA RUGI']);
+            fputcsv($file, ['Periode: ' . $fromDate . ' s/d ' . $toDate]);
+            fputcsv($file, ['Tanggal Export: ' . now()->format('d-m-Y H:i:s')]);
+            fputcsv($file, []);
+            
+            // Revenue Section
+            fputcsv($file, ['PENDAPATAN']);
+            fputcsv($file, ['Kode Akun', 'Nama Akun', 'Nilai']);
+            
+            $totalRevenue = 0;
+            foreach ($revenue as $r) {
+                $val = (float)($r->credit_sum ?? 0) - (float)($r->debit_sum ?? 0);
+                fputcsv($file, [$r->code, $r->name, number_format($val, 2)]);
+                $totalRevenue += $val;
+            }
+            fputcsv($file, ['', 'TOTAL PENDAPATAN', number_format($totalRevenue, 2)]);
+            fputcsv($file, []);
+            
+            // Expense Section
+            fputcsv($file, ['BEBAN']);
+            fputcsv($file, ['Kode Akun', 'Nama Akun', 'Nilai']);
+            
+            $totalExpense = 0;
+            foreach ($expense as $e) {
+                $val = (float)($e->debit_sum ?? 0) - (float)($e->credit_sum ?? 0);
+                fputcsv($file, [$e->code, $e->name, number_format($val, 2)]);
+                $totalExpense += $val;
+            }
+            fputcsv($file, ['', 'TOTAL BEBAN', number_format($totalExpense, 2)]);
+            fputcsv($file, []);
+            
+            // Net Income
+            $netIncome = $totalRevenue - $totalExpense;
+            fputcsv($file, ['', 'LABA/RUGI BERSIH', number_format($netIncome, 2)]);
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function balanceSheet(Request $request)
     {
-        $periodId = $request->get('period_id');
-        $periods = AccountingPeriod::orderByDesc('start_date')->get();
+        $fromDate = $request->get('from_date');
+        $toDate = $request->get('to_date');
         $assets = collect();
         $liab = collect();
         $equity = collect();
-        if ($periodId) {
+        
+        if ($fromDate && $toDate) {
             $assets = ChartOfAccount::whereHas('accountType', function($t){
                     $t->whereIn('name', ['Asset','Assets']);
                 })
-                ->withSum(['journalDetails as debit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as debit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'debit')
-                ->withSum(['journalDetails as credit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as credit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'credit')
                 ->orderBy('code')->get();
 
             $liab = ChartOfAccount::whereHas('accountType', function($t){
                     $t->whereIn('name', ['Liability','Liabilities']);
                 })
-                ->withSum(['journalDetails as debit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as debit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'debit')
-                ->withSum(['journalDetails as credit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as credit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'credit')
                 ->orderBy('code')->get();
 
             $equity = ChartOfAccount::whereHas('accountType', fn($t)=>$t->where('name','Equity'))
-                ->withSum(['journalDetails as debit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as debit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'debit')
-                ->withSum(['journalDetails as credit_sum' => function($q) use ($periodId){
-                    $q->whereHas('journal', fn($j)=>$j->where('accounting_period_id',$periodId));
+                ->withSum(['journalDetails as credit_sum' => function($q) use ($fromDate, $toDate){
+                    $q->whereHas('journal', fn($j)=>$j->whereBetween('journal_date', [$fromDate, $toDate]));
                 }], 'credit')
                 ->orderBy('code')->get();
         }
 
-        return view('accounting.reports.balance_sheet', compact('periods','assets','liab','equity','periodId'));
+        return view('accounting.reports.balance_sheet', compact('assets','liab','equity','fromDate','toDate'));
     }
 
     public function saveReport(Request $request)

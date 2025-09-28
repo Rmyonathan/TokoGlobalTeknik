@@ -796,10 +796,6 @@
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="/viewKas"><i class="fas fa-money-bill-wave mr-2"></i>Kas</a>
-                </li>
-
-                <li class="nav-item">
                     <a class="nav-link" href="{{ route('finance.bank-loan.index') }}"><i class="fas fa-university mr-2"></i>Utang Bank</a>
                 </li>
 
@@ -861,8 +857,11 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('laporan.laba-per-barang') }}"><i class="fas fa-boxes"></i> Laporan Laba per Barang</a>
                             </li>
+                            <!-- <li class="nav-item">
+                                <a class="nav-link" href="{{ route('laporan.kas') }}"><i class="fas fa-money-bill-wave"></i> Laporan Kas</a>
+                            </li> -->
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('laporan.ongkos-kuli') }}"><i class="fas fa-people-carry"></i> Laporan Ongkos Kuli</a>
+                                <a class="nav-link" href="/viewKas"><i class="fas fa-money-bill-wave mr-2"></i>Kas</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('laporan.komisi-sales') }}"><i class="fas fa-percentage"></i> Laporan Komisi Sales</a>

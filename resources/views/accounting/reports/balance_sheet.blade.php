@@ -5,16 +5,15 @@
 	<div class="card-header">Laporan Posisi Keuangan (Neraca)</div>
 	<div class="card-body">
 		<form class="row g-2 mb-3" method="GET">
-			<div class="col-md-6">
-				<label class="form-label">Periode</label>
-				<select name="period_id" class="form-select" required>
-					<option value="">- Pilih Periode -</option>
-					@foreach ($periods as $p)
-						<option value="{{ $p->id }}" {{ ($periodId==$p->id)?'selected':'' }}>{{ $p->name }}</option>
-					@endforeach
-				</select>
+			<div class="col-md-4">
+				<label class="form-label">Dari Tanggal</label>
+				<input type="date" name="from_date" class="form-control" id="from-date" value="{{ $fromDate ?? '' }}" required>
 			</div>
-			<div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100">Tampilkan</button></div>
+			<div class="col-md-4">
+				<label class="form-label">Sampai Tanggal</label>
+				<input type="date" name="to_date" class="form-control" id="to-date" value="{{ $toDate ?? '' }}" required>
+			</div>
+			<div class="col-md-4 d-flex align-items-end"><button class="btn btn-primary w-100">Tampilkan</button></div>
 		</form>
 
 		<div class="d-flex justify-content-end mb-2">
@@ -73,10 +72,30 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  const fromDate = document.getElementById('from-date');
+  const toDate = document.getElementById('to-date');
+  
+  // Form validation
+  document.querySelector('form').addEventListener('submit', function(e) {
+    const fromDateValue = fromDate.value;
+    const toDateValue = toDate.value;
+    
+    if (!fromDateValue || !toDateValue) {
+      e.preventDefault();
+      alert('Harap isi kedua tanggal');
+      return false;
+    }
+    
+    if (fromDateValue > toDateValue) {
+      e.preventDefault();
+      alert('Tanggal mulai tidak boleh lebih besar dari tanggal akhir');
+      return false;
+    }
+  });
+  
   const btn = document.getElementById('btn-save-report');
   if (!btn) return;
   btn.addEventListener('click', async function(){
-    const periodSel = document.querySelector('select[name="period_id"]');
     const snapshot = { html: document.querySelector('.card-body').innerHTML };
     try {
       const res = await fetch("{{ route('accounting.reports.save') }}", {
@@ -84,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function(){
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
         body: JSON.stringify({
           report_name: 'Balance Sheet',
-          accounting_period_id: periodSel ? periodSel.value : null,
+          accounting_period_id: null,
           snapshot: snapshot
         })
       });

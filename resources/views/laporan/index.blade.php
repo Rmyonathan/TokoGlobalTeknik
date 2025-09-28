@@ -56,8 +56,8 @@
 			<a href="{{ route('laporan.laba-per-barang') }}" class="list-group-item list-group-item-action">
 				<i class="fas fa-boxes mr-2"></i>Laporan Laba per Barang
 			</a>
-			<a href="{{ route('laporan.ongkos-kuli') }}" class="list-group-item list-group-item-action">
-				<i class="fas fa-file-invoice-dollar mr-2"></i>Laporan Expense
+			<a href="{{ route('laporan.kas') }}" class="list-group-item list-group-item-action">
+				<i class="fas fa-money-bill-wave mr-2"></i>Laporan Kas
 			</a>
 			<a href="{{ route('laporan.komisi-sales') }}" class="list-group-item list-group-item-action">
 				<i class="fas fa-user-tie mr-2"></i>Laporan Komisi Sales
