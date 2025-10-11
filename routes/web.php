@@ -59,20 +59,7 @@ use Illuminate\Support\Facades\Artisan;
 | be assigned to the "web" middleware group.
 |
 */
-Route::get('/run-user-seeder', function () {
-    try {
-        Artisan::call('db:seed', ['--class' => 'UserSeeder']);
-        return response()->json([
-            'success' => true,
-            'message' => 'UserSeeder berhasil dijalankan!'
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'error' => $e->getMessage()
-        ], 500);
-    }
-});
+
 // Return Barang API routes (accessible without authentication)
 Route::get('/return-barang-api/search-transactions', [App\Http\Controllers\ReturnBarangController::class, 'searchTransactions'])->name('return-barang-api.search-transactions')->withoutMiddleware(['web', 'auth']);
 Route::get('/return-barang-api/transaction-items', [App\Http\Controllers\ReturnBarangController::class, 'getTransactionItems'])->name('return-barang-api.transaction-items')->withoutMiddleware(['web', 'auth']);
@@ -104,6 +91,21 @@ Route::middleware(['web'])->group(function () {
     Route::get('/login', function () {
         return redirect()->route('signin');
     })->name('login');
+
+    Route::get('/run-user-seeder', function () {
+        try {
+            Artisan::call('db:seed', ['--class' => 'UserSeeder']);
+            return response()->json([
+                'success' => true,
+                'message' => 'UserSeeder berhasil dijalankan!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
 });
 
 // Protected routes (need authentication)
