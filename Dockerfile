@@ -72,7 +72,7 @@
 
 FROM composer:2.7 as build
 
-# Install system dependencies and PHP extensions needed for composer
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -83,8 +83,10 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     libonig-dev \
     libxml2-dev \
-    libzip-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    libzip-dev
+
+# Configure and install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 WORKDIR /app
@@ -103,7 +105,7 @@ RUN npm run build
 
 FROM php:8.2-apache
 
-# Install system dependencies and PHP extensions
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libpng-dev \
@@ -111,8 +113,10 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     libonig-dev \
     libxml2-dev \
-    libzip-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    libzip-dev
+
+# Configure and install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_pgsql pdo_mysql mbstring exif pcntl bcmath gd zip
 
 WORKDIR /var/www/html
