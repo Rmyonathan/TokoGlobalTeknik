@@ -35,17 +35,17 @@
 FROM php:8.2-cli AS build
 
 # Install dependency sistem agar composer jalan lancar
-# RUN apt-get update && apt-get install -y \
-#     git \
-#     unzip \
-#     zip \
-#     libpng-dev \
-#     libjpeg-dev \
-#     libfreetype6-dev \
-#     libonig-dev \
-#     libxml2-dev \
-#     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-#     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    zip \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libonig-dev \
+    libxml2-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 WORKDIR /app
 
@@ -71,23 +71,22 @@ RUN apt-get update && apt-get install -y curl \
 
 # Install dependencies dan build asset
 RUN npm install && npm run build
-
 # ===========================
 # Stage 2: Jalankan di Apache
 # ===========================
 FROM php:8.2-apache
 
-# RUN apt-get update && apt-get install -y \
-#     libpng-dev \
-#     libjpeg-dev \
-#     libfreetype6-dev \
-#     libonig-dev \
-#     libxml2-dev \
-#     zip \
-#     unzip \
-#     git \
-#     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-#     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    git \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 WORKDIR /var/www/html
 RUN a2enmod rewrite
