@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
         // $this->call(CaraBayarSeeder::class);
         
         // Create sample data
-        $this->createSampleData();
+        // $this->createSampleData();
 
         // Accounting seeders
         $this->call(AccountingPeriodSeeder::class);
