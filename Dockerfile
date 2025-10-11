@@ -3,7 +3,6 @@ FROM composer:2.7 as build
 WORKDIR /app
 
 COPY . .
-RUN cp .env.example .env
 
 RUN composer install --no-dev --prefer-dist --optimize-autoloader
 
