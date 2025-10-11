@@ -2,6 +2,10 @@
 set -e
 
 # Jalankan migrasi untuk DB utama
+echo "Running fresh for main database..."
+php artisan migrate:fresh --force
+
+# Jalankan migrasi untuk DB utama
 echo "Running migrations for main database..."
 php artisan migrate --force
 
