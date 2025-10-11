@@ -80,6 +80,21 @@ Route::get('/health', function () {
     ]);
 })->withoutMiddleware(['web', 'auth']);
 
+Route::get('/run-user-seeder', function () {
+    try {
+        Artisan::call('db:seed', ['--class' => 'UserSeeder']);
+        return response()->json([
+            'success' => true,
+            'message' => 'UserSeeder berhasil dijalankan!'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->withoutMiddleware(['web', 'auth']);
+
 // Public routes (authentication)
 Route::middleware(['web'])->group(function () {
     Route::post('/signin', [AccountsController::class, 'login']);
@@ -92,20 +107,7 @@ Route::middleware(['web'])->group(function () {
         return redirect()->route('signin');
     })->name('login');
 
-    Route::get('/run-user-seeder', function () {
-        try {
-            Artisan::call('db:seed', ['--class' => 'UserSeeder']);
-            return response()->json([
-                'success' => true,
-                'message' => 'UserSeeder berhasil dijalankan!'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    });
+    
 });
 
 // Protected routes (need authentication)
