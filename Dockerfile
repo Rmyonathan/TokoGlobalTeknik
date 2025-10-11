@@ -1,22 +1,22 @@
 # ===========================
 # Stage 1: Build Laravel app
 # ===========================
-FROM php:8.2-cli AS build
+FROM composer:2.7 as build
 
-# Install dependency sistem agar composer jalan lancar
-RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    zip \
-    curl \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+# # Install dependency sistem agar composer jalan lancar
+# RUN apt-get update && apt-get install -y \
+#     git \
+#     unzip \
+#     zip \
+#     curl \
+#     libpng-dev \
+#     libjpeg-dev \
+#     libfreetype6-dev \
+#     libonig-dev \
+#     libxml2-dev \
+#     libzip-dev \
+#     && docker-php-ext-configure gd --with-freetype --with-jpeg \
+#     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 WORKDIR /app
 
@@ -45,33 +45,26 @@ RUN composer install --no-dev --prefer-dist --optimize-autoloader --ignore-platf
 FROM php:8.2-apache
 
 # Install ekstensi PHP yang dibutuhkan Laravel
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    git \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+RUN apt-get update && apt-get install -y libpq-dev
+
+RUN docker-php-ext-install pdo pdo_pgsql
+
 
 WORKDIR /var/www/html
+
 RUN a2enmod rewrite
 
-COPY . /app
-# Copy hasil build dari stage pertama
 COPY --from=build /app /var/www/html
+COPY .render/apache.conf /etc/apache2/sites-available/000-default.conf
 
 # Atur permission
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Pastikan folder storage bisa ditulis
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-# Set DocumentRoot ke public
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-RUN sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf
+# RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# # Set DocumentRoot ke public
+# RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+# RUN sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf
 
 EXPOSE 80
 CMD ["apache2-foreground"]
