@@ -12,6 +12,11 @@ php artisan migrate:fresh --force
 echo "🌱 Running seeders in container..."
 php artisan db:seed --force
 
+php artisan route:clear
+php artisan cache:clear
+php artisan config:clear
+php artisan optimize
+
 # # Jalankan migrasi untuk DB kedua
 # echo "Running migrations for secondary database..."
 # php artisan migrate --database=second_mysql --force
