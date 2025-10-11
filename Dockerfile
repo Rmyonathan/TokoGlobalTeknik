@@ -55,7 +55,12 @@ COPY . .
 # Install Composer (manual, karena base-nya php:8.2)
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-# Install dependency Laravel
+# Install PHP extensions
+RUN apt-get update && apt-get install -y \
+    libzip-dev zip unzip \
+    && docker-php-ext-install zip
+
+# Lalu jalankan composer
 RUN composer install --no-dev --prefer-dist --optimize-autoloader
 
 # Build asset frontend (jika pakai Vite)
