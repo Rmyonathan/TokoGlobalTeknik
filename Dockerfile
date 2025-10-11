@@ -64,8 +64,8 @@ RUN npm install
 # Copy application files
 COPY . .
 
-# Complete composer setup
-RUN composer dump-autoload --optimize
+# # Complete composer setup
+# RUN composer dump-autoload --optimize
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
