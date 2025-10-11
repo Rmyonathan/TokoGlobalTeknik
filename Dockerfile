@@ -60,6 +60,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /var/www/html
 RUN a2enmod rewrite
 
+COPY . /app
 # Copy hasil build dari stage pertama
 COPY --from=build /app /var/www/html
 

@@ -57,7 +57,12 @@ use App\Models\Transaksi;
 | be assigned to the "web" middleware group.
 |
 */
-
+Route::get('/test-hai', function(){
+    return response()->json([
+        'status' => 'ok',
+        'message' => 'masuk',
+    ]);
+});
 // Return Barang API routes (accessible without authentication)
 Route::get('/return-barang-api/search-transactions', [App\Http\Controllers\ReturnBarangController::class, 'searchTransactions'])->name('return-barang-api.search-transactions')->withoutMiddleware(['web', 'auth']);
 Route::get('/return-barang-api/transaction-items', [App\Http\Controllers\ReturnBarangController::class, 'getTransactionItems'])->name('return-barang-api.transaction-items')->withoutMiddleware(['web', 'auth']);
