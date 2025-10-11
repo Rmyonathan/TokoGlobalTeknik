@@ -47,6 +47,8 @@ use App\Models\Customer;
 use App\Models\Pembelian;
 use App\Models\Transaksi;
 
+use Illuminate\Support\Facades\Artisan;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -57,11 +59,19 @@ use App\Models\Transaksi;
 | be assigned to the "web" middleware group.
 |
 */
-Route::get('/test-hai', function(){
-    return response()->json([
-        'status' => 'ok',
-        'message' => 'masuk',
-    ]);
+Route::get('/run-user-seeder', function () {
+    try {
+        Artisan::call('db:seed', ['--class' => 'UserSeeder']);
+        return response()->json([
+            'success' => true,
+            'message' => 'UserSeeder berhasil dijalankan!'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
 });
 // Return Barang API routes (accessible without authentication)
 Route::get('/return-barang-api/search-transactions', [App\Http\Controllers\ReturnBarangController::class, 'searchTransactions'])->name('return-barang-api.search-transactions')->withoutMiddleware(['web', 'auth']);
