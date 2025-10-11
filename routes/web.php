@@ -116,7 +116,8 @@ Route::get('/run-user-seeder', function () {
 // });
 
 // Protected routes (need authentication)
-Route::middleware(['web'])->group(function () {
+// Route::middleware(['web'])->group(function () {
+    Route::group(function () {
     // Dashboard route
     Route::get('', [PanelController::class, 'viewBarang'])
         ->middleware('permission:view dashboard')
@@ -1031,4 +1032,4 @@ Route::middleware(['web'])->group(function () {
         // PO Number Generator API
         Route::get('/generate-po', [App\Http\Controllers\PoNumberController::class, 'generate'])->name('api.generate-po');
     });
-});
+})->withoutMiddleware(['web', 'auth']);
