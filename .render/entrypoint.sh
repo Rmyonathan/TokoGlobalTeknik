@@ -2,24 +2,20 @@
 set -e
 
 # Jalankan migrasi untuk DB utama
-echo "Running fresh for main database..."
-php artisan migrate:fresh --force
 
-# Jalankan migrasi untuk DB utama
-echo "Running migrations for main database..."
-php artisan migrate --force
+echo "🗑️  Dropping all tables in container..."
+docker exec plastik-ko-eko-container php artisan db:wipe --force
 
-# Jalankan seeder untuk DB utama
-echo "Running seeders for main database..."
-php artisan db:seed --force
+echo "🔄 Running fresh migrations in container..."
+docker exec plastik-ko-eko-container php artisan migrate:fresh --force
+
+echo "🌱 Running seeders in container..."
+docker exec plastik-ko-eko-container php artisan db:seed --force
 
 # # Jalankan migrasi untuk DB kedua
 # echo "Running migrations for secondary database..."
 # php artisan migrate --database=second_mysql --force
 
-# Jalankan seeder untuk DB kedua
-echo "Running seeders ..."
-php artisan db:seed
 
 # Jalankan perintah utama container (Apache)
 exec apache2-foreground
