@@ -1,132 +1,87 @@
-# # ===========================
-# # Stage 1: Build Laravel app
-# # ===========================
-# FROM composer:2.7 as build
+# ===========================
+# Development Dockerfile for Laravel App
+# ===========================
 
-# # # Install dependency sistem agar composer jalan lancar
-# # RUN apt-get update && apt-get install -y \
-# #     git \
-# #     unzip \
-# #     zip \
-# #     curl \
-# #     libpng-dev \
-# #     libjpeg-dev \
-# #     libfreetype6-dev \
-# #     libonig-dev \
-# #     libxml2-dev \
-# #     libzip-dev \
-# #     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-# #     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
-
-# WORKDIR /app
-
-# # Copy semua file Laravel
-# COPY . .
-
-# # Install Composer (manual, karena base-nya php:8.2)
-# COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
-
-# # Jalankan composer install
-# RUN composer install --no-dev --prefer-dist --optimize-autoloader --ignore-platform-req=ext-zip
-
-# # ===========================
-# # Install Node.js dan Build Frontend
-# # ===========================
-# # RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-# #     && apt-get install -y nodejs \
-# #     && npm install -g npm@latest
-
-# # # Pasang dependency dan build asset (Vite / Mix)
-# # RUN npm install && npm run build || echo "⚠️  Build Vite dilewati (tidak ada script build)"
-
-# # ===========================
-# # Stage 2: Jalankan di Apache
-# # ===========================
-# FROM php:8.2-apache
-
-# # Install ekstensi PHP yang dibutuhkan Laravel
-# RUN apt-get update && apt-get install -y libpq-dev
-
-# RUN docker-php-ext-install pdo pdo_pgsql
-
-
-# WORKDIR /var/www/html
-
-# RUN a2enmod rewrite
-
-# COPY --from=build /app /var/www/html
-# COPY .render/apache.conf /etc/apache2/sites-available/000-default.conf
-
-# # Atur permission
-# RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
-# # Pastikan folder storage bisa ditulis
-# # RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-# # # Set DocumentRoot ke public
-# # RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-# # RUN sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf
-
-# EXPOSE 80
-# CMD ["apache2-foreground"]
-
-
-FROM composer:2.7 as build
+FROM php:8.2-apache
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
-    unzip \
-    zip \
     curl \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
     libonig-dev \
     libxml2-dev \
-    libzip-dev
+    libzip-dev \
+    libicu-dev \
+    libxslt1-dev \
+    libpq-dev \
+    unzip \
+    zip \
+    && rm -rf /var/lib/apt/lists/*
 
-# Configure and install PHP extensions
+# Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+    && docker-php-ext-install \
+        pdo \
+        pdo_pgsql \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+        intl \
+        xml \
+        xsl
 
-WORKDIR /app
+# Install Composer
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-COPY . .
-RUN cp .env.example .env
-
-RUN composer install --no-dev --prefer-dist --optimize-autoloader
-
-# Install Node.js for frontend build
+# Install Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs
 
-RUN npm install
-RUN npm run build
-
-FROM php:8.2-apache
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev
-
-# Configure and install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_pgsql pdo_mysql mbstring exif pcntl bcmath gd zip
-
-WORKDIR /var/www/html
-
+# Configure Apache
 RUN a2enmod rewrite
 
-COPY --from=build /app /var/www/html
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy Apache configuration
 COPY .render/apache.conf /etc/apache2/sites-available/000-default.conf
 
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Install PHP dependencies
+COPY composer.json composer.lock ./
+RUN composer install --no-scripts --no-autoloader
 
+# Install Node.js dependencies
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Copy application files
+COPY . .
+
+# Complete composer setup
+RUN composer dump-autoload --optimize
+
+# Set proper permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
+
+# Create necessary directories
+RUN mkdir -p /var/www/html/storage/logs \
+    && mkdir -p /var/www/html/storage/framework/cache \
+    && mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
+    && chown -R www-data:www-data /var/www/html/storage
+
+# Expose port
 EXPOSE 80
+
+# Start Apache
 CMD ["apache2-foreground"]
