@@ -80,8 +80,13 @@ RUN mkdir -p /var/www/html/storage/logs \
     && mkdir -p /var/www/html/storage/framework/views \
     && chown -R www-data:www-data /var/www/html/storage
 
+
+    # Copy entrypoint
+COPY .render/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Expose port
 EXPOSE 80
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Jalankan entrypoint (otomatis migrasi 2 DB)
+CMD ["entrypoint.sh"]
