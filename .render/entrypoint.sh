@@ -4,13 +4,13 @@ set -e
 # Jalankan migrasi untuk DB utama
 
 echo "🗑️  Dropping all tables in container..."
-docker exec plastik-ko-eko-container php artisan db:wipe --force
+php artisan db:wipe --force
 
 echo "🔄 Running fresh migrations in container..."
-docker exec plastik-ko-eko-container php artisan migrate:fresh --force
+php artisan migrate:fresh --force
 
 echo "🌱 Running seeders in container..."
-docker exec plastik-ko-eko-container php artisan db:seed --force
+php artisan db:seed --force
 
 # # Jalankan migrasi untuk DB kedua
 # echo "Running migrations for secondary database..."
