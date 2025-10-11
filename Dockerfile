@@ -32,12 +32,12 @@ RUN composer install --no-dev --prefer-dist --optimize-autoloader --ignore-platf
 # ===========================
 # Install Node.js dan Build Frontend
 # ===========================
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
+# RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+#     && apt-get install -y nodejs \
+#     && npm install -g npm@latest
 
-# Pasang dependency dan build asset (Vite / Mix)
-RUN npm install && npm run build || echo "⚠️  Build Vite dilewati (tidak ada script build)"
+# # Pasang dependency dan build asset (Vite / Mix)
+# RUN npm install && npm run build || echo "⚠️  Build Vite dilewati (tidak ada script build)"
 
 # ===========================
 # Stage 2: Jalankan di Apache
