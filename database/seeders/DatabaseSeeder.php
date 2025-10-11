@@ -46,34 +46,34 @@ class DatabaseSeeder extends Seeder
     /**
      * Create sample data for the application
      */
-    private function createSampleData()
-    {
-        // Create sample supplier
-        Supplier::factory()->create([
-            'kode_supplier' => 'SUP001',
-            'nama' => 'Supplier A',
-            'alamat' => '789 Supplier St, City, Country',
-            'pemilik' => 'Owner A',
-            'telepon_fax' => '021-4567890',
-            'contact_person' => 'Contact Person A',
-            'hp_contact_person' => '083234567890',
-            'kode_grup_barang' => 'GRP001',
-        ]);
+    // private function createSampleData()
+    // {
+    //     // Create sample supplier
+    //     Supplier::factory()->create([
+    //         'kode_supplier' => 'SUP001',
+    //         'nama' => 'Supplier A',
+    //         'alamat' => '789 Supplier St, City, Country',
+    //         'pemilik' => 'Owner A',
+    //         'telepon_fax' => '021-4567890',
+    //         'contact_person' => 'Contact Person A',
+    //         'hp_contact_person' => '083234567890',
+    //         'kode_grup_barang' => 'GRP001',
+    //     ]);
         
-        // Create sample customer
-        Customer::factory()->create([
-            'kode_customer' => 'CUST002',
-            'nama' => 'Jane Smith',
-            'alamat' => '456 Oak St, City, Country',
-            'hp' => '082345678901',
-            'telepon' => '021-34567890',
-        ]);
+    //     // Create sample customer
+    //     Customer::factory()->create([
+    //         'kode_customer' => 'CUST002',
+    //         'nama' => 'Jane Smith',
+    //         'alamat' => '456 Oak St, City, Country',
+    //         'hp' => '082345678901',
+    //         'telepon' => '021-34567890',
+    //     ]);
         
-        // Create sample saldo
-        Saldo::factory()->create([
-            'saldo' => 0,
-            'room_rate' => 200000,
-            'tax' => 0,
-        ]);
-    }
+    //     // Create sample saldo
+    //     Saldo::factory()->create([
+    //         'saldo' => 0,
+    //         'room_rate' => 200000,
+    //         'tax' => 0,
+    //     ]);
+    // }
 }
