@@ -36,6 +36,7 @@ use App\Http\Controllers\Accounting\ReportsController;
 use App\Http\Controllers\Accounting\YearEndClosingController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\BankLoanController;
+use App\Http\Controllers\CheckDbController;
 
 use App\Models\StokOwner;
 use App\Models\Supplier;
@@ -71,6 +72,7 @@ Route::post('/test-connection', [DatabaseSwitchController::class, 'testConnectio
 Route::post('/database-switch', [DatabaseSwitchController::class, 'switch'])->name('database-switch')->withoutMiddleware(['web', 'auth']);
 
 // Public health check route for ngrok
+Route::get('/cek-db', [CheckDbController::class, 'index'])->withoutMiddleware(['web', 'auth']);
 Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',
