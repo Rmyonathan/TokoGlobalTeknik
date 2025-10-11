@@ -27,10 +27,10 @@ class DatabaseSeeder extends Seeder
         $this->call(GrupBarangSeeder::class);
         
         // Run stok owner seeder
-        $this->call(StokOwnerSeeder::class);
+        // $this->call(StokOwnerSeeder::class);
         
         // Cara Bayar defaults
-        $this->call(CaraBayarSeeder::class);
+        // $this->call(CaraBayarSeeder::class);
         
         // Create sample data
         $this->createSampleData();
