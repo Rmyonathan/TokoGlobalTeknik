@@ -15,14 +15,26 @@ class ChartOfAccountsSeeder extends Seeder
      */
     public function run(): void
     {
-        // Bersihkan data lama agar seed konsisten
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        // Bersihkan data lama agar seed konsisten (PostgreSQL compatible)
+        // Disable foreign key checks for PostgreSQL
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('SET session_replication_role = replica;');
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        }
+        
         // Truncate tabel yang berelasi ke COA terlebih dahulu
-        try { DB::table('journal_details')->truncate(); } catch (\Throwable $e) {}
-        try { DB::table('journals')->truncate(); } catch (\Throwable $e) {}
-        try { DB::table('chart_of_accounts')->truncate(); } catch (\Throwable $e) {}
-        try { DB::table('account_types')->truncate(); } catch (\Throwable $e) {}
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        try { DB::table('journal_details')->delete(); } catch (\Throwable $e) {}
+        try { DB::table('journals')->delete(); } catch (\Throwable $e) {}
+        try { DB::table('chart_of_accounts')->delete(); } catch (\Throwable $e) {}
+        try { DB::table('account_types')->delete(); } catch (\Throwable $e) {}
+        
+        // Re-enable foreign key checks
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('SET session_replication_role = DEFAULT;');
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
 
         $types = [
             ['code' => 'A', 'name' => 'Assets', 'normal_balance' => 'D'],
