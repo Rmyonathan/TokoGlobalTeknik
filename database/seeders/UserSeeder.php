@@ -16,11 +16,18 @@ class UserSeeder extends Seeder
     public function run()
     {
         // Create admin user (keep original role designation)
+        // User::factory()->create([
+        //     'name' => 'Admin Bos',
+        //     'email' => 'admin@gmail.com',
+        //     'role' => 'admin', // Match existing role field value
+        //     'password' => Hash::make('1234567890'),
+        // ])->assignRole('admin');
+
         User::factory()->create([
-            'name' => 'Admin Bos',
-            'email' => 'admin@gmail.com',
+            'name' => 'Vino',
+            'email' => 'vino@gmail.com',
             'role' => 'admin', // Match existing role field value
-            'password' => Hash::make('1234567890'),
+            'password' => Hash::make('vino66123'),
         ])->assignRole('admin');
 
         // Create users with existing roles but assign them the new Spatie roles as well
