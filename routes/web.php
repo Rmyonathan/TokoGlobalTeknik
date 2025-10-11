@@ -1,6 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
+// // Include bypass routes for development
+// if (app()->environment('local') || config('app.debug')) {
+//     require __DIR__.'/bypass.php';
+// }
 use App\Http\Controllers\RoomsController;
 use App\Http\Controllers\ItemsController;
 use App\Http\Controllers\KasController;
@@ -96,22 +101,22 @@ Route::get('/run-user-seeder', function () {
 })->withoutMiddleware(['web', 'auth']);
 
 // Public routes (authentication)
-Route::middleware(['web'])->group(function () {
-    Route::post('/signin', [AccountsController::class, 'login']);
-    Route::post('/logout', [AccountsController::class, 'logout']);
-    Route::get('/signin', function () {
-        return view('signin');
-    })->name('signin');
+// Route::middleware(['web'])->group(function () {
+//     Route::post('/signin', [AccountsController::class, 'login']);
+//     Route::post('/logout', [AccountsController::class, 'logout']);
+//     Route::get('/signin', function () {
+//         return view('signin');
+//     })->name('signin');
 
-    Route::get('/login', function () {
-        return redirect()->route('signin');
-    })->name('login');
+//     Route::get('/login', function () {
+//         return redirect()->route('signin');
+//     })->name('login');
 
     
-});
+// });
 
 // Protected routes (need authentication)
-Route::middleware(['web', 'auth'])->group(function () {
+Route::middleware(['web'])->group(function () {
     // Dashboard route
     Route::get('', [PanelController::class, 'viewBarang'])
         ->middleware('permission:view dashboard')
