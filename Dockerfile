@@ -64,13 +64,13 @@ RUN apt-get update && apt-get install -y \
 RUN composer install --no-dev --prefer-dist --optimize-autoloader
 
 # Install Node.js & npm
-RUN apt-get update && apt-get install -y curl \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
+# RUN apt-get update && apt-get install -y curl \
+#     && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+#     && apt-get install -y nodejs \
+#     && npm install -g npm@latest
 
-# Install dependencies dan build asset
-RUN npm install && npm run build
+# # Install dependencies dan build asset
+# RUN npm install && npm run build
 # ===========================
 # Stage 2: Jalankan di Apache
 # ===========================
