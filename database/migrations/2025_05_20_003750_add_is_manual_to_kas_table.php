@@ -13,7 +13,7 @@ class AddIsManualToKasTable extends Migration
      */
     public function up()
     {
-        Schema::table('kas', function (Blueprint $table) {
+        Schema::table('Kas', function (Blueprint $table) {
             $table->boolean('is_manual')->default(false)->after('saldo');
         });
     }
@@ -25,7 +25,7 @@ class AddIsManualToKasTable extends Migration
      */
     public function down()
     {
-        Schema::table('kas', function (Blueprint $table) {
+        Schema::table('Kas', function (Blueprint $table) {
             $table->dropColumn('is_manual');
         });
     }
