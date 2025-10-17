@@ -880,11 +880,72 @@ class AccountingService
     /**
      * Pick specific Bank account by payment text. Prefers names containing BCA/BRI/MANDIRI/BNI.
      * Looks by exact account names like "Bank BCA" first, then by LIKE name contains.
+     * Now supports QRIS, EDC, and Giro sub-accounts.
      */
     private function resolveBankAccountByText(?string $caraBayar, ?string $pembayaran): ?ChartOfAccount
     {
         $text = strtoupper(trim(($caraBayar ?? '').' '.($pembayaran ?? '')));
         if ($text === '') { return null; }
+        
+        // First, try to find specific sub-accounts for QRIS, EDC, Giro
+        if (strpos($text, 'QRIS') !== false) {
+            if (strpos($text, 'BCA') !== false) {
+                $acc = $this->findAccount('Bank BCA - QRIS');
+                if ($acc) return $acc;
+            }
+            if (strpos($text, 'BRI') !== false) {
+                $acc = $this->findAccount('Bank BRI - QRIS');
+                if ($acc) return $acc;
+            }
+            if (strpos($text, 'MANDIRI') !== false) {
+                $acc = $this->findAccount('Bank Mandiri - QRIS');
+                if ($acc) return $acc;
+            }
+            if (strpos($text, 'BNI') !== false) {
+                $acc = $this->findAccount('Bank BNI - QRIS');
+                if ($acc) return $acc;
+            }
+        }
+        
+        if (strpos($text, 'EDC') !== false) {
+            if (strpos($text, 'BCA') !== false) {
+                $acc = $this->findAccount('Bank BCA - EDC');
+                if ($acc) return $acc;
+            }
+            if (strpos($text, 'BRI') !== false) {
+                $acc = $this->findAccount('Bank BRI - EDC');
+                if ($acc) return $acc;
+            }
+            if (strpos($text, 'MANDIRI') !== false) {
+                $acc = $this->findAccount('Bank Mandiri - EDC');
+                if ($acc) return $acc;
+            }
+            if (strpos($text, 'BNI') !== false) {
+                $acc = $this->findAccount('Bank BNI - EDC');
+                if ($acc) return $acc;
+            }
+        }
+        
+        if (strpos($text, 'GIRO') !== false) {
+            if (strpos($text, 'BCA') !== false) {
+                $acc = $this->findAccount('Bank BCA - Giro');
+                if ($acc) return $acc;
+            }
+            if (strpos($text, 'BRI') !== false) {
+                $acc = $this->findAccount('Bank BRI - Giro');
+                if ($acc) return $acc;
+            }
+            if (strpos($text, 'MANDIRI') !== false) {
+                $acc = $this->findAccount('Bank Mandiri - Giro');
+                if ($acc) return $acc;
+            }
+            if (strpos($text, 'BNI') !== false) {
+                $acc = $this->findAccount('Bank BNI - Giro');
+                if ($acc) return $acc;
+            }
+        }
+        
+        // Fallback to general bank accounts
         $banks = [
             'BCA' => ['Bank BCA','BCA'],
             'BRI' => ['Bank BRI','BRI'],

@@ -30,6 +30,7 @@ class CompleteAccountingSeeder extends Seeder
             // UserSeeder::class, // Skip if users already exist
             AccountingPeriodSeeder::class,
             ChartOfAccountsSeeder::class,
+            CaraBayarCoaSeeder::class,
         ]);
         $this->command->info('✅ Basic setup completed');
 
