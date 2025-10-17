@@ -92,9 +92,9 @@
                 </div>
                 <div class="row mt-2">
                     <div class="col-md-4">
-                        <label>Grup Barang</label>
+                        <label>Merek Barang</label>
                         <select class="form-control" name="grup_barang">
-                            <option value="">-- Semua Grup --</option>
+                            <option value="">-- Semua Merek --</option>
                             @php $grupList = \App\Models\GrupBarang::orderBy('name')->get(); @endphp
                             @foreach($grupList as $g)
                                 <option value="{{ $g->id }}" {{ request('grup_barang') == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>

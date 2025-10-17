@@ -141,7 +141,7 @@ class CompleteAccountingSeeder extends Seeder
                 'Users' => DB::table('users')->count(),
                 'Chart of Accounts' => DB::table('chart_of_accounts')->count(),
                 'Accounting Periods' => DB::table('accounting_periods')->count(),
-                'Grup Barang' => DB::table('grup_barang')->count(),
+                'Merek Barang' => DB::table('grup_barang')->count(),
                 'Kode Barang' => DB::table('kode_barangs')->count(),
                 'Stock Records' => DB::table('stocks')->count(),
                 'Stock Batches' => DB::table('stock_batches')->count(),

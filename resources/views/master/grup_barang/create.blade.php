@@ -3,19 +3,19 @@
 @section('content')
 <section id="create-grup-barang">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Buat Grup Barang</h2>
+        <h2>Buat Merek Barang</h2>
     </div>
 
     <div class="card">
         <div class="card-header">
-            <h5 class="card-title">Tambah Grup Barang Baru</h5>
+            <h5 class="card-title">Tambah Merek Barang Baru</h5>
         </div>
         <div class="card-body">
             <form action="{{ route('grup_barang.store') }}" method="POST">
                 @csrf
                 
                 <div class="mb-3">
-                    <label for="name" class="form-label">Nama Grup Barang</label>
+                    <label for="name" class="form-label">Nama Merek Barang</label>
                     <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required>
                     @error('name')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -43,7 +43,7 @@
                 
                 <div class="d-flex justify-content-between">
                     <a href="{{ route('grup_barang.index') }}" class="btn btn-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Buat Grup Barang</button>
+                    <button type="submit" class="btn btn-primary">Buat Merek Barang</button>
                 </div>
             </form>
         </div>

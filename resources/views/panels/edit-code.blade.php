@@ -36,10 +36,10 @@
                 </div>
                 
                 <div class="form-group row">
-                    <label for="grup_barang_id" class="col-sm-3 col-form-label">Grup Barang</label>
+                    <label for="grup_barang_id" class="col-sm-3 col-form-label">Merek Barang</label>
                     <div class="col-sm-9">
                         <select class="form-control @error('grup_barang_id') is-invalid @enderror" id="grup_barang_id" name="grup_barang_id" required>
-                            <option value="">Pilih Grup Barang</option>
+                            <option value="">Pilih Merek Barang</option>
                             @foreach($group_names ?? [] as $group_name)
                                 <option value="{{ $group_name }}" {{ old('grup_barang_id', $code->attribute) == $group_name ? 'selected' : '' }}>
                                     {{ $group_name }}

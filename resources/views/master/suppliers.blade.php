@@ -22,7 +22,7 @@
                 <option value="telepon_fax" {{ request('search_by') == 'telepon_fax' ? 'selected' : '' }}>Telepon/Fax</option>
                 <option value="contact_person" {{ request('search_by') == 'contact_person' ? 'selected' : '' }}>Contact Person</option>
                 <option value="hp_contact_person" {{ request('search_by') == 'hp_contact_person' ? 'selected' : '' }}>HP Contact Person</option>
-                <option value="kode_grup_barang" {{ request('search_by') == 'kode_grup_barang' ? 'selected' : '' }}>Kode Grup Barang</option>
+                <option value="kode_grup_barang" {{ request('search_by') == 'kode_grup_barang' ? 'selected' : '' }}>Kode Merek Barang</option>
             </select>
             <input type="text" id="search_input" name="search" class="form-control w-50 mr-2" placeholder="Cari..." value="{{ request('search') }}">
             <button type="submit" class="btn btn-primary mr-2">Cari</button>
@@ -40,7 +40,7 @@
                 <th>Telepon/Fax</th>
                 <th>Contact Person</th>
                 <th>HP Contact Person</th>
-                <th>Kode Grup Barang</th>
+                <th>Kode Merek Barang</th>
                 <th>Status</th>
                 <th>Actions</th>
             </tr>
@@ -140,7 +140,7 @@
                         <input type="text" name="hp_contact_person" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label for="kode_grup_barang">Kode Grup Barang</label>
+                        <label for="kode_grup_barang">Kode Merek Barang</label>
                         <input type="text" name="kode_grup_barang" class="form-control" required>
                         @error('kode_grup_barang')
                             <small class="text-danger">{{ $message }}</small>
@@ -207,7 +207,7 @@
                         <input type="text" name="hp_contact_person" class="form-control" value="{{ $supplier->hp_contact_person }}" required>
                     </div>
                     <div class="mb-3">
-                        <label for="kode_grup_barang" class="form-label">Kode Grup Barang</label>
+                        <label for="kode_grup_barang" class="form-label">Kode Merek Barang</label>
                         <input type="text" name="kode_grup_barang" class="form-control" value="{{ $supplier->kode_grup_barang }}" required>
                     </div>
                 </div>

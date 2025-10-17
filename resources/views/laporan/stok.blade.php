@@ -25,9 +25,9 @@
 								value="{{ $namaBarang ?? '' }}">
 						</div>
 						<div class="col-md-3 mb-2">
-							<label>Grup Barang</label>
+							<label>Merek Barang</label>
 							<select name="grup_barang" class="form-control">
-								<option value="">-- Semua Grup --</option>
+								<option value="">-- Semua Merek --</option>
 								@php $grupList = \App\Models\GrupBarang::orderBy('name')->get(); @endphp
 								@foreach($grupList as $g)
 									<option value="{{ $g->id }}" {{ ($grupBarangId ?? '') == $g->id ? 'selected' : '' }}>

@@ -621,6 +621,239 @@ class AccountingService
     }
 
     /**
+     * Get bank child accounts (QRIS, EDC, Giro) for a specific bank
+     */
+    public function getBankChildAccounts(string $bankCode, ?int $periodId = null): \Illuminate\Database\Eloquent\Collection
+    {
+        return ChartOfAccount::where('code', 'like', $bankCode . '%')
+            ->where(function($query) {
+                $query->where('code', 'like', '%-QRIS')
+                    ->orWhere('code', 'like', '%-EDC')
+                    ->orWhere('code', 'like', '%-GIRO');
+            })
+            ->where('is_active', true)
+            ->with(['parent', 'accountType'])
+            ->get()
+            ->map(function($account) use ($periodId) {
+                $account->current_balance = $account->calculateBalance($periodId);
+                return $account;
+            });
+    }
+
+    /**
+     * Get QRIS accounts
+     */
+    public function getQrisAccounts(?int $periodId = null): \Illuminate\Database\Eloquent\Collection
+    {
+        return ChartOfAccount::qrisAccounts()
+            ->where('is_active', true)
+            ->with(['parent', 'accountType'])
+            ->get()
+            ->map(function($account) use ($periodId) {
+                $account->current_balance = $account->calculateBalance($periodId);
+                return $account;
+            });
+    }
+
+    /**
+     * Get EDC accounts
+     */
+    public function getEdcAccounts(?int $periodId = null): \Illuminate\Database\Eloquent\Collection
+    {
+        return ChartOfAccount::edcAccounts()
+            ->where('is_active', true)
+            ->with(['parent', 'accountType'])
+            ->get()
+            ->map(function($account) use ($periodId) {
+                $account->current_balance = $account->calculateBalance($periodId);
+                return $account;
+            });
+    }
+
+    /**
+     * Get Giro accounts
+     */
+    public function getGiroAccounts(?int $periodId = null): \Illuminate\Database\Eloquent\Collection
+    {
+        return ChartOfAccount::giroAccounts()
+            ->where('is_active', true)
+            ->with(['parent', 'accountType'])
+            ->get()
+            ->map(function($account) use ($periodId) {
+                $account->current_balance = $account->calculateBalance($periodId);
+                return $account;
+            });
+    }
+
+    /**
+     * Find bank child account by payment method
+     */
+    public function findBankChildAccountByPaymentMethod(string $paymentMethod, string $bankCode = null): ?ChartOfAccount
+    {
+        $query = ChartOfAccount::where('is_active', true);
+        
+        if ($bankCode) {
+            $query->where('code', 'like', $bankCode . '%');
+        }
+        
+        $paymentMethod = strtoupper($paymentMethod);
+        
+        switch ($paymentMethod) {
+            case 'QRIS':
+                return $query->where('code', 'like', '%-QRIS')->first();
+            case 'EDC':
+                return $query->where('code', 'like', '%-EDC')->first();
+            case 'GIRO':
+                return $query->where('code', 'like', '%-GIRO')->first();
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Create or link COA account for CaraBayar
+     */
+    public function createOrLinkCoaAccountForCaraBayar(\App\Models\CaraBayar $caraBayar): ?ChartOfAccount
+    {
+        $expectedCoaCode = $caraBayar->getExpectedCoaCode();
+        
+        if (!$expectedCoaCode) {
+            return null;
+        }
+
+        // Try to find existing COA account
+        $existingAccount = ChartOfAccount::where('code', $expectedCoaCode)
+            ->where('is_active', true)
+            ->first();
+
+        if ($existingAccount) {
+            return $existingAccount;
+        }
+
+        // If not found, try to create one based on the payment method
+        return $this->createCoaAccountForCaraBayar($caraBayar, $expectedCoaCode);
+    }
+
+    /**
+     * Create new COA account for CaraBayar
+     */
+    private function createCoaAccountForCaraBayar(\App\Models\CaraBayar $caraBayar, string $expectedCoaCode): ?ChartOfAccount
+    {
+        $assetTypeId = \App\Models\AccountType::where('code', 'A')->value('id');
+        
+        if (!$assetTypeId) {
+            \Log::error('Asset account type not found when creating COA for CaraBayar', [
+                'cara_bayar_id' => $caraBayar->id,
+                'expected_code' => $expectedCoaCode
+            ]);
+            return null;
+        }
+
+        $accountName = $this->generateCoaAccountNameForCaraBayar($caraBayar);
+        $parentId = $this->findParentAccountIdForCaraBayar($caraBayar);
+
+        try {
+            $coaAccount = ChartOfAccount::create([
+                'code' => $expectedCoaCode,
+                'name' => $accountName,
+                'account_type_id' => $assetTypeId,
+                'parent_id' => $parentId,
+                'is_active' => true,
+                'balance' => 0,
+            ]);
+
+            \Log::info('Created new COA account for CaraBayar', [
+                'cara_bayar_id' => $caraBayar->id,
+                'coa_account_id' => $coaAccount->id,
+                'code' => $expectedCoaCode,
+                'name' => $accountName
+            ]);
+
+            return $coaAccount;
+        } catch (\Exception $e) {
+            \Log::error('Failed to create COA account for CaraBayar', [
+                'cara_bayar_id' => $caraBayar->id,
+                'expected_code' => $expectedCoaCode,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Generate COA account name for CaraBayar
+     */
+    private function generateCoaAccountNameForCaraBayar(\App\Models\CaraBayar $caraBayar): string
+    {
+        if ($caraBayar->isCash()) {
+            if ($caraBayar->isQris() || $caraBayar->isEdc() || $caraBayar->isGiro()) {
+                return 'Kas ' . ucfirst(strtolower($caraBayar->nama));
+            }
+            
+            if (strpos(strtoupper($caraBayar->nama), 'KECIL') !== false) {
+                return 'Kas Kecil';
+            } elseif (strpos(strtoupper($caraBayar->nama), 'BESAR') !== false) {
+                return 'Kas Besar';
+            }
+            
+            return 'Kas ' . $caraBayar->nama;
+        }
+
+        // For bank-related payments
+        $bankCode = $caraBayar->getBankCode();
+        if ($bankCode) {
+            $bankName = $this->getBankNameFromCode($bankCode);
+            
+            if ($caraBayar->isQris()) {
+                return $bankName . ' - QRIS';
+            } elseif ($caraBayar->isEdc()) {
+                return $bankName . ' - EDC';
+            } elseif ($caraBayar->isGiro()) {
+                return $bankName . ' - Giro';
+            }
+        }
+
+        return $caraBayar->nama;
+    }
+
+    /**
+     * Get bank name from bank code
+     */
+    private function getBankNameFromCode(string $bankCode): string
+    {
+        switch ($bankCode) {
+            case '1104-1':
+                return 'Bank Mandiri';
+            case '1104-2':
+                return 'Bank BNI';
+            case '1104-3':
+                return 'Bank BRI';
+            case '1104-4':
+                return 'Bank BCA';
+            default:
+                return 'Bank';
+        }
+    }
+
+    /**
+     * Find parent account ID for CaraBayar
+     */
+    private function findParentAccountIdForCaraBayar(\App\Models\CaraBayar $caraBayar): ?int
+    {
+        if ($caraBayar->isCash()) {
+            // Cash accounts don't need parent
+            return null;
+        }
+
+        $bankCode = $caraBayar->getBankCode();
+        if ($bankCode) {
+            return ChartOfAccount::where('code', $bankCode)->value('id');
+        }
+
+        return null;
+    }
+
+    /**
      * Pick specific Kas account by payment text. Returns Kas Kecil if the text contains "kecil",
      * returns Kas Besar if it contains "besar". Case-insensitive. Falls back to null.
      */

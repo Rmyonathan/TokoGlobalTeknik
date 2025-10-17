@@ -24,7 +24,7 @@ class BarangSeeder extends Seeder
         try { DB::table('grup_barangs')->truncate(); } catch (\Throwable $e) {}
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        // Create Grup Barang
+        // Create Merek Barang
         $grupBarangs = [
             ['name' => 'Plastik Lembaran', 'description' => 'Plastik dalam bentuk lembaran', 'status' => 'Active'],
             ['name' => 'Plastik Gulungan', 'description' => 'Plastik dalam bentuk gulungan', 'status' => 'Active'],

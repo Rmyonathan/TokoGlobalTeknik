@@ -16,11 +16,33 @@ class CaraBayarSeeder extends Seeder
             // Tunai
             ['metode' => 'Tunai', 'nama' => 'Cash (Kas Kecil)'],
             ['metode' => 'Tunai', 'nama' => 'Cash (Kas Besar)'],
-            // Non Tunai
+            
+            // Non Tunai - Bank General
             ['metode' => 'Non Tunai', 'nama' => 'Kredit'],
             ['metode' => 'Non Tunai', 'nama' => 'BCA'],
             ['metode' => 'Non Tunai', 'nama' => 'BRI'],
             ['metode' => 'Non Tunai', 'nama' => 'MANDIRI'],
+            ['metode' => 'Non Tunai', 'nama' => 'BNI'],
+            
+            // Bank Mandiri - QRIS, EDC, Giro
+            ['metode' => 'Non Tunai', 'nama' => 'Bank Mandiri - QRIS'],
+            ['metode' => 'Non Tunai', 'nama' => 'Bank Mandiri - EDC'],
+            ['metode' => 'Non Tunai', 'nama' => 'Bank Mandiri - Giro'],
+            
+            // Bank BNI - QRIS, EDC, Giro
+            ['metode' => 'Non Tunai', 'nama' => 'Bank BNI - QRIS'],
+            ['metode' => 'Non Tunai', 'nama' => 'Bank BNI - EDC'],
+            ['metode' => 'Non Tunai', 'nama' => 'Bank BNI - Giro'],
+            
+            // Bank BRI - QRIS, EDC, Giro
+            ['metode' => 'Non Tunai', 'nama' => 'Bank BRI - QRIS'],
+            ['metode' => 'Non Tunai', 'nama' => 'Bank BRI - EDC'],
+            ['metode' => 'Non Tunai', 'nama' => 'Bank BRI - Giro'],
+            
+            // Bank BCA - QRIS, EDC, Giro
+            ['metode' => 'Non Tunai', 'nama' => 'Bank BCA - QRIS'],
+            ['metode' => 'Non Tunai', 'nama' => 'Bank BCA - EDC'],
+            ['metode' => 'Non Tunai', 'nama' => 'Bank BCA - Giro'],
         ];
 
         foreach ($data as $row) {

@@ -38,9 +38,9 @@
                             @enderror
                         </div>
                         <div class="form-group">
-                            <label for="grup_barang_id"><i class="fas fa-tags mr-1"></i> Pilih Grup Barang:</label>
+                            <label for="grup_barang_id"><i class="fas fa-tags mr-1"></i> Pilih Merek Barang:</label>
                             <select class="form-control @error('grup_barang_id') is-invalid @enderror" id="grup_barang_id" name="grup_barang_id" required>
-                                <option value="">Pilih Grup Barang</option>
+                                <option value="">Pilih Merek Barang</option>
                                 @foreach($group_names as $group_name)
                                     <option value="{{ $group_name }}" {{ old('grup_barang_id') == $group_name ? 'selected' : '' }}>
                                         {{ $group_name }}
@@ -113,13 +113,23 @@
                                 </div>
                             </div>
                         </div> -->
+                        
+                        <div class="form-group">
+                            <label for="cost"><i class="fas fa-dollar-sign mr-1"></i> Harga Beli per Satuan Dasar</label>
+                            <input type="number" step="0.01" class="form-control @error('cost') is-invalid @enderror" id="cost" name="cost" value="{{ old('cost') }}">
+                            @error('cost')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Harga beli per satuan dasar (misal: per LBR, per KG).</small>
+                        </div>
+
                         <div class="form-group">
                             <label for="harga_jual"><i class="fas fa-tag mr-1"></i> Harga Jual per Satuan Dasar</label>
                             <input type="number" step="0.01" class="form-control @error('harga_jual') is-invalid @enderror" id="harga_jual" name="harga_jual" value="{{ old('harga_jual') }}">
                             @error('harga_jual')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="form-text text-muted">Harga jual per satuan dasar (misal: per LBR, per KG).</small>
+                            <small class="form-text text-muted">Harga jual per satuan dasar. <span id="harga_jual_preview" style="color: gray; font-style: italic;"></span></small>
                         </div>
 
                         <div class="form-group">
@@ -421,6 +431,32 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    // Harga jual otomatis dengan margin 30%
+    const costInput = document.getElementById('cost');
+    const hargaJualInput = document.getElementById('harga_jual');
+    const hargaJualPreview = document.getElementById('harga_jual_preview');
+
+    function calculateHargaJual() {
+        const cost = parseFloat(costInput.value);
+        if (cost && cost > 0) {
+            const hargaJual = cost * 1.30; // 30% margin
+            hargaJualPreview.textContent = `(Preview: Rp ${hargaJual.toLocaleString('id-ID', {minimumFractionDigits: 2})} dengan margin 30%)`;
+            
+            // Jika harga jual belum diisi, isi otomatis
+            if (!hargaJualInput.value) {
+                hargaJualInput.value = hargaJual.toFixed(2);
+            }
+        } else {
+            hargaJualPreview.textContent = '';
+        }
+    }
+
+    // Event listener untuk perubahan harga beli
+    costInput.addEventListener('input', calculateHargaJual);
+    
+    // Hitung saat halaman dimuat jika ada nilai awal
+    calculateHargaJual();
 });
 </script>
 @endsection

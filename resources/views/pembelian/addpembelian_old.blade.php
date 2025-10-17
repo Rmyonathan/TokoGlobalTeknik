@@ -260,7 +260,7 @@
                         <input type="text" class="form-control" id="hp_contact_person" name="hp_contact_person" required>
                     </div>
                     <div class="form-group">
-                        <label for="kode_grup_barang">Kode Grup Barang</label>
+                        <label for="kode_grup_barang">Kode Merek Barang</label>
                         <input type="text" class="form-control" id="kode_grup_barang" name="kode_grup_barang" required>
                     </div>
                 </div>

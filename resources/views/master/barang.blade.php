@@ -62,10 +62,10 @@
                                         <th>No.</th>
                                         <th>Kode Barang</th>
                                         <th>Nama</th>
-                                        <th>Group</th>
+                                        <th>Merek Barang</th>
                                         <th>Harga Beli</th>
                                         <th>Harga Jual per Satuan Dasar</th>
-                                        <th>Merek</th>
+                                        <!-- <th>Merek</th> -->
                                         <th>Ukuran</th>
                                         <th>Keterangan</th>
                                         <th>BY</th>
@@ -88,14 +88,13 @@
                                         <td>{{ $loop->iteration + (($inventory['paginator']->currentPage() - 1) * $inventory['paginator']->perPage()) }}</td>
                                         <td>{{ $item['group_id'] }}</td>
                                         <td>{{ $item['name'] }}</td>
-                                        <td>{{ $item['group'] }}</td>
+                                        <td>{{ $item['merek'] }}</td>
                                         <td>Rp. {{ number_format($item['cost']) }}</td>
                                         <td>
                                             <strong>Rp. {{ number_format($item['harga_per_satuan_dasar'] ?? $item['price']) }}</strong>
                                             <br>
                                             <small class="text-muted">per {{ $item['unit_dasar'] ?? 'PCS' }}</small>
                                         </td>
-                                        <td>{{ $item['merek'] }}</td>
                                         <td>{{ $item['ukuran'] }}</td>
                                         <td>{{ $item['keterangan'] ?? '-' }}</td>
                                         <td>{{ $item['input_by'] ?? '-' }}</td>
@@ -140,9 +139,9 @@
                                                     @csrf
                                                     <button class="btn btn-sm btn-success"><i class="fas fa-edit"></i> Edit</button>
                                                 </form>
-                                                <form action="{{ route('panels.delete-inventory', ['id' => $item['group_id']]) }}" method="POST">
+                                                <form action="{{ route('panels.delete-inventory', ['id' => $item['group_id']]) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus barang {{ $item['name'] }}? Tindakan ini tidak dapat dibatalkan.');">
                                                     @csrf
-                                                    <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Hapus</button>
+                                                    <button class="btn btn-sm btn-danger" type="submit"><i class="fas fa-trash"></i> Hapus</button>
                                                 </form>
                                                 <form action="{{ route('code.toggle-status', ['id' => $item['id'] ?? null]) }}" method="POST" onsubmit="return confirm('Ubah status barang ini?');">
                                                     @csrf
@@ -176,7 +175,6 @@
                                         echo 'Rp. ' . number_format($totalPrice);
                                     @endphp
                                 </th>
-                                <th>-</th> <!-- Merek -->
                                 <th>-</th> <!-- Ukuran -->
                                 <th>-</th> <!-- Keterangan -->
                                 <th>-</th> <!-- BY -->

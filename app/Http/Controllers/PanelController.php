@@ -94,8 +94,9 @@ class PanelController extends Controller
             // $pricePerSmallUnit = $panel->price; // jika sudah per PAK
             // $costPerSmallUnit = $panel->cost;   // jika sudah per PAK
 
-            $costPerUnit = ($panel->konversi && $panel->konversi != 0) ? $panel->cost / $panel->konversi : $panel->cost;
-            $pricePerUnit = ($panel->konversi && $panel->konversi != 0) ? $panel->price / $panel->konversi : $panel->price;
+            // Use cost and harga_jual directly from KodeBarang (no conversion needed for display)
+            $costPerUnit = $panel->cost;
+            $pricePerUnit = $panel->harga_jual ?? $panel->price ?? 0;
 
             $key = $panel->name . '-' . $panel->price . '-' . $panel->kode_barang;
 
@@ -377,6 +378,8 @@ class PanelController extends Controller
             'ukuran' => 'nullable|string|max:100',
             'grup_barang_id' => 'nullable|string|max:255',
             'min_stock' => 'nullable|integer|min:0',
+            'keterangan' => 'nullable|string|max:500',
+            'input_by' => 'nullable|string|max:100',
         ], [
             'group_id.required' => 'Item code is required',
             'group_id.string' => 'Item code must be a valid string',
@@ -416,6 +419,12 @@ class PanelController extends Controller
             if (array_key_exists('min_stock', $validated)) {
                 $kode->min_stock = $validated['min_stock'];
             }
+            if (array_key_exists('keterangan', $validated)) {
+                $kode->keterangan = $validated['keterangan'];
+            }
+            if (array_key_exists('input_by', $validated)) {
+                $kode->input_by = $validated['input_by'];
+            }
             if (!empty($validated['grup_barang_id'])) {
                 $grup = \App\Models\GrupBarang::where('name', $validated['grup_barang_id'])->first();
                 if ($grup) {
@@ -435,10 +444,45 @@ class PanelController extends Controller
 
     public function deleteInventory(Request $request)
     {
-        Panel::where('group_id', $request->id)->delete();
-
-        return redirect()->route('master.barang')
-            ->with('success', "Item deleted successfully");
+        try {
+            $kodeBarang = $request->id;
+            
+            // Find the KodeBarang record
+            $kodeBarangRecord = KodeBarang::where('kode_barang', $kodeBarang)->first();
+            
+            if (!$kodeBarangRecord) {
+                return redirect()->route('master.barang')
+                    ->with('error', 'Barang tidak ditemukan');
+            }
+            
+            // Delete related data first (foreign key constraints)
+            // Delete unit conversions
+            \App\Models\UnitConversion::where('kode_barang_id', $kodeBarangRecord->id)->delete();
+            
+            // Delete customer prices
+            \App\Models\CustomerPrice::where('kode_barang_id', $kodeBarangRecord->id)->delete();
+            
+            // Delete stock batches
+            \App\Models\StockBatch::where('kode_barang_id', $kodeBarangRecord->id)->delete();
+            
+            // Delete panels
+            Panel::where('group_id', $kodeBarang)->delete();
+            
+            // Delete stock records from both databases
+            \App\Models\Stock::onDatabase('primary')->where('kode_barang', $kodeBarang)->delete();
+            \App\Models\Stock::onDatabase('secondary')->where('kode_barang', $kodeBarang)->delete();
+            
+            // Finally delete the KodeBarang record
+            $kodeBarangRecord->delete();
+            
+            return redirect()->route('master.barang')
+                ->with('success', "Barang berhasil dihapus");
+                
+        } catch (\Exception $e) {
+            \Log::error('Error deleting inventory: ' . $e->getMessage());
+            return redirect()->route('master.barang')
+                ->with('error', 'Gagal menghapus barang: ' . $e->getMessage());
+        }
     }
 
     /**

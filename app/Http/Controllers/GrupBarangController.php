@@ -39,7 +39,7 @@ class GrupBarangController extends Controller
         GrupBarang::create($validated);
 
         return redirect()->route('grup_barang.index')
-            ->with('success', 'Grup Barang berhasil dibuat!');
+            ->with('success', 'Merek Barang berhasil dibuat!');
     }
 
     /**
@@ -67,7 +67,7 @@ class GrupBarangController extends Controller
         $category->update($validated);
 
         return redirect()->route('grup_barang.edit', $category->id)
-            ->with('success', 'Grup Barang berhasil diperbarui!');
+            ->with('success', 'Merek Barang berhasil diperbarui!');
     }
 
     /**
@@ -106,7 +106,7 @@ class GrupBarangController extends Controller
         $category->delete();
 
         return redirect()->route('grup_barang.index')
-            ->with('success', 'Grup Barang berhasil dihapus!');
+            ->with('success', 'Merek Barang berhasil dihapus!');
     }
 
     /**
@@ -121,6 +121,6 @@ class GrupBarangController extends Controller
 
         $status = $category->status === 'Active' ? 'diaktifkan' : 'dinonaktifkan';
         return redirect()->route('grup_barang.index')
-            ->with('success', "Grup Barang berhasil {$status}!");
+            ->with('success', "Merek Barang berhasil {$status}!");
     }
 }

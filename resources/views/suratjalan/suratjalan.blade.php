@@ -210,28 +210,11 @@
                 <div class="col-md-3">
                     <div class="form-group">
                         <label>Kode Barang</label>
-                        <select class="form-control" id="newKodeBarang">
-                            <option value="">-- Pilih Barang --</option>
-                            @if(isset($kodeBarangs) && count($kodeBarangs) > 0)
-                                @foreach($kodeBarangs as $barang)
-                                    <option value="{{ $barang->id }}" 
-                                            data-harga="{{ $barang->harga_jual }}"
-                                            data-unit-dasar="{{ $barang->unit_dasar }}"
-                                            data-unit-turunan="{{ $barang->unit_turunan }}"
-                                            data-kode="{{ $barang->kode_barang }}"
-                                            data-nama="{{ $barang->name }}"
-                                            data-merek="{{ $barang->merek }}"
-                                            data-ukuran="{{ $barang->ukuran }}">
-                                        {{ $barang->kode_barang }} - {{ $barang->name }}
-                                        @if($barang->merek || $barang->ukuran)
-                                            ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})
-                                        @endif
-                                    </option>
-                                @endforeach
-                            @else
-                                <option value="">Tidak ada data barang</option>
-                            @endif
-                        </select>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="newKodeBarangInput" placeholder="Ketik kode atau nama barang..." autocomplete="off">
+                            <input type="hidden" id="newKodeBarangId" value="">
+                            <div class="dropdown-menu" id="barangDropdownSuratJalan" style="display: none; max-height: 200px; overflow-y: auto; width: 100%;"></div>
+                        </div>
                     </div>
                 </div>
                 
@@ -512,29 +495,9 @@ $('#customer_display').on('change', function() {
 });
 
 /**
- * Handle product selection change
+ * Handle product selection change - DEPRECATED (now using input with search)
+ * This function is kept for backward compatibility but is no longer used
  */
-$('#newKodeBarang').on('change', function() {
-    const selectedOption = $(this).find('option:selected');
-    const harga = selectedOption.data('harga') || 0;
-    const unitDasar = selectedOption.data('unit-dasar') || 'PCS';
-    const merek = selectedOption.data('merek') || '';
-    const ukuran = selectedOption.data('ukuran') || '';
-    const kodeBarangId = $(this).val();
-    
-    // Set price
-    $('#newHarga').val(harga);
-    
-    // Set small unit options
-    $('#newSatuanKecil').empty().append(`<option value="${unitDasar}">${unitDasar}</option>`);
-    $('#newSatuan').val(unitDasar);
-    
-    // Load available units for large unit
-    loadAvailableUnits(kodeBarangId, unitDasar);
-    // cache meta on selects for later add
-    $('#newKodeBarang').data('merek', merek);
-    $('#newKodeBarang').data('ukuran', ukuran);
-});
 
 /**
  * Handle quantity and price changes for total calculation
@@ -615,32 +578,28 @@ function loadAvailableUnits(kodeBarangId, unitDasar) {
                         }
                     });
                     
-                    // Auto-select first available unit
+                    // Only auto-select if there are other units (not satuan dasar)
                     if (hasOtherUnits) {
                         const firstUnit = units.find(unit => unit !== unitDasar);
                         if (firstUnit) {
                             $('#newSatuanBesar').val(firstUnit);
                         }
-                    } else {
-                        $('#newSatuanBesar').append(`<option value="${unitDasar}">${unitDasar}</option>`);
-                        $('#newSatuanBesar').val(unitDasar);
                     }
+                    // If no other units, leave dropdown empty (don't add satuan dasar)
                 } else {
-                    $('#newSatuanBesar').append(`<option value="${unitDasar}">${unitDasar}</option>`);
-                    $('#newSatuanBesar').val(unitDasar);
+                    // If no units available, leave dropdown empty (don't add satuan dasar)
                 }
                 calculateNewItemTotal();
             },
             error: function() {
-                $('#newSatuanBesar').append(`<option value="${unitDasar}">${unitDasar}</option>`);
-                $('#newSatuanBesar').val(unitDasar);
+                // If error, leave dropdown empty (don't add satuan dasar)
                 calculateNewItemTotal();
             }
         });
     } else {
         $('#newSatuanKecil').html('<option value=""></option>');
         $('#newSatuanBesar').html('<option value="">-- Pilih Satuan Besar --</option>');
-        $('#newSatuan').val('');
+        // $('#newSatuan').val('');
         calculateNewItemTotal();
     }
 }
@@ -653,14 +612,27 @@ function loadAvailableUnits(kodeBarangId, unitDasar) {
  * Add new item to the list
  */
 function addNewItem() {
-    const selectedOption = $('#newKodeBarang option:selected');
-    const kodeBarang = selectedOption.data('kode');
-    const namaBarang = selectedOption.data('nama');
-    const merek = $('#newKodeBarang').data('merek') || selectedOption.data('merek') || '';
-    const ukuran = $('#newKodeBarang').data('ukuran') || selectedOption.data('ukuran') || '';
+    const kodeBarangId = $('#newKodeBarangId').val();
+    const inputValue = $('#newKodeBarangInput').val();
+    
+    if (!kodeBarangId || !inputValue) {
+        alert('Pilih barang terlebih dahulu!');
+        return;
+    }
+    
+    // Extract kode and nama from input value
+    const parts = inputValue.split(' - ');
+    const kodeBarang = parts[0] || '';
+    const namaBarang = parts[1] || '';
+    
+    // Get additional data from stored selection
+    const selectedBarang = $('#newKodeBarangInput').data('selectedBarang') || {};
+    const merek = selectedBarang.merek || '';
+    const ukuran = selectedBarang.ukuran || '';
+    
     const qty = parseFloat($('#newQty').val());
     const satuanKecil = $('#newSatuanKecil').val();
-    const satuanBesar = $('#newSatuanBesar').val();
+    const satuanBesar = $('#newSatuanBesar').val() || null; // Set to null if empty
     const harga = parseFloat($('#newHarga').val()) || 0;
     const diskon = parseFloat($('#newDiskon').val()) || 0;
     const ongkosKuli = parseFloat($('#newOngkosKuli').val()) || 0;
@@ -694,7 +666,7 @@ function addNewItem() {
         harga: harga,
         qty: qty,
         satuan: satuanKecil,
-        satuan_besar: satuanBesar,
+        satuan_besar: satuanBesar, // Will be null if no satuan besar available
         diskon: diskon,
         ongkos_kuli: ongkosKuli,
         total: total
@@ -720,7 +692,7 @@ function updateItemsTable() {
     
     items.forEach((item, index) => {
         const qtyDisplay = `${item.qty} ${item.satuan}`;
-        const satuanBesarDisplay = item.satuan_besar || '-';
+        const satuanBesarDisplay = item.satuan_besar || ''; // Empty string instead of '-'
         
         const row = `
             <tr>
@@ -752,7 +724,8 @@ function updateItemsTable() {
  * Clear item form
  */
 function clearItemForm() {
-    $('#newKodeBarang').val('');
+    $('#newKodeBarangInput').val('');
+    $('#newKodeBarangId').val('');
     $('#newQty').val('');
     $('#newSatuanKecil').empty().append('<option value=""></option>');
     $('#newSatuanBesar').empty();
@@ -761,6 +734,7 @@ function clearItemForm() {
     $('#newDiskon').val('');
     $('#newOngkosKuli').val('');
     $('#newKeterangan').val('');
+    $('#newKodeBarangInput').removeData('selectedBarang');
 }
 
 // ========================================
@@ -849,10 +823,201 @@ function resetForm() {
     items = [];
     updateItemsTable();
     $('#suratjalanForm')[0].reset();
-    $('#newKodeBarang').val('');
+    $('#newKodeBarangInput').val('');
+    $('#newKodeBarangId').val('');
     $('#newSatuanKecil').empty().append('<option value=""></option>');
     $('#newSatuanBesar').empty();
+    $('#newKodeBarangInput').removeData('selectedBarang');
 }
+
+// ========================================
+// SEARCH FUNCTIONALITY
+// ========================================
+
+// Real-time search for barang input
+$('#newKodeBarangInput').on('input', function() {
+    const keyword = $(this).val();
+    const dropdown = $('#barangDropdownSuratJalan');
+    
+    if (keyword.length >= 2) {
+        $.ajax({
+            url: "{{ route('kodeBarang.search') }}",
+            method: 'GET',
+            data: { keyword },
+            success: function(data) {
+                let dropdownHtml = '';
+                if (data.length > 0) {
+                    data.forEach(item => {
+                        dropdownHtml += `<a class="dropdown-item barang-item-suratjalan" 
+                            data-id="${item.id}"
+                            data-kode="${item.kode_barang}"
+                            data-nama="${item.name}"
+                            data-harga="${item.cost || 0}"
+                            data-unit-dasar="${item.unit_dasar || 'PCS'}"
+                            data-merek="${item.merek || ''}"
+                            data-ukuran="${item.ukuran || ''}"
+                            href="#">
+                            ${item.kode_barang} - ${item.name}${item.merek || item.ukuran ? ` (${item.merek || '-'}${item.merek && item.ukuran ? ', ' : ''}${item.ukuran || '-'})` : ''}
+                        </a>`;
+                    });
+                } else {
+                    dropdownHtml = '<a class="dropdown-item disabled">Tidak ada barang ditemukan</a>';
+                }
+                dropdown.html(dropdownHtml).show();
+            },
+            error: function() {
+                dropdown.html('<a class="dropdown-item disabled">Error saat mencari</a>').show();
+            }
+        });
+    } else {
+        dropdown.hide();
+    }
+});
+
+// Select barang from dropdown
+$(document).on('click', '.barang-item-suratjalan', function(e) {
+    e.preventDefault();
+    const input = $('#newKodeBarangInput');
+    const hiddenId = $('#newKodeBarangId');
+    
+    const id = $(this).data('id');
+    const kode = $(this).data('kode');
+    const nama = $(this).data('nama');
+    const harga = $(this).data('harga');
+    const unitDasar = $(this).data('unit-dasar');
+    const merek = $(this).data('merek');
+    const ukuran = $(this).data('ukuran');
+    
+    // Set input value and hidden id
+    input.val(`${kode} - ${nama}`);
+    hiddenId.val(id);
+    
+    // Store selected barang data
+    $('#newKodeBarangInput').data('selectedBarang', {
+        id: id,
+        kode: kode,
+        nama: nama,
+        harga: harga,
+        unitDasar: unitDasar,
+        merek: merek,
+        ukuran: ukuran
+    });
+    
+    // Hide dropdown
+    $('#barangDropdownSuratJalan').hide();
+    
+    // Set harga and satuan
+    $('#newHarga').val(harga);
+    $('#newSatuanKecil').empty().append(`<option value="${unitDasar}">${unitDasar}</option>`);
+    $('#newSatuan').val(unitDasar);
+    
+    // Load available units
+    loadAvailableUnits(id, unitDasar);
+    
+    // Calculate total
+    calculateNewItemTotal();
+});
+
+// Open search modal
+$('#searchBarangBtnSuratJalan').click(function() {
+    $('#searchKodeBarangInputSuratJalan').val('');
+    $('#kodeBarangSearchResultsSuratJalan').html('<tr><td colspan="4" class="text-center">Masukkan kata kunci untuk mencari barang</td></tr>');
+    $('#kodeBarangSearchModalSuratJalan').modal('show');
+});
+
+// Modal search
+$('#searchKodeBarangBtnSuratJalan').click(function() {
+    const keyword = $('#searchKodeBarangInputSuratJalan').val();
+    if (keyword.length > 0) {
+        $.ajax({
+            url: "{{ route('kodeBarang.search') }}",
+            method: 'GET',
+            data: { keyword },
+            success: function(data) {
+                let html = '';
+                if (data.length > 0) {
+                    data.forEach(item => {
+                        html += `<tr>
+                            <td>${item.kode_barang}</td>
+                            <td>${item.name}</td>
+                            <td>${formatCurrency(item.cost || 0)}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-primary select-kode-barang-suratjalan"
+                                    data-id="${item.id}"
+                                    data-kode="${item.kode_barang}"
+                                    data-name="${item.name}"
+                                    data-harga="${item.cost || 0}"
+                                    data-unit-dasar="${item.unit_dasar || 'PCS'}"
+                                    data-merek="${item.merek || ''}"
+                                    data-ukuran="${item.ukuran || ''}">
+                                    <i class="fas fa-check"></i> Pilih
+                                </button>
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                    html = '<tr><td colspan="4" class="text-center">Tidak ada data ditemukan</td></tr>';
+                }
+                $('#kodeBarangSearchResultsSuratJalan').html(html);
+            },
+            error: function() {
+                alert('Terjadi kesalahan saat mencari kode barang.');
+            }
+        });
+    } else {
+        alert('Masukkan kata kunci pencarian!');
+    }
+});
+
+// Select barang from modal
+$(document).on('click', '.select-kode-barang-suratjalan', function() {
+    const input = $('#newKodeBarangInput');
+    const hiddenId = $('#newKodeBarangId');
+    
+    const id = $(this).data('id');
+    const kode = $(this).data('kode');
+    const nama = $(this).data('name');
+    const harga = $(this).data('harga');
+    const unitDasar = $(this).data('unit-dasar');
+    const merek = $(this).data('merek');
+    const ukuran = $(this).data('ukuran');
+    
+    // Set input value and hidden id
+    input.val(`${kode} - ${nama}`);
+    hiddenId.val(id);
+    
+    // Store selected barang data
+    $('#newKodeBarangInput').data('selectedBarang', {
+        id: id,
+        kode: kode,
+        nama: nama,
+        harga: harga,
+        unitDasar: unitDasar,
+        merek: merek,
+        ukuran: ukuran
+    });
+    
+    // Set harga and satuan
+    $('#newHarga').val(harga);
+    $('#newSatuanKecil').empty().append(`<option value="${unitDasar}">${unitDasar}</option>`);
+    $('#newSatuan').val(unitDasar);
+    
+    // Load available units
+    loadAvailableUnits(id, unitDasar);
+    
+    // Calculate total
+    calculateNewItemTotal();
+    
+    // Close modal
+    $('#kodeBarangSearchModalSuratJalan').modal('hide');
+});
+
+// Hide dropdown when clicking outside
+$(document).click(function(e) {
+    if (!$(e.target).closest('#newKodeBarangInput, #barangDropdownSuratJalan').length) {
+        $('#barangDropdownSuratJalan').hide();
+    }
+});
 
 // ========================================
 // INITIALIZATION
@@ -930,4 +1095,47 @@ $('#metode_pembayaran').on('change', function() {
 // Initial filter on load
 filterCaraBayarOptionsByMetode();
 </script>
+
+<!-- Kode Barang Search Modal -->
+<div class="modal fade" id="kodeBarangSearchModalSuratJalan" tabindex="-1" role="dialog" aria-labelledby="kodeBarangSearchModalSuratJalanLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="kodeBarangSearchModalSuratJalanLabel">Cari Kode Barang</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="searchKodeBarangInputSuratJalan">Masukkan kata kunci pencarian:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchKodeBarangInputSuratJalan" placeholder="Ketik kode barang atau nama barang...">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="button" id="searchKodeBarangBtnSuratJalan">
+                                <i class="fas fa-search"></i> Cari
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Kode Barang</th>
+                                <th>Nama Barang</th>
+                                <th>Harga Jual</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kodeBarangSearchResultsSuratJalan">
+                            <!-- Search results will be shown here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection

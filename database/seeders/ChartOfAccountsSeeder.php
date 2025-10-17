@@ -15,23 +15,14 @@ class ChartOfAccountsSeeder extends Seeder
      */
     public function run(): void
     {
-        // Bersihkan data lama agar seed konsisten (PostgreSQL compatible)
-        // For PostgreSQL, we'll delete in the correct order to avoid foreign key violations
-        if (DB::getDriverName() === 'pgsql') {
-            // Delete in reverse dependency order for PostgreSQL
-            try { DB::table('journal_details')->delete(); } catch (\Throwable $e) {}
-            try { DB::table('journals')->delete(); } catch (\Throwable $e) {}
-            try { DB::table('chart_of_accounts')->delete(); } catch (\Throwable $e) {}
-            try { DB::table('account_types')->delete(); } catch (\Throwable $e) {}
-        } else {
-            // For MySQL, use foreign key checks
-            DB::statement('SET FOREIGN_KEY_CHECKS=0');
-            try { DB::table('journal_details')->truncate(); } catch (\Throwable $e) {}
-            try { DB::table('journals')->truncate(); } catch (\Throwable $e) {}
-            try { DB::table('chart_of_accounts')->truncate(); } catch (\Throwable $e) {}
-            try { DB::table('account_types')->truncate(); } catch (\Throwable $e) {}
-            DB::statement('SET FOREIGN_KEY_CHECKS=1');
-        }
+        // Bersihkan data lama agar seed konsisten
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        // Truncate tabel yang berelasi ke COA terlebih dahulu
+        try { DB::table('journal_details')->truncate(); } catch (\Throwable $e) {}
+        try { DB::table('journals')->truncate(); } catch (\Throwable $e) {}
+        try { DB::table('chart_of_accounts')->truncate(); } catch (\Throwable $e) {}
+        try { DB::table('account_types')->truncate(); } catch (\Throwable $e) {}
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $types = [
             ['code' => 'A', 'name' => 'Assets', 'normal_balance' => 'D'],

@@ -3,14 +3,14 @@
 @section('content')
 <section id="grup-barang">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Master Grup Barang</h2>
+        <h2>Master Merek Barang</h2>
     </div>
 
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
                 <a href="{{ route('grup_barang.create') }}" class="btn btn-primary btn-sm me-2">
-                    <i class="fas fa-plus mr-1"></i> Tambah Grup Barang
+                    <i class="fas fa-plus mr-1"></i> Tambah Merek Barang
                 </a>
             </div>
         </div>
@@ -29,7 +29,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Name</th>
-                                <th>Description</th>
+                                <!-- <th>Description</th> -->
                                 <th>Status</th>
                                 <th>Created At</th>
                                 <th>Action</th>
@@ -40,7 +40,7 @@
                                 <tr>
                                     <td>{{ $category->id }}</td>
                                     <td>{{ $category->name }}</td>
-                                    <td>{{ $category->description ?: 'N/A' }}</td>
+                                    <!-- <td>{{ $category->description ?: 'N/A' }}</td> -->
                                     <td>
                                         @if($category->status === 'Active')
                                             <span class="badge badge-success">Aktif</span>

@@ -604,7 +604,7 @@
                                 <a class="nav-link" href="<?php echo e(route('perusahaan.index')); ?>"><i class="bi bi-building"></i> Master Perusahaan</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="<?php echo e(route('grup_barang.index')); ?>"><i class="fas fa-tags"></i> Grup Barang</a>
+                                <a class="nav-link" href="<?php echo e(route('grup_barang.index')); ?>"><i class="fas fa-tags"></i> Merek Barang</a>
                             </li>
                             @canany(['view chart of accounts','create chart of accounts','edit chart of accounts','delete chart of accounts'])
                             <li class="nav-item">

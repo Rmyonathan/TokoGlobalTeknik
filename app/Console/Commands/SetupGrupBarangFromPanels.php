@@ -28,7 +28,7 @@ class SetupGrupBarangFromPanels extends Command
      */
     public function handle()
     {
-        $this->info('🚀 Setup Grup Barang dari Kode Barang Attributes');
+        $this->info('🚀 Setup Merek Barang dari Kode Barang Attributes');
         $this->info('================================================');
 
         // Step 1: Populate grup_barang from kode_barang attributes
@@ -117,7 +117,7 @@ class SetupGrupBarangFromPanels extends Command
         $this->info('');
         $this->info('🎉 Setup Selesai!');
         $this->info('================');
-        $this->info("   📋 Grup Barang:");
+        $this->info("   📋 Merek Barang:");
         $this->info("      - Dibuat: {$createdCount}");
         $this->info("      - Total: " . count($kodeBarangAttributes));
         $this->info('');

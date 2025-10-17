@@ -32,13 +32,13 @@
                             <small class="form-text text-muted">Enter the name of the item code.</small>
                         </div>
 
-                        <div class="form-group">
+                        <!-- <div class="form-group">
                             <label for="merek"><i class="fas fa-trademark mr-1"></i> Merek</label>
                             <input type="text" class="form-control @error('merek') is-invalid @enderror" id="merek" name="merek" value="{{ $panel->merek ?? '' }}">
                             @error('merek')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                        </div>
+                        </div> -->
 
                         <div class="form-group">
                             <label for="ukuran"><i class="fas fa-text-height mr-1"></i> Ukuran</label>
@@ -57,9 +57,25 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="grup_barang_id"><i class="fas fa-tags mr-1"></i> Grup Barang</label>
+                            <label for="keterangan"><i class="fas fa-comment mr-1"></i> Keterangan</label>
+                            <textarea class="form-control @error('keterangan') is-invalid @enderror" id="keterangan" name="keterangan" rows="3" placeholder="Masukkan keterangan tambahan">{{ old('keterangan', $panel->keterangan ?? '') }}</textarea>
+                            @error('keterangan')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="input_by"><i class="fas fa-user mr-1"></i> Input By</label>
+                            <input type="text" class="form-control @error('input_by') is-invalid @enderror" id="input_by" name="input_by" value="{{ old('input_by', $panel->input_by ?? '') }}" placeholder="Nama orang yang menginput data">
+                            @error('input_by')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="grup_barang_id"><i class="fas fa-tags mr-1"></i> Merek Barang</label>
                             <select class="form-control @error('grup_barang_id') is-invalid @enderror" id="grup_barang_id" name="grup_barang_id">
-                                <option value="">Pilih Grup Barang</option>
+                                <option value="">Pilih Merek Barang</option>
                                 @foreach(\App\Models\GrupBarang::where('status','Active')->orderBy('name')->pluck('name') as $group_name)
                                     <option value="{{ $group_name }}" {{ (old('grup_barang_id') ?? ($panel->attribute ?? '')) == $group_name ? 'selected' : '' }}>{{ $group_name }}</option>
                                 @endforeach

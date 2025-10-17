@@ -100,24 +100,11 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label>Barang</label>
-                                <select class="form-control item-barang" id="kode_barang_select">
-                                    <option value="">Pilih Barang</option>
-                                    @if(isset($kodeBarangs) && $kodeBarangs)
-                                        @foreach($kodeBarangs as $barang)
-                                            <option value="{{ $barang->id }}" 
-                                                data-harga="{{ $barang->cost }}"
-                                                data-unit-dasar="{{ $barang->unit_dasar }}"
-                                                data-kode="{{ $barang->kode_barang }}"
-                                                data-nama="{{ $barang->name }}"
-                                                data-merek="{{ $barang->merek }}"
-                                                data-ukuran="{{ $barang->ukuran }}">
-                                                {{ $barang->kode_barang }} - {{ $barang->name }}@if($barang->merek || $barang->ukuran) ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})@endif
-                                            </option>
-                                        @endforeach
-                                    @else
-                                        <option value="">Tidak ada data barang</option>
-                                    @endif
-                                </select>
+                                <div class="position-relative">
+                                    <input type="text" class="form-control item-barang-input" id="kode_barang_input" placeholder="Ketik kode atau nama barang..." autocomplete="off">
+                                    <input type="hidden" class="item-barang-id" value="">
+                                    <div class="dropdown-menu" id="barangDropdown" style="display: none; max-height: 200px; overflow-y: auto; width: 100%;"></div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -161,12 +148,12 @@
                                 <input type="number" class="form-control" id="diskon" placeholder="0" min="0" max="100">
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <!-- <div class="col-md-2">
                             <div class="form-group">
                                 <label>Panjang</label>
                                 <input type="number" class="form-control" id="panjang" placeholder="0" step="0.01">
                             </div>
-                        </div>
+                        </div> -->
                         <div class="col-md-7">
                             <div class="form-group">
                                 <label>Keterangan</label>
@@ -196,24 +183,11 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label>Barang</label>
-                                <select class="form-control item-barang-large" id="kode_barang_select_large">
-                                    <option value="">Pilih Barang</option>
-                                    @if(isset($kodeBarangs) && $kodeBarangs)
-                                        @foreach($kodeBarangs as $barang)
-                                            <option value="{{ $barang->id }}" 
-                                                data-harga="{{ $barang->cost }}"
-                                                data-unit-dasar="{{ $barang->unit_dasar }}"
-                                                data-kode="{{ $barang->kode_barang }}"
-                                                data-nama="{{ $barang->name }}"
-                                                data-merek="{{ $barang->merek }}"
-                                                data-ukuran="{{ $barang->ukuran }}">
-                                                {{ $barang->kode_barang }} - {{ $barang->name }}@if($barang->merek || $barang->ukuran) ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})@endif
-                                            </option>
-                                        @endforeach
-                                    @else
-                                        <option value="">Tidak ada data barang</option>
-                                    @endif
-                                </select>
+                                <div class="position-relative">
+                                    <input type="text" class="form-control item-barang-input-large" id="kode_barang_input_large" placeholder="Ketik kode atau nama barang..." autocomplete="off">
+                                    <input type="hidden" class="item-barang-id-large" value="">
+                                    <div class="dropdown-menu" id="barangDropdownLarge" style="display: none; max-height: 200px; overflow-y: auto; width: 100%;"></div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -249,12 +223,12 @@
                                 <input type="number" class="form-control" id="diskon_large" placeholder="0" min="0" max="100">
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <!-- <div class="col-md-2">
                             <div class="form-group">
                                 <label>Panjang</label>
                                 <input type="number" class="form-control" id="panjang_large" placeholder="0" step="0.01">
                             </div>
-                        </div>
+                        </div> -->
                         <div class="col-md-7">
                             <div class="form-group">
                                 <label>Keterangan</label>

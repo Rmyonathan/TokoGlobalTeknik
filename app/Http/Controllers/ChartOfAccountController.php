@@ -21,10 +21,44 @@ class ChartOfAccountController extends Controller
      */
     public function index()
     {
-        $accounts = ChartOfAccount::with(['type', 'parent'])->orderBy('code')->paginate(20);
+        $accounts = ChartOfAccount::with(['type', 'parent', 'children'])->orderBy('code')->paginate(20);
         $accountTypes = AccountType::orderBy('name')->get();
         $parents = ChartOfAccount::orderBy('code')->get();
         return view('chart_of_accounts.index', compact('accounts', 'accountTypes', 'parents'));
+    }
+
+    /**
+     * Display bank accounts with their child accounts
+     */
+    public function bankAccounts()
+    {
+        $bankAccounts = ChartOfAccount::with(['type', 'children'])
+            ->bankAccounts()
+            ->orderBy('code')
+            ->get();
+        
+        return view('chart_of_accounts.bank_accounts', compact('bankAccounts'));
+    }
+
+    /**
+     * Get bank child accounts (QRIS, EDC, Giro) for API
+     */
+    public function getBankChildAccounts(Request $request)
+    {
+        $bankCode = $request->get('bank_code');
+        
+        $query = ChartOfAccount::bankChildAccounts()->with('parent');
+        
+        if ($bankCode) {
+            $query->where('code', 'like', $bankCode . '%');
+        }
+        
+        $accounts = $query->orderBy('code')->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $accounts
+        ]);
     }
 
     /**
