@@ -1,6 +1,70 @@
 @extends('layout.Nav')
 
 @section('content')
+<style>
+    /* Custom Select2 styling for better integration */
+    .select2-container--bootstrap-5 .select2-selection {
+        min-height: calc(1.4em + 0.45rem + 2px) !important;
+        padding: 0.3rem 0.45rem !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        padding-left: 0 !important;
+        line-height: 1.4em !important;
+    }
+    
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+        height: calc(1.4em + 0.45rem) !important;
+    }
+    
+    .select2-dropdown {
+        font-size: 0.85rem !important;
+    }
+    
+    .select2-results__option {
+        padding: 6px 12px !important;
+    }
+    
+    /* Improved form styling */
+    .form-control-sm {
+        height: calc(1.3em + 0.5rem + 2px);
+        padding: 0.25rem 0.5rem;
+        font-size: 0.825rem;
+    }
+    
+    label.small {
+        color: #495057;
+        margin-bottom: 0.25rem;
+    }
+    
+    .bg-light.border {
+        border-color: #dee2e6 !important;
+    }
+    
+    .table-responsive {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 0.5rem rgba(0,0,0,0.05);
+    }
+    
+    #itemsTable thead th {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.3rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    
+    #itemsTable tbody td {
+        padding: 0.4rem 0.3rem;
+        font-size: 0.75rem;
+        vertical-align: middle;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+</style>
 <div class="container">
     <!-- Header Section -->
     <div class="title-box">
@@ -136,6 +200,16 @@
                                    min="0">
                         </div>
 
+                        <!-- Mode Input Barang -->
+                        <div class="form-group">
+                            <label for="mode_input_barang">Mode Input Barang</label>
+                            <select class="form-control" id="mode_input_barang">
+                                <option value="kecil" selected>Satuan Kecil</option>
+                                <option value="besar">Satuan Besar</option>
+                            </select>
+                            <small class="form-text text-muted">Pilih cara input: satuan kecil atau langsung satuan besar</small>
+                        </div>
+
                         <!-- Remaining Debt -->
                         <div class="form-group">
                             <label for="sisa_piutang">Sisa Piutang</label>
@@ -199,113 +273,173 @@
         </div>
     </div>
 
-    <!-- Add Item Section -->
-    <div class="card mb-4">
+    <!-- Add Item Section (Satuan Kecil) -->
+    <div class="card mb-4" id="cardSmallItems">
         <div class="card-header">
-            <h5 class="mb-0">Tambah Barang</h5>
+            <h5 class="mb-0"><i class="fas fa-box mr-2"></i>Tambah Barang (Satuan Kecil)</h5>
         </div>
         <div class="card-body">
-            <!-- Product Selection Row -->
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label>Kode Barang</label>
-                        <div class="position-relative">
-                            <input type="text" class="form-control" id="newKodeBarangInput" placeholder="Ketik kode atau nama barang..." autocomplete="off">
-                            <input type="hidden" id="newKodeBarangId" value="">
-                            <div class="dropdown-menu" id="barangDropdownSuratJalan" style="display: none; max-height: 200px; overflow-y: auto; width: 100%;"></div>
+            <!-- Form Tambah Barang -->
+            <div class="bg-light p-3 rounded mb-3 border">
+                <!-- Baris 1: Data Utama Barang -->
+                <div class="row mb-2">
+                    <div class="col-lg-4 col-md-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Barang <span class="text-danger">*</span></label>
+                        <select class="form-control form-control-sm" id="newKodeBarangSelect">
+                            <option value="">Pilih Barang</option>
+                            @if(isset($kodeBarangs) && count($kodeBarangs) > 0)
+                                @foreach($kodeBarangs as $barang)
+                                    <option value="{{ $barang->id }}" 
+                                            data-harga="{{ $barang->harga_jual }}"
+                                            data-unit-dasar="{{ $barang->unit_dasar }}"
+                                            data-kode="{{ $barang->kode_barang }}"
+                                            data-nama="{{ $barang->name }}"
+                                            data-merek="{{ $barang->merek }}"
+                                            data-ukuran="{{ $barang->ukuran }}">
+                                        {{ $barang->kode_barang }} - {{ $barang->name }}@if($barang->merek || $barang->ukuran) ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})@endif
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="">Tidak ada data barang</option>
+                            @endif
+                        </select>
+                        <!-- Keep old inputs hidden for compatibility -->
+                        <input type="hidden" id="newKodeBarangInput" value="">
+                        <input type="hidden" id="newKodeBarangId" value="">
+                        <!-- Stock info badge -->
+                        <div id="stockInfoSmall" class="mt-1" style="display:none;">
+                            <small class="badge badge-info">
+                                <i class="fas fa-box"></i> Sisa Stok: <span id="stockQtySmall">0</span> <span id="stockUnitSmall"></span>
+                            </small>
                         </div>
                     </div>
-                </div>
-                
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Qty</label>
-                        <input type="number" 
-                               class="form-control" 
-                               id="newQty" 
-                               step="0.01" 
-                               min="0.01">
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Qty <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control form-control-sm" id="newQty" step="0.01" min="0.01" placeholder="0">
                     </div>
-                </div>
-                
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Satuan Kecil</label>
-                        <select class="form-control" id="newSatuanKecil">
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Satuan Kecil</label>
+                        <select class="form-control form-control-sm" id="newSatuanKecil">
                             <option value=""></option>
                         </select>
                         <input type="hidden" id="newSatuan" value="">
                     </div>
-                </div>
-                
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Satuan Besar</label>
-                        <select class="form-control" id="newSatuanBesar"></select>
+                    <div class="col-lg-2 col-md-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Satuan Besar</label>
+                        <select class="form-control form-control-sm" id="newSatuanBesar"></select>
+                    </div>
+                    <div class="col-lg-2 col-md-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Harga <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control form-control-sm" id="newHarga" step="0.01" min="0" placeholder="0">
                     </div>
                 </div>
                 
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Harga</label>
-                        <input type="number" 
-                               class="form-control" 
-                               id="newHarga" 
-                               step="0.01" 
-                               min="0">
+                <!-- Baris 2: Detail Tambahan -->
+                <div class="row align-items-end">
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Total</label>
+                        <input type="number" class="form-control form-control-sm" id="newTotal" readonly style="background-color: #e9ecef;">
                     </div>
-                </div>
-                
-                <div class="col-md-1">
-                    <div class="form-group">
-                        <label>Total</label>
-                        <input type="number" 
-                               class="form-control" 
-                               id="newTotal" 
-                               readonly>
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Diskon (%)</label>
+                        <input type="number" class="form-control form-control-sm" id="newDiskon" placeholder="0" min="0" max="100">
+                    </div>
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Ongkos Kuli</label>
+                        <input type="number" class="form-control form-control-sm" id="newOngkosKuli" placeholder="0">
+                    </div>
+                    <div class="col-lg-5 col-md-9 mb-2">
+                        <label class="font-weight-bold small mb-1">Keterangan</label>
+                        <input type="text" class="form-control form-control-sm" id="newKeterangan" placeholder="Keterangan tambahan (opsional)">
+                    </div>
+                    <div class="col-lg-1 col-md-3 col-12 mb-2">
+                        <button type="button" class="btn btn-success btn-block btn-sm" id="addItemBtn">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
                     </div>
                 </div>
             </div>
-            
-            <!-- Additional Fields Row -->
-            <div class="row">
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Diskon (%)</label>
-                        <input type="number" 
-                               class="form-control" 
-                               id="newDiskon" 
-                               placeholder="0" 
-                               min="0" 
-                               max="100">
+        </div>
+    </div>
+
+    <!-- Add Item Section (Satuan Besar) -->
+    <div class="card mb-4" id="cardLargeItems" style="display:none;">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-box mr-2"></i>Tambah Barang (Satuan Besar)</h5>
+        </div>
+        <div class="card-body">
+            <!-- Form Tambah Barang Satuan Besar -->
+            <div class="bg-light p-3 rounded mb-3 border">
+                <!-- Baris 1: Data Utama Barang -->
+                <div class="row mb-2">
+                    <div class="col-lg-5 col-md-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Barang <span class="text-danger">*</span></label>
+                        <select class="form-control form-control-sm" id="newKodeBarangSelectLarge">
+                            <option value="">Pilih Barang</option>
+                            @if(isset($kodeBarangs) && count($kodeBarangs) > 0)
+                                @foreach($kodeBarangs as $barang)
+                                    <option value="{{ $barang->id }}" 
+                                            data-harga="{{ $barang->harga_jual }}"
+                                            data-unit-dasar="{{ $barang->unit_dasar }}"
+                                            data-kode="{{ $barang->kode_barang }}"
+                                            data-nama="{{ $barang->name }}"
+                                            data-merek="{{ $barang->merek }}"
+                                            data-ukuran="{{ $barang->ukuran }}">
+                                        {{ $barang->kode_barang }} - {{ $barang->name }}@if($barang->merek || $barang->ukuran) ({{ $barang->merek ?? '-' }}@if($barang->merek && $barang->ukuran), @endif{{ $barang->ukuran ?? '-' }})@endif
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="">Tidak ada data barang</option>
+                            @endif
+                        </select>
+                        <input type="hidden" id="newKodeBarangIdLarge" value="">
+                        <!-- Stock info badge -->
+                        <div id="stockInfoLarge" class="mt-1" style="display:none;">
+                            <small class="badge badge-info">
+                                <i class="fas fa-box"></i> Sisa Stok: <span id="stockQtyLarge">0</span> <span id="stockUnitLarge"></span>
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Qty <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control form-control-sm" id="newQtyLarge" step="0.01" min="0.01" placeholder="0">
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Satuan Besar <span class="text-danger">*</span></label>
+                        <select class="form-control form-control-sm" id="newSatuanBesarLarge">
+                            <option value="">Pilih satuan besar</option>
+                        </select>
+                        <input type="hidden" id="newSatuanLarge" value="">
+                    </div>
+                    <div class="col-lg-2 col-md-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Harga <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control form-control-sm" id="newHargaLarge" step="0.01" min="0" placeholder="0">
                     </div>
                 </div>
                 
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Ongkos Kuli</label>
-                        <input type="number" 
-                               class="form-control" 
-                               id="newOngkosKuli" 
-                               placeholder="0">
+                <!-- Baris 2: Detail Tambahan -->
+                <div class="row align-items-end">
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Total</label>
+                        <input type="number" class="form-control form-control-sm" id="newTotalLarge" readonly style="background-color: #e9ecef;">
                     </div>
-                </div>
-                
-                <div class="col-md-7">
-                    <div class="form-group">
-                        <label>Keterangan</label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="newKeterangan" 
-                               placeholder="Keterangan">
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Diskon (%)</label>
+                        <input type="number" class="form-control form-control-sm" id="newDiskonLarge" placeholder="0" min="0" max="100">
                     </div>
-                </div>
-                
-                <div class="col-md-1 d-flex align-items-end justify-content-end">
-                    <button type="button" class="btn btn-success btn-sm" id="addItemBtn">
-                        <i class="fas fa-plus"></i> Add
-                    </button>
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Ongkos Kuli</label>
+                        <input type="number" class="form-control form-control-sm" id="newOngkosKuliLarge" placeholder="0">
+                    </div>
+                    <div class="col-lg-5 col-md-9 mb-2">
+                        <label class="font-weight-bold small mb-1">Keterangan</label>
+                        <input type="text" class="form-control form-control-sm" id="newKeteranganLarge" placeholder="Keterangan tambahan (opsional)">
+                    </div>
+                    <div class="col-lg-1 col-md-3 col-12 mb-2">
+                        <button type="button" class="btn btn-success btn-block btn-sm" id="addItemBtnLarge">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -325,7 +459,7 @@
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
                             <th>Merek</th>
-                            <th>Ukuran</th>
+                            <th>Ukuran/Type</th>
                             <th>Keterangan</th>
                             <th>Harga Jual</th>
                             <th>Qty & Satuan</th>
@@ -343,70 +477,275 @@
             </div>
             
             <!-- Summary Section -->
-            <div class="row mt-4">
-                <div class="col-md-6"></div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h6 class="card-title">Ringkasan Total</h6>
-                            
-                            <!-- Subtotal -->
-                            <div class="row">
-                                <div class="col-6">
-                                    <label>Subtotal:</label>
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calculator mr-2"></i>Ringkasan Total</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Kolom Kiri: Perhitungan -->
+                        <div class="col-lg-6 mb-3">
+                            <div class="bg-light p-3 rounded border">
+                                <h6 class="font-weight-bold mb-3 text-primary"><i class="fas fa-coins mr-2"></i>Perhitungan</h6>
+                                
+                                <div class="form-group mb-3">
+                                    <label class="small font-weight-bold mb-1">Subtotal</label>
+                                    <div class="alert alert-info p-2 mb-0">
+                                        <span id="summary_subtotal" class="font-weight-bold" style="font-size: 1.2rem;">Rp 0</span>
+                                    </div>
                                 </div>
-                                <div class="col-6 text-right">
-                                    <span id="summary_subtotal">Rp 0</span>
-                                </div>
-                            </div>
-                            
-                            <!-- PPN -->
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="form-check">
-                                        <input class="form-check-input" 
-                                               type="checkbox" 
-                                               id="ppn_checkbox_sj">
-                                        <label class="form-check-label" for="ppn_checkbox_sj">
+                                
+                                <div class="form-group mb-2">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="ppn_checkbox_sj">
+                                        <label class="custom-control-label small font-weight-bold" for="ppn_checkbox_sj">
                                             PPN ({{ $ppnConfig['rate'] ?? 11 }}%)
                                         </label>
                                     </div>
-                                </div>
-                                <div class="col-6 text-right">
-                                    <span id="summary_ppn">Rp 0</span>
+                                    <div class="mt-2">
+                                        <span id="summary_ppn" class="text-muted">Rp 0</span>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <hr>
-                            
-                            <!-- Grand Total -->
-                            <div class="row">
-                                <div class="col-6">
-                                    <strong>Grand Total:</strong>
+                        </div>
+                        
+                        <!-- Kolom Kanan: Total & Aksi -->
+                        <div class="col-lg-6 mb-3">
+                            <div class="bg-light p-3 rounded border h-100">
+                                <h6 class="font-weight-bold mb-3 text-success"><i class="fas fa-money-bill-wave mr-2"></i>Total Akhir</h6>
+                                
+                                <div class="form-group mb-3">
+                                    <label class="small font-weight-bold mb-2">Grand Total</label>
+                                    <div class="alert alert-success p-2 mb-0" style="background-color: #d4edda; border: 2px solid #28a745;">
+                                        <span id="summary_grand_total" class="font-weight-bold text-success d-block text-center" style="font-size: 1.8rem;">Rp 0</span>
+                                    </div>
                                 </div>
-                                <div class="col-6 text-right">
-                                    <strong><span id="summary_grand_total">Rp 0</span></strong>
+                                
+                                <div class="mt-4">
+                                    <button type="button" class="btn btn-success btn-block btn-lg mb-2" id="saveSuratJalan">
+                                        <i class="fas fa-save mr-2"></i>Simpan Surat Jalan
+                                    </button>
+                                    <button type="button" class="btn btn-warning btn-block" id="resetForm">
+                                        <i class="fas fa-redo mr-2"></i>Reset Form
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Action Buttons -->
-            <div class="form-group text-right mt-4">
-                <button type="button" class="btn btn-success" id="saveSuratJalan">
-                    <i class="fas fa-save"></i> Simpan Surat Jalan
-                </button>
-                <button type="button" class="btn btn-warning" id="resetForm">
-                    <i class="fas fa-times"></i> Reset
-                </button>
-            </div>
         </div>
     </div>
 </div>
 
 <script>
+$(document).ready(function() {
+    // Toggle between small/large item forms by mode input barang
+    $('#mode_input_barang').on('change', function() {
+        const mode = $(this).val();
+        if (mode === 'besar') {
+            $('#cardSmallItems').hide();
+            $('#cardLargeItems').show();
+        } else {
+            $('#cardLargeItems').hide();
+            $('#cardSmallItems').show();
+        }
+    });
+    
+    // Initialize Select2 for item dropdown (small)
+    $('#newKodeBarangSelect').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Pilih atau cari barang...',
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "Barang tidak ditemukan";
+            },
+            searching: function() {
+                return "Mencari...";
+            }
+        }
+    });
+    
+    // Initialize Select2 for item dropdown (large)
+    $('#newKodeBarangSelectLarge').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Pilih atau cari barang...',
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "Barang tidak ditemukan";
+            },
+            searching: function() {
+                return "Mencari...";
+            }
+        }
+    });
+    
+    // Initialize Select2 for customer dropdown
+    $('#customer_display').select2({
+        theme: 'bootstrap-5',
+        placeholder: '-- Pilih Customer --',
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "Customer tidak ditemukan";
+            },
+            searching: function() {
+                return "Mencari...";
+            }
+        }
+    });
+    
+    // Handle new select dropdown change event (SMALL mode)
+    $('#newKodeBarangSelect').on('change', function() {
+        const selectedOption = $(this).find('option:selected');
+        const barangId = $(this).val();
+        const kodeBarang = selectedOption.data('kode');
+        const namaBarang = selectedOption.data('nama');
+        const harga = selectedOption.data('harga') || 0;
+        const unitDasar = selectedOption.data('unit-dasar') || 'PCS';
+        const merek = selectedOption.data('merek') || '';
+        const ukuran = selectedOption.data('ukuran') || '';
+        
+        if (!barangId) {
+            $('#newSatuanKecil').empty().append('<option value=""></option>');
+            $('#newSatuanBesar').empty();
+            $('#newHarga').val('');
+            $('#newTotal').val('');
+            $('#newKodeBarangId').val('');
+            $('#newKodeBarangInput').val('');
+            $('#stockInfoSmall').hide();
+            return;
+        }
+        
+        // Update hidden inputs for compatibility with existing code
+        $('#newKodeBarangId').val(barangId);
+        $('#newKodeBarangInput').val(kodeBarang + ' - ' + namaBarang);
+        
+        // Fetch and display available stock
+        fetchStockInfo(barangId, 'Small');
+        
+        // Store selected barang data for later use (including merek & ukuran)
+        $('#newKodeBarangInput').data('selectedBarang', {
+            id: barangId,
+            kode: kodeBarang,
+            nama: namaBarang,
+            harga: harga,
+            unitDasar: unitDasar,
+            merek: merek,
+            ukuran: ukuran
+        });
+        
+        // Set price
+        $('#newHarga').val(harga);
+        
+        // Set unit options for satuan kecil
+        $('#newSatuanKecil').html(`<option value="${unitDasar}">${unitDasar}</option>`);
+        $('#newSatuan').val(unitDasar);
+        
+        // Fetch available large units
+        $.ajax({
+            url: `{{ route('suratjalan.available-units', '') }}/${barangId}`,
+            method: 'GET',
+            success: function(units) {
+                const besarSelect = $('#newSatuanBesar');
+                besarSelect.empty();
+                
+                if (Array.isArray(units) && units.length > 0) {
+                    units.forEach(unit => {
+                        if (unit !== unitDasar) {
+                            besarSelect.append(`<option value="${unit}">${unit}</option>`);
+                        }
+                    });
+                }
+                
+                console.log('Satuan besar loaded for small mode:', units);
+            },
+            error: function(xhr) {
+                console.log('No large units available or error:', xhr);
+                $('#newSatuanBesar').empty();
+            }
+        });
+        
+        // Auto calculate total when qty changes
+        $('#newQty').trigger('input');
+        
+        console.log('Selected item:', {barangId, kodeBarang, namaBarang, harga, unitDasar});
+    });
+    
+    // Handle new select dropdown change event for LARGE mode
+    $('#newKodeBarangSelectLarge').on('change', function() {
+        const selectedOption = $(this).find('option:selected');
+        const barangId = $(this).val();
+        const kodeBarang = selectedOption.data('kode');
+        const namaBarang = selectedOption.data('nama');
+        const harga = selectedOption.data('harga') || 0;
+        const unitDasar = selectedOption.data('unit-dasar') || 'PCS';
+        
+        if (!barangId) {
+            $('#newSatuanBesarLarge').empty().append('<option value="">Pilih satuan besar</option>');
+            $('#newHargaLarge').val('');
+            $('#newTotalLarge').val('');
+            $('#newKodeBarangIdLarge').val('');
+            $('#stockInfoLarge').hide();
+            return;
+        }
+        
+        // Update hidden input
+        $('#newKodeBarangIdLarge').val(barangId);
+        
+        // Set price
+        $('#newHargaLarge').val(harga);
+        
+        // Fetch and display available stock
+        fetchStockInfo(barangId, 'Large');
+        
+        // Fetch available large units (using same route as small mode)
+        $.ajax({
+            url: `{{ route('suratjalan.available-units', '') }}/${barangId}`,
+            method: 'GET',
+            success: function(units) {
+                const select = $('#newSatuanBesarLarge');
+                select.empty();
+                
+                let hasLargeUnits = false;
+                if (Array.isArray(units) && units.length > 0) {
+                    units.forEach(unit => {
+                        if (unit !== unitDasar) {
+                            select.append(`<option value="${unit}">${unit}</option>`);
+                            hasLargeUnits = true;
+                        }
+                    });
+                }
+                
+                if (!hasLargeUnits) {
+                    select.append(`<option value="">Tidak ada satuan besar</option>`);
+                    alert('Barang ini tidak memiliki satuan besar yang dikonfigurasi. Silakan gunakan mode Satuan Kecil atau tambahkan konversi satuan di Master Barang.');
+                    return;
+                }
+                
+                // Set first as default and trigger calculation
+                const first = select.find('option').first().val() || '';
+                $('#newSatuanLarge').val(first);
+                select.val(first).trigger('change');
+                
+                console.log('Satuan besar loaded:', units, 'Selected:', first);
+            },
+            error: function(xhr) {
+                console.error('Error fetching available units:', xhr);
+                $('#newSatuanBesarLarge').empty().append('<option value="">Error loading units</option>');
+                alert('Error mengambil satuan besar: ' + (xhr.responseJSON?.message || xhr.statusText));
+            }
+        });
+        
+        console.log('Selected item (Large):', {barangId, kodeBarang, namaBarang, harga, unitDasar});
+    });
+});
+
 // ========================================
 // GLOBAL VARIABLES
 // ========================================
@@ -507,6 +846,43 @@ $('#newQty, #newHarga, #newDiskon').on('input', function() {
 });
 
 /**
+ * Handle satuan besar change with conversion
+ */
+$('#newSatuanBesar').on('change', function() {
+    const satuanBesar = $(this).val();
+    const kodeBarangId = $('#newKodeBarangId').val();
+    
+    if (satuanBesar && kodeBarangId) {
+        // Get conversion factor and store in data attribute
+        $.ajax({
+            url: "{{ route('sales-order.conversion-factor') }}",
+            method: "GET",
+            data: {
+                kode_barang_id: kodeBarangId,
+                unit: satuanBesar
+            },
+            success: function(response) {
+                // Store conversion factor in input data attribute
+                $('#newKodeBarangInput').data('conversion-factor', response.factor);
+                $('#newKodeBarangInput').data('unit-dasar', response.unit_dasar);
+                console.log('Conversion factor loaded for surat jalan:', response);
+                
+                // Recalculate total
+                calculateNewItemTotal();
+            },
+            error: function(xhr) {
+                console.error('Error getting conversion factor:', xhr.responseText);
+                $('#newKodeBarangInput').data('conversion-factor', 1);
+            }
+        });
+    } else {
+        // Reset to base unit
+        $('#newKodeBarangInput').data('conversion-factor', 1);
+        calculateNewItemTotal();
+    }
+});
+
+/**
  * Handle date and credit terms changes for due date calculation
  */
 $('#tanggal').on('change', recalcJatuhTempo);
@@ -524,6 +900,61 @@ $('#ppn_checkbox_sj').on('change', function() {
  */
 $('#addItemBtn').on('click', function() {
     addNewItem();
+});
+
+/**
+ * Handle add item button for LARGE mode
+ */
+$('#addItemBtnLarge').on('click', function() {
+    addNewItemLarge();
+});
+
+// Auto-calculate total for large mode when qty or harga changes
+$('#newQtyLarge, #newHargaLarge').on('input', function() {
+    const qty = parseFloat($('#newQtyLarge').val()) || 0;
+    const harga = parseFloat($('#newHargaLarge').val()) || 0;
+    const satuan = $('#newSatuanBesarLarge').val();
+    const barangId = $('#newKodeBarangIdLarge').val();
+    
+    if (!satuan || !barangId) {
+        $('#newTotalLarge').val(qty * harga);
+        return;
+    }
+    
+    // Fetch conversion factor and calculate (using same route as small mode)
+    $.ajax({
+        url: "{{ route('sales-order.conversion-factor') }}",
+        method: 'GET',
+        data: { 
+            kode_barang_id: barangId,
+            unit: satuan 
+        },
+        success: function(response) {
+            const factor = parseFloat(response.factor) || 1;
+            const qtyInBase = qty * factor;
+            const total = qtyInBase * harga;
+            
+            console.log('Auto-calc Conversion (SJ):', {
+                response: response,
+                factor: factor,
+                qty: qty,
+                qtyInBase: qtyInBase,
+                harga: harga,
+                total: total
+            });
+            
+            $('#newTotalLarge').val(total);
+        },
+        error: function(xhr) {
+            console.error('Error calculating conversion:', xhr);
+            $('#newTotalLarge').val(qty * harga);
+        }
+    });
+});
+
+$('#newSatuanBesarLarge').on('change', function() {
+    $('#newSatuanLarge').val($(this).val());
+    $('#newQtyLarge').trigger('input'); // Recalculate total
 });
 
 /**
@@ -629,7 +1060,7 @@ function addNewItem() {
     const selectedBarang = $('#newKodeBarangInput').data('selectedBarang') || {};
     const merek = selectedBarang.merek || '';
     const ukuran = selectedBarang.ukuran || '';
-    
+        
     const qty = parseFloat($('#newQty').val());
     const satuanKecil = $('#newSatuanKecil').val();
     const satuanBesar = $('#newSatuanBesar').val() || null; // Set to null if empty
@@ -644,18 +1075,15 @@ function addNewItem() {
         return;
     }
 
-    // Check for duplicate items
-    const existingItem = items.find(item => item.kode_barang === kodeBarang);
-    if (existingItem) {
-        alert('Barang sudah ada dalam daftar!');
-        return;
-    }
-
     // Calculate total
     const subtotal = harga * qty;
     const diskonAmount = (subtotal * diskon) / 100;
     const total = subtotal - diskonAmount;
+    const qtyInBaseUnit = qty; // Di mode satuan kecil, qty sudah dalam unit dasar
+    const displayQty = qty;
+    const displaySatuan = satuanKecil; // Selalu gunakan satuan kecil di mode ini
 
+    
     // Add item to array
     items.push({
         kode_barang: kodeBarang,
@@ -664,9 +1092,11 @@ function addNewItem() {
         ukuran: ukuran,
         keterangan: keterangan,
         harga: harga,
-        qty: qty,
-        satuan: satuanKecil,
-        satuan_besar: satuanBesar, // Will be null if no satuan besar available
+        qty: qtyInBaseUnit, // Qty dalam unit dasar untuk backend
+        qtyDisplay: displayQty, // Qty untuk display
+        satuan: satuanKecil, // Satuan dasar untuk backend
+        satuanDisplay: displaySatuan, // Satuan untuk display
+        satuan_besar: '', // Mode satuan kecil tidak pakai satuan besar
         diskon: diskon,
         ongkos_kuli: ongkosKuli,
         total: total
@@ -675,6 +1105,84 @@ function addNewItem() {
     // Update display and clear form
     updateItemsTable();
     clearItemForm();
+}
+
+/**
+ * Add new item from LARGE mode (direct satuan besar input)
+ */
+function addNewItemLarge() {
+    const kodeBarangId = $('#newKodeBarangIdLarge').val();
+    const selectedOption = $('#newKodeBarangSelectLarge').find('option:selected');
+    
+    if (!kodeBarangId) {
+        alert('Pilih barang terlebih dahulu!');
+        return;
+    }
+    
+    const kodeBarang = selectedOption.data('kode') || '';
+    const namaBarang = selectedOption.data('nama') || '';
+    const merek = selectedOption.data('merek') || '';
+    const ukuran = selectedOption.data('ukuran') || '';
+    const unitDasar = selectedOption.data('unit-dasar') || 'PCS';
+    
+    const qty = parseFloat($('#newQtyLarge').val());
+    const satuanBesar = $('#newSatuanBesarLarge').val();
+    const harga = parseFloat($('#newHargaLarge').val()) || 0;
+    const diskon = parseFloat($('#newDiskonLarge').val()) || 0;
+    const ongkosKuli = parseFloat($('#newOngkosKuliLarge').val()) || 0;
+    const keterangan = $('#newKeteranganLarge').val().trim();
+
+    // Validation
+    if (!kodeBarang || !namaBarang || !qty || qty <= 0 || !satuanBesar) {
+        alert('Silakan lengkapi semua field yang wajib (Barang, Qty, Satuan Besar)');
+        return;
+    }
+
+    // Get conversion factor from API (using same route as small mode)
+    $.ajax({
+        url: "{{ route('sales-order.conversion-factor') }}",
+        method: 'GET',
+        data: { 
+            kode_barang_id: kodeBarangId,
+            unit: satuanBesar 
+        },
+        success: function(response) {
+            const factor = parseFloat(response.factor) || 1;
+            const qtyInBaseUnit = qty * factor; // Convert to base unit
+            // alert(`DEBUG KONVERSI (SURAT JALAN):\n\nQty Input: ${qty} ${satuanBesar}\nFactor Konversi: ${factor}\nHasil: ${qtyInBaseUnit} ${unitDasar}\n\nResponse API:\n${JSON.stringify(response, null, 2)}`);
+            const subtotal = harga * qtyInBaseUnit;
+            const diskonAmount = (subtotal * diskon) / 100;
+            const total = subtotal - diskonAmount;
+            
+            // Prepare item object
+            const itemToAdd = {
+                kode_barang: kodeBarang,
+                nama_barang: namaBarang,
+                merek: merek,
+                ukuran: ukuran,
+                keterangan: keterangan,
+                harga: harga,
+                qty: qtyInBaseUnit, // Qty dalam unit dasar untuk backend
+                qtyDisplay: qty, // Qty yang diinput user
+                satuan: unitDasar, // Satuan dasar untuk backend
+                satuanDisplay: satuanBesar, // Satuan yang dipilih user untuk display
+                satuan_besar: satuanBesar,
+                diskon: diskon,
+                ongkos_kuli: ongkosKuli,
+                total: total
+            };
+                        
+            // Add item to array
+            items.push(itemToAdd);
+
+            // Update display and clear form
+            updateItemsTable();
+            clearItemFormLarge();
+        },
+        error: function() {
+            alert('Gagal mendapatkan faktor konversi satuan. Pastikan satuan besar sudah dikonfigurasi.');
+        }
+    });
 }
 
 /**
@@ -691,8 +1199,30 @@ function updateItemsTable() {
     }
     
     items.forEach((item, index) => {
-        const qtyDisplay = `${item.qty} ${item.satuan}`;
-        const satuanBesarDisplay = item.satuan_besar || ''; // Empty string instead of '-'
+        // Display dengan qty dan satuan yang user input (bisa satuan besar)
+        const displayQty = item.qtyDisplay || item.qty;
+        const displaySatuan = item.satuanDisplay || item.satuan;
+        
+        // Debug log untuk melihat data item
+        console.log('Display Item:', {
+            qtyDisplay: item.qtyDisplay,
+            qty: item.qty,
+            satuan: item.satuan,
+            satuanDisplay: item.satuanDisplay,
+            satuan_besar: item.satuan_besar
+        });
+        
+        // Format display: "2 BOX (20 PAIR)" jika ada konversi
+        let qtyDisplay;
+        if (item.satuan_besar && item.qtyDisplay && item.qty !== item.qtyDisplay) {
+            // Ada konversi: tampilkan input user + hasil konversi
+            qtyDisplay = `${item.qtyDisplay} ${item.satuanDisplay} (${Math.round(item.qty)} ${item.satuan})`;
+        } else {
+            // Tidak ada konversi atau satuan kecil
+            qtyDisplay = `${displayQty} ${displaySatuan}`;
+        }
+        
+        const satuanBesarDisplay = item.satuan_besar ? 'Ya' : '-';
         
         const row = `
             <tr>
@@ -735,6 +1265,69 @@ function clearItemForm() {
     $('#newOngkosKuli').val('');
     $('#newKeterangan').val('');
     $('#newKodeBarangInput').removeData('selectedBarang');
+    $('#newKodeBarangSelect').val(null).trigger('change');
+}
+
+/**
+ * Clear large item input form
+ */
+function clearItemFormLarge() {
+    $('#newKodeBarangSelectLarge').val(null).trigger('change');
+    $('#newKodeBarangIdLarge').val('');
+    $('#newQtyLarge').val('');
+    $('#newSatuanBesarLarge').empty();
+    $('#newSatuanLarge').val('');
+    $('#newHargaLarge').val('');
+    $('#newTotalLarge').val('');
+    $('#newDiskonLarge').val('');
+    $('#newOngkosKuliLarge').val('');
+    $('#newKeteranganLarge').val('');
+}
+
+// ========================================
+// STOCK INFO FUNCTIONS
+// ========================================
+
+/**
+ * Fetch and display available stock for selected item
+ */
+function fetchStockInfo(barangId, mode) {
+    $.ajax({
+        url: `/api/stock/available/${barangId}`,
+        method: 'GET',
+        success: function(response) {
+            const stockQty = response.stock || 0;
+            const stockUnit = response.unit || 'PCS';
+            
+            if (mode === 'Small') {
+                $('#stockQtySmall').text(formatNumber(stockQty));
+                $('#stockUnitSmall').text(stockUnit);
+                $('#stockInfoSmall').fadeIn();
+            } else if (mode === 'Large') {
+                $('#stockQtyLarge').text(formatNumber(stockQty));
+                $('#stockUnitLarge').text(stockUnit);
+                $('#stockInfoLarge').fadeIn();
+            }
+        },
+        error: function(xhr) {
+            console.error('Error fetching stock info:', xhr);
+            if (mode === 'Small') {
+                $('#stockInfoSmall').hide();
+            } else if (mode === 'Large') {
+                $('#stockInfoLarge').hide();
+            }
+        }
+    });
+}
+
+/**
+ * Format number with thousand separator
+ */
+function formatNumber(num) {
+    return parseFloat(num).toLocaleString('id-ID', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    });
 }
 
 // ========================================
@@ -803,8 +1396,47 @@ function saveSuratJalan() {
         data: formData,
         success: function(response) {
             if (response.success) {
-                alert(response.message || 'Surat Jalan berhasil disimpan!');
-                window.location.href = "{{ route('suratjalan.history') }}";
+                // Tampilkan modal print
+                $('#suratJalanNo').text(response.data.no_suratjalan || 'N/A');
+                $('#suratJalanTanggal').text(response.data.tanggal || 'N/A');
+                $('#suratJalanCustomer').text(response.data.customer_name || 'N/A');
+                $('#suratJalanAlamat').text(response.data.alamat_suratjalan || 'N/A');
+                $('#suratJalanTotalItem').text(response.data.items_count || items.length);
+
+                // Simpan ID surat jalan untuk tombol Print
+                const suratJalanId = response.data.id;
+
+                // Tombol Print Standard
+                $('#printSuratJalanBtn').off('click').on('click', function() {
+                    const printUrl = `{{ url('suratjalan/print') }}/${suratJalanId}?auto_print=1`;
+                    window.open(printUrl, '_blank');
+                });
+
+                // Tombol Print Format Kecil
+                $('#printSuratJalanKecilBtn').off('click').on('click', function(e) {
+                    e.preventDefault();
+                    const printUrl = `{{ url('suratjalan/print-kecil') }}/${suratJalanId}?auto_print=1`;
+                    window.open(printUrl, '_blank');
+                });
+
+                // Tombol Print Format Besar
+                $('#printSuratJalanBesarBtn').off('click').on('click', function(e) {
+                    e.preventDefault();
+                    const printUrl = `{{ url('suratjalan/print-besar') }}/${suratJalanId}?auto_print=1`;
+                    window.open(printUrl, '_blank');
+                });
+
+                // Tombol Kembali
+                $('#backToSuratJalanFormBtn').off('click').on('click', function() {
+                    $('#printSuratJalanModal').modal('hide');
+                    $('#suratjalanForm')[0].reset();
+                    items = [];
+                    updateItemsTable();
+                    updateSummaryTotal();
+                    window.location.href = "{{ route('suratjalan.create') }}";
+                });
+
+                $('#printSuratJalanModal').modal('show');
             } else {
                 alert('Gagal menyimpan Surat Jalan: ' + (response.message || response.error || 'Unknown error'));
             }
@@ -921,7 +1553,7 @@ $(document).on('click', '.barang-item-suratjalan', function(e) {
 // Open search modal
 $('#searchBarangBtnSuratJalan').click(function() {
     $('#searchKodeBarangInputSuratJalan').val('');
-    $('#kodeBarangSearchResultsSuratJalan').html('<tr><td colspan="4" class="text-center">Masukkan kata kunci untuk mencari barang</td></tr>');
+    $('#kodeBarangSearchResultsSuratJalan').html('<tr><td colspan="5" class="text-center">Masukkan kata kunci untuk mencari barang</td></tr>');
     $('#kodeBarangSearchModalSuratJalan').modal('show');
 });
 
@@ -941,6 +1573,7 @@ $('#searchKodeBarangBtnSuratJalan').click(function() {
                             <td>${item.kode_barang}</td>
                             <td>${item.name}</td>
                             <td>${formatCurrency(item.cost || 0)}</td>
+                            <td>${item.remaining_stock || 0} ${item.stock_unit || 'PCS'}</td>
                             <td>
                                 <button type="button" class="btn btn-sm btn-primary select-kode-barang-suratjalan"
                                     data-id="${item.id}"
@@ -956,7 +1589,7 @@ $('#searchKodeBarangBtnSuratJalan').click(function() {
                         </tr>`;
                     });
                 } else {
-                    html = '<tr><td colspan="4" class="text-center">Tidak ada data ditemukan</td></tr>';
+                    html = '<tr><td colspan="5" class="text-center">Tidak ada data ditemukan</td></tr>';
                 }
                 $('#kodeBarangSearchResultsSuratJalan').html(html);
             },
@@ -1098,7 +1731,7 @@ filterCaraBayarOptionsByMetode();
 
 <!-- Kode Barang Search Modal -->
 <div class="modal fade" id="kodeBarangSearchModalSuratJalan" tabindex="-1" role="dialog" aria-labelledby="kodeBarangSearchModalSuratJalanLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="kodeBarangSearchModalSuratJalanLabel">Cari Kode Barang</h5>
@@ -1125,6 +1758,7 @@ filterCaraBayarOptionsByMetode();
                                 <th>Kode Barang</th>
                                 <th>Nama Barang</th>
                                 <th>Harga Jual</th>
+                                <th>Stok Tersisa</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
@@ -1133,6 +1767,50 @@ filterCaraBayarOptionsByMetode();
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Print Surat Jalan -->
+<div class="modal fade" id="printSuratJalanModal" tabindex="-1" role="dialog" aria-labelledby="printSuratJalanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="printSuratJalanModalLabel">Print Surat Jalan</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="suratJalanContent">
+                    <h4>No Surat Jalan: <span id="suratJalanNo"></span></h4>
+                    <p>Tanggal: <span id="suratJalanTanggal"></span></p>
+                    <p>Customer: <span id="suratJalanCustomer"></span></p>
+                    <p>Alamat: <span id="suratJalanAlamat"></span></p>
+                    <p>Total Item: <span id="suratJalanTotalItem"></span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-primary" id="printSuratJalanBtn">
+                        <i class="fas fa-print"></i> Print Standard
+                    </button>
+                    <button type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <span class="sr-only">Toggle Dropdown</span>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" href="#" id="printSuratJalanKecilBtn">
+                            <i class="fas fa-file-alt"></i> Format Kecil
+                        </a>
+                        <a class="dropdown-item" href="#" id="printSuratJalanBesarBtn">
+                            <i class="fas fa-file-alt"></i> Format Besar
+                        </a>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary" id="backToSuratJalanFormBtn">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
             </div>
         </div>
     </div>

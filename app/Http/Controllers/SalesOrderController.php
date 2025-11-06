@@ -86,7 +86,7 @@ class SalesOrderController extends Controller
             'no_po' => 'required|string|max:50',
             'tanggal' => 'required|date',
             'customer_id' => 'required|exists:customers,id',
-            'salesman_id' => 'required|exists:stok_owners,id',
+            'salesman_id' => 'nullable|exists:stok_owners,id',
             'cara_bayar' => 'required|in:Tunai,Kredit',
             'hari_tempo' => 'required_if:cara_bayar,Kredit|integer|min:0',
             'tanggal_jatuh_tempo' => 'nullable|date|after_or_equal:tanggal',
@@ -226,7 +226,7 @@ class SalesOrderController extends Controller
         $request->validate([
             'tanggal' => 'required|date',
             'customer_id' => 'required|exists:customers,id',
-            'salesman_id' => 'required|exists:stok_owners,id',
+            'salesman_id' => 'nullable|exists:stok_owners,id',
             'cara_bayar' => 'required|in:Tunai,Kredit',
             'hari_tempo' => 'required_if:cara_bayar,Kredit|integer|min:0',
             'tanggal_estimasi' => 'nullable|date|after_or_equal:tanggal',
@@ -435,6 +435,54 @@ class SalesOrderController extends Controller
         try {
             $units = $this->unitService->getAvailableUnits($kodeBarangId);
             return response()->json($units);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Get unit conversion factor for product
+     */
+    public function getConversionFactor(Request $request)
+    {
+        $request->validate([
+            'kode_barang_id' => 'required|exists:kode_barangs,id',
+            'unit' => 'required|string',
+        ]);
+
+        try {
+            $kodeBarang = KodeBarang::findOrFail($request->kode_barang_id);
+            $unit = $request->unit;
+            
+            // If unit is base unit, factor is 1
+            if ($unit === $kodeBarang->unit_dasar) {
+                return response()->json([
+                    'factor' => 1,
+                    'unit_dasar' => $kodeBarang->unit_dasar,
+                    'unit_turunan' => $unit
+                ]);
+            }
+            
+            // Find conversion
+            $conversion = \App\Models\UnitConversion::where('kode_barang_id', $request->kode_barang_id)
+                ->where('unit_turunan', $unit)
+                ->active()
+                ->first();
+                
+            if (!$conversion) {
+                return response()->json([
+                    'factor' => 1,
+                    'unit_dasar' => $kodeBarang->unit_dasar,
+                    'unit_turunan' => $unit,
+                    'message' => 'No conversion found, using factor 1'
+                ]);
+            }
+            
+            return response()->json([
+                'factor' => $conversion->nilai_konversi,
+                'unit_dasar' => $kodeBarang->unit_dasar,
+                'unit_turunan' => $unit
+            ]);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);
         }

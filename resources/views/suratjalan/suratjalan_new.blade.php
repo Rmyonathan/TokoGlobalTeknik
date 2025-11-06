@@ -1,6 +1,70 @@
 @extends('layout.Nav')
 
 @section('content')
+<style>
+    /* Custom Select2 styling for better integration */
+    .select2-container--bootstrap-5 .select2-selection {
+        min-height: calc(1.4em + 0.45rem + 2px) !important;
+        padding: 0.3rem 0.45rem !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        padding-left: 0 !important;
+        line-height: 1.4em !important;
+    }
+    
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+        height: calc(1.4em + 0.45rem) !important;
+    }
+    
+    .select2-dropdown {
+        font-size: 0.85rem !important;
+    }
+    
+    .select2-results__option {
+        padding: 6px 12px !important;
+    }
+    
+    /* Improved form styling */
+    .form-control-sm {
+        height: calc(1.3em + 0.5rem + 2px);
+        padding: 0.25rem 0.5rem;
+        font-size: 0.825rem;
+    }
+    
+    label.small {
+        color: #495057;
+        margin-bottom: 0.25rem;
+    }
+    
+    .bg-light.border {
+        border-color: #dee2e6 !important;
+    }
+    
+    .table-responsive {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 0.5rem rgba(0,0,0,0.05);
+    }
+    
+    #itemsTable thead th {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.3rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    
+    #itemsTable tbody td {
+        padding: 0.4rem 0.3rem;
+        font-size: 0.75rem;
+        vertical-align: middle;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+</style>
 <div class="container">
     <div class="title-box">
         <h2><i class="fas fa-truck mr-2"></i>Surat Jalan</h2>
@@ -112,15 +176,17 @@
     <!-- Items Section -->
     <div class="card mb-4">
         <div class="card-header">
-            <h5 class="mb-0">Tambah Barang</h5>
+            <h5 class="mb-0"><i class="fas fa-box mr-2"></i>Tambah Barang</h5>
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label>Kode Barang</label>
-                        <select class="form-control" id="newKodeBarang">
-                            <option value="">-- Pilih Barang --</option>
+            <!-- Form Tambah Barang -->
+            <div class="bg-light p-3 rounded mb-3 border">
+                <!-- Baris 1: Data Utama Barang -->
+                <div class="row mb-2">
+                    <div class="col-lg-4 col-md-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Barang <span class="text-danger">*</span></label>
+                        <select class="form-control form-control-sm" id="newKodeBarang">
+                            <option value="">Pilih Barang</option>
                             @if(isset($kodeBarangs) && count($kodeBarangs) > 0)
                                 @foreach($kodeBarangs as $barang)
                                     <option value="{{ $barang->id }}" 
@@ -139,64 +205,50 @@
                             @endif
                         </select>
                     </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Qty</label>
-                        <input type="number" class="form-control" id="newQty" step="0.01" min="0.01">
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Qty <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control form-control-sm" id="newQty" step="0.01" min="0.01" placeholder="0">
                     </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Satuan Kecil</label>
-                        <select class="form-control" id="newSatuanKecil">
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Satuan Kecil</label>
+                        <select class="form-control form-control-sm" id="newSatuanKecil">
                             <option value=""></option>
                         </select>
                         <input type="hidden" id="newSatuan" value="">
                     </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Satuan Besar</label>
-                        <select class="form-control" id="newSatuanBesar"></select>
+                    <div class="col-lg-2 col-md-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Satuan Besar</label>
+                        <select class="form-control form-control-sm" id="newSatuanBesar"></select>
+                    </div>
+                    <div class="col-lg-2 col-md-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Harga <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control form-control-sm" id="newHarga" step="0.01" min="0" placeholder="0">
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Harga</label>
-                        <input type="number" class="form-control" id="newHarga" step="0.01" min="0">
+                
+                <!-- Baris 2: Detail Tambahan -->
+                <div class="row align-items-end">
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Total</label>
+                        <input type="number" class="form-control form-control-sm" id="newTotal" readonly style="background-color: #e9ecef;">
                     </div>
-                </div>
-                <div class="col-md-1">
-                    <div class="form-group">
-                        <label>Total</label>
-                        <input type="number" class="form-control" id="newTotal" readonly>
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Diskon (%)</label>
+                        <input type="number" class="form-control form-control-sm" id="newDiskon" placeholder="0" min="0" max="100">
                     </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Diskon (%)</label>
-                        <input type="number" class="form-control" id="newDiskon" placeholder="0" min="0" max="100">
+                    <div class="col-lg-2 col-md-3 col-6 mb-2">
+                        <label class="font-weight-bold small mb-1">Ongkos Kuli</label>
+                        <input type="number" class="form-control form-control-sm" id="newOngkosKuli" placeholder="0">
                     </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="form-group">
-                        <label>Ongkos Kuli</label>
-                        <input type="number" class="form-control" id="newOngkosKuli" placeholder="0">
+                    <div class="col-lg-5 col-md-9 mb-2">
+                        <label class="font-weight-bold small mb-1">Keterangan</label>
+                        <input type="text" class="form-control form-control-sm" id="newKeterangan" placeholder="Keterangan tambahan (opsional)">
                     </div>
-                </div>
-                <div class="col-md-7">
-                    <div class="form-group">
-                        <label>Keterangan</label>
-                        <input type="text" class="form-control" id="newKeterangan" placeholder="Keterangan">
+                    <div class="col-lg-1 col-md-3 col-12 mb-2">
+                        <button type="button" class="btn btn-success btn-block btn-sm" id="addItemBtn">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
                     </div>
-                </div>
-                <div class="col-md-1 d-flex align-items-end justify-content-end">
-                    <button type="button" class="btn btn-success btn-sm" id="addItemBtn">
-                        <i class="fas fa-plus"></i> Add
-                    </button>
                 </div>
             </div>
         </div>
@@ -243,6 +295,40 @@
 </div>
 
 <script>
+$(document).ready(function() {
+    // Initialize Select2 for item dropdown
+    $('#newKodeBarang').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Pilih atau cari barang...',
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "Barang tidak ditemukan";
+            },
+            searching: function() {
+                return "Mencari...";
+            }
+        }
+    });
+    
+    // Initialize Select2 for faktur dropdown
+    $('#select_faktur').select2({
+        theme: 'bootstrap-5',
+        placeholder: '-- Pilih Faktur --',
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "Faktur tidak ditemukan";
+            },
+            searching: function() {
+                return "Mencari...";
+            }
+        }
+    });
+});
+
 let items = [];
 
 // Format currency function

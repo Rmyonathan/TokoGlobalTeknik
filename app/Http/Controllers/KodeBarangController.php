@@ -256,10 +256,10 @@ class KodeBarangController extends Controller
                 $quantity = isset($data['quantity']) && $data['quantity'] !== '' ? (float) $data['quantity'] : 0;
                 $hargaBeli = isset($data['harga_beli']) && $data['harga_beli'] !== '' ? $parseNumber($data['harga_beli']) : 0;
                 
-                // Calculate harga jual with 30% margin if not provided or empty
+                // Calculate harga jual with 35% margin if not provided or empty
                 $hargaJual = isset($data['harga_jual']) && $data['harga_jual'] !== '' ? $parseNumber($data['harga_jual']) : 0;
                 if ($hargaJual == 0 && $hargaBeli > 0) {
-                    $hargaJual = $hargaBeli * 1.3; // 30% margin
+                    $hargaJual = $hargaBeli * 1.35; // 35% margin
                 }
 
                 $payload = [
@@ -611,6 +611,9 @@ class KodeBarangController extends Controller
 
         // Transform data to match frontend expectations
         $transformedData = $kodeBarang->map(function($item) {
+            // Get global stock for this product
+            $globalStock = \App\Models\Stock::getGlobalStock($item->kode_barang);
+            
             return [
                 'id' => $item->id,
                 'kode_barang' => $item->kode_barang,
@@ -622,7 +625,9 @@ class KodeBarangController extends Controller
                 'length' => $item->length,
                 'satuan_dasar' => $item->satuan_dasar,
                 'satuan_besar' => $item->satuan_besar,
-                'unit_dasar' => $item->unit_dasar
+                'unit_dasar' => $item->unit_dasar,
+                'remaining_stock' => $globalStock->good_stock,
+                'stock_unit' => $globalStock->satuan
             ];
         });
 

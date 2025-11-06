@@ -239,25 +239,23 @@ class StockController extends Controller
             }
 
             // Get all stock records for this product (regardless of SO)
+            // NOTE: Stock reduction is already handled by FifoService->reduceGlobalStock()
+            // This method only records the mutation history, not reducing stock again
             $existingStock = Stock::where('kode_barang', $kode_barang)->first();
             
             if (!$existingStock) {
-                // Create a new stock record with negative quantity if stock doesn't exist
-                $existingStock = Stock::create([
-                    'kode_barang' => $kode_barang,
-                    'nama_barang' => $nama_barang,
-                    'good_stock' => -$quantity, // Negative because it's a sale
-                    'bad_stock' => 0,
-                    'satuan' => $satuan,
-                    'so' => $so  // Keep SO for backward compatibility
-                ]);
-                
-                $newTotal = -$quantity;
+                // If no stock record exists, get current total from FIFO
+                $kodeBarangModel = \App\Models\KodeBarang::where('kode_barang', $kode_barang)->first();
+                if ($kodeBarangModel) {
+                    $globalStock = \App\Models\Stock::getGlobalStock($kode_barang);
+                    $newTotal = $globalStock->good_stock;
+                    $satuan = $globalStock->satuan ?? $satuan;
+                } else {
+                    $newTotal = 0;
+                }
             } else {
-                // Update the stock record
-                $newTotal = $existingStock->good_stock - $quantity;
-                $existingStock->good_stock = $newTotal;
-                $existingStock->save();
+                // Get current stock total (already reduced by FifoService)
+                $newTotal = $existingStock->good_stock;
                 
                 // Use this stock's attributes
                 $nama_barang = $existingStock->nama_barang;
@@ -500,6 +498,48 @@ class StockController extends Controller
                 'stock_unit' => $request->input('satuan', 'PCS'),
                 'message' => 'Error checking stock: ' . $e->getMessage()
             ]);
+        }
+    }
+
+    /**
+     * Get available stock for a specific item (hybrid FIFO + global stock)
+     */
+    public function getAvailableStock($barangId)
+    {
+        try {
+            // Get kode_barang from kode_barangs table
+            $kodeBarang = DB::table('kode_barangs')->where('id', $barangId)->first();
+            
+            if (!$kodeBarang) {
+                return response()->json([
+                    'stock' => 0,
+                    'unit' => 'PCS',
+                    'message' => 'Barang tidak ditemukan'
+                ], 404);
+            }
+
+            // Use FifoService to get total available stock (FIFO + global)
+            $fifoService = app(\App\Services\FifoService::class);
+            $availableStock = $fifoService->getStokTersedia($barangId);
+
+            return response()->json([
+                'stock' => $availableStock,
+                'unit' => $kodeBarang->unit_dasar ?? 'PCS',
+                'kode_barang' => $kodeBarang->kode_barang,
+                'nama_barang' => $kodeBarang->name
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Error fetching available stock:', [
+                'message' => $e->getMessage(),
+                'barang_id' => $barangId
+            ]);
+
+            return response()->json([
+                'stock' => 0,
+                'unit' => 'PCS',
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

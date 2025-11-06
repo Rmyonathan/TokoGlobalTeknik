@@ -66,7 +66,7 @@
                                         <th>Harga Beli</th>
                                         <th>Harga Jual per Satuan Dasar</th>
                                         <!-- <th>Merek</th> -->
-                                        <th>Ukuran</th>
+                                        <th>Ukuran/Type</th>
                                         <th>Keterangan</th>
                                         <th>BY</th>
                                         <th>Stok DB 1</th>

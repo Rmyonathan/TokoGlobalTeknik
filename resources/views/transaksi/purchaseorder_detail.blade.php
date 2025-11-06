@@ -232,7 +232,7 @@
                             
                             <div class="form-group">
                                 <label for="edit_sales">Sales</label>
-                                <select class="form-control" id="edit_sales" name="sales" required>
+                                <select class="form-control" id="edit_sales" name="sales">
                                     <option value="{{ $po->sales }}">{{ $po->sales }}</option>
                                     <!-- You need to fetch other sales via JavaScript/AJAX -->
                                 </select>

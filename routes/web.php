@@ -320,14 +320,14 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::delete('/perusahaan/{id}', [PerusahaanController::class, 'destroy'])->name('perusahaan.destroy');
     });
     
-    // Grup Barang routes - View and Create
+    // Merek Barang routes - View and Create
     Route::group(['middleware' => ['permission:manage categories'], 'prefix' => 'grup_barang'], function () {
         Route::get('/', [GrupBarangController::class, 'index'])->name('grup_barang.index');
         Route::get('/create', [GrupBarangController::class, 'create'])->name('grup_barang.create');
         Route::post('/', [GrupBarangController::class, 'store'])->name('grup_barang.store');
     });
     
-    // Grup Barang routes - Edit
+    // Merek Barang routes - Edit
     Route::group(['middleware' => ['permission:edit categories'], 'prefix' => 'grup_barang'], function () {
         Route::get('/{id}/edit', [GrupBarangController::class, 'edit'])->name('grup_barang.edit');
         Route::put('/{id}', [GrupBarangController::class, 'update'])->name('grup_barang.update');
@@ -336,7 +336,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/{id}/assign-items', [GrupBarangController::class, 'assignItems'])->name('grup_barang.assign-items');
     });
     
-    // Grup Barang routes - Delete
+    // Merek Barang routes - Delete
     Route::group(['middleware' => ['permission:delete categories'], 'prefix' => 'grup_barang'], function () {
         Route::delete('/{id}', [GrupBarangController::class, 'destroy'])->name('grup_barang.destroy');
     });
@@ -524,6 +524,9 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/shownota/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.shownota');
         Route::get('/show/{id}', [TransaksiController::class, 'showNota'])->name('transaksi.show');
         Route::get('/nota/{id}', [TransaksiController::class, 'nota'])->name('transaksi.nota');
+        Route::get('/nota-kecil/{id}', [TransaksiController::class, 'notaKecil'])->name('transaksi.nota-kecil');
+        Route::get('/nota-besar/{id}', [TransaksiController::class, 'notaBesar'])->name('transaksi.nota-besar');
+        Route::get('/nota-sementara/{id}', [TransaksiController::class, 'notaSementara'])->name('transaksi.nota-sementara');
         
         // This catch-all route should be LAST
         Route::get('/{id}', [TransaksiController::class, 'getTransaction'])->name('transaksi.get');
@@ -590,6 +593,9 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/fifo-allocation/{suratJalanItemId}', [SuratJalanController::class, 'getFifoAllocation'])->name('suratjalan.fifo-allocation');
         Route::get('/api/by-no/{no}', [SuratJalanController::class, 'apiByNo'])->name('suratjalan.api.by-no');
         Route::get('/rekap', [SuratJalanController::class, 'rekap'])->name('suratjalan.rekap');
+        Route::get('/print/{id}', [SuratJalanController::class, 'print'])->name('suratjalan.print');
+        Route::get('/print-kecil/{id}', [SuratJalanController::class, 'printKecil'])->name('suratjalan.print-kecil');
+        Route::get('/print-besar/{id}', [SuratJalanController::class, 'printBesar'])->name('suratjalan.print-besar');
         
         // Multiple Surat Jalan to Invoice routes
         Route::get('/create-faktur', [SuratJalanController::class, 'createMultipleFaktur'])->name('suratjalan.create-faktur');
@@ -696,6 +702,17 @@ Route::middleware(['web', 'auth'])->group(function () {
     });
     
     // ==============================
+    // PENAWARAN HARGA / CATALOG SECTION
+    // ==============================
+    
+    // Penawaran Harga routes - View and Export
+    Route::group(['middleware' => ['permission:view master data'], 'prefix' => 'penawaran-harga'], function () {
+        Route::get('/', [App\Http\Controllers\PenawaranHargaController::class, 'index'])->name('penawaran.index');
+        Route::post('/export-pdf', [App\Http\Controllers\PenawaranHargaController::class, 'exportPdf'])->name('penawaran.export.pdf');
+        Route::post('/export-excel', [App\Http\Controllers\PenawaranHargaController::class, 'exportExcel'])->name('penawaran.export.excel');
+    });
+    
+    // ==============================
     // SALES ORDER SECTION
     // ==============================
     
@@ -707,6 +724,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Place static paths BEFORE wildcard to avoid conflicts
         Route::get('/customer-price', [SalesOrderController::class, 'getCustomerPrice'])->name('sales-order.customer-price');
         Route::get('/available-units/{kodeBarangId}', [SalesOrderController::class, 'getAvailableUnits'])->name('sales-order.available-units');
+        Route::get('/conversion-factor', [SalesOrderController::class, 'getConversionFactor'])->name('sales-order.conversion-factor');
         Route::get('/{salesOrder}', [SalesOrderController::class, 'show'])->name('sales-order.show');
     });
     
@@ -977,6 +995,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/panels/search', [PanelController::class, 'search'])->name('api.panels.search');
         Route::get('/kode-barang/search', [KodeBarangController::class, 'searchKodeBarang'])->name('kodeBarang.search');
         Route::get('/stock/check', [StockController::class, 'checkStock'])->name('api.stock.check');
+        Route::get('/stock/available/{barangId}', [StockController::class, 'getAvailableStock'])->name('api.stock.available');
         Route::get('/panels/search-available', [PanelController::class, 'searchAvailablePanels'])->name('panels.searchAvailable');
         Route::get('/panel-by-kode-barang', [PanelController::class, 'getPanelByKodeBarang'])->name('panel.by.kodeBarang');
         

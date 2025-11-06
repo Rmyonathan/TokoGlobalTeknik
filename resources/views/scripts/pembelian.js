@@ -719,7 +719,7 @@ $(document).ready(function () {
     $(document).on('click', '#searchBarangBtn', function() {
         currentSearchMode = 'small';
         $("#searchKodeBarangInput").val('');
-        $("#kodeBarangSearchResults").html('<tr><td colspan="4" class="text-center">Masukkan kata kunci untuk mencari barang</td></tr>');
+        $("#kodeBarangSearchResults").html('<tr><td colspan="5" class="text-center">Masukkan kata kunci untuk mencari barang</td></tr>');
         $("#kodeBarangSearchModal").modal('show');
     });
 
@@ -727,7 +727,7 @@ $(document).ready(function () {
     $(document).on('click', '#searchBarangBtnLarge', function() {
         currentSearchMode = 'large';
         $("#searchKodeBarangInput").val('');
-        $("#kodeBarangSearchResults").html('<tr><td colspan="4" class="text-center">Masukkan kata kunci untuk mencari barang</td></tr>');
+        $("#kodeBarangSearchResults").html('<tr><td colspan="5" class="text-center">Masukkan kata kunci untuk mencari barang</td></tr>');
         $("#kodeBarangSearchModal").modal('show');
     });
 
@@ -750,6 +750,7 @@ $(document).ready(function () {
                                 <td>${item.kode_barang}</td>
                                 <td>${item.name}</td>
                                 <td>${item.length || '-'} m</td>
+                                <td>${item.remaining_stock || 0} ${item.stock_unit || 'PCS'}</td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-primary select-kode-barang"
                                         data-id="${item.id}"
@@ -767,7 +768,7 @@ $(document).ready(function () {
                         });
                     } else {
                         html =
-                            '<tr><td colspan="4" class="text-center">Tidak ada data ditemukan</td></tr>';
+                            '<tr><td colspan="5" class="text-center">Tidak ada data ditemukan</td></tr>';
                     }
                     $("#kodeBarangSearchResults").html(html);
                 },

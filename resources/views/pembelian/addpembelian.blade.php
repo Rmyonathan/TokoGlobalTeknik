@@ -259,7 +259,7 @@
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
                             <th>Merek</th>
-                            <th>Ukuran</th>
+                            <th>Ukuran/Type</th>
                             <th>Keterangan</th>
                             <th>Harga Beli</th>
                             <th>Qty & Satuan</th>
@@ -367,7 +367,7 @@
 
 <!-- Kode Barang Search Modal -->
 <div class="modal fade" id="kodeBarangSearchModal" tabindex="-1" role="dialog" aria-labelledby="kodeBarangSearchModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="kodeBarangSearchModalLabel">Cari Kode Barang</h5>
@@ -394,6 +394,7 @@
                                 <th>Kode Barang</th>
                                 <th>Nama Barang</th>
                                 <th>Panjang</th>
+                                <th>Stok Tersisa</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>

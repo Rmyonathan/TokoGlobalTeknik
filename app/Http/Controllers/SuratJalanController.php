@@ -35,9 +35,27 @@ class SuratJalanController extends Controller
 
     public function create(Request $request)
     {
-        $lastSuratJalan = SuratJalan::orderBy('created_at', 'desc')->first();
-        $newNumber = $lastSuratJalan ? ((int) substr($lastSuratJalan->no_suratjalan, -5)) + 1 : 1;
-        $noSuratJalan = 'SJ-' . date('m') . date('y') . '-' . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
+        // Generate unique SJ number dengan logic yang lebih robust
+        $prefix = 'SJ-' . date('m') . date('y') . '-';
+        $lastSuratJalan = SuratJalan::where('no_suratjalan', 'like', $prefix . '%')
+            ->orderBy('no_suratjalan', 'desc')
+            ->first();
+        
+        if ($lastSuratJalan) {
+            $numeric = (int) substr($lastSuratJalan->no_suratjalan, strlen($prefix));
+            $newNumber = $numeric + 1;
+        } else {
+            $newNumber = 1;
+        }
+        
+        // Ensure uniqueness by checking existence
+        do {
+            $noSuratJalan = $prefix . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
+            $exists = SuratJalan::where('no_suratjalan', $noSuratJalan)->exists();
+            if ($exists) {
+                $newNumber++;
+            }
+        } while ($exists);
 
         // Get all transactions that can be used for Surat Jalan
         // Only show transactions that haven't been used for Surat Jalan yet
@@ -71,11 +89,11 @@ class SuratJalanController extends Controller
 
     public function store(Request $request){
         // Debug logging
-        Log::info('Surat Jalan Store Request:', [
-            'request_data' => $request->all(),
-            'items_count' => count($request->items ?? []),
-            'items' => $request->items
-        ]);
+        // Log::info('Surat Jalan Store Request:', [
+        //     'request_data' => $request->all(),
+        //     'items_count' => count($request->items ?? []),
+        //     'items' => $request->items
+        // ]);
         
         try {
         $request->validate([
@@ -172,12 +190,24 @@ class SuratJalanController extends Controller
 
                 // Catat alokasi untuk Surat Jalan (bukan untuk Transaksi Item)
                 foreach ($alokasiResult['alokasi'] as $alokasi) {
-                    SuratJalanItemSumber::create([
-                        'surat_jalan_item_id' => $suratJalanItem->id,
-                        'stock_batch_id' => $alokasi['batch_id'],
-                        'qty_diambil' => $alokasi['qty_ambil'],
-                        'harga_modal' => $alokasi['harga_modal']
-                    ]);
+                    // Skip jika batch_id null (dari global stock)
+                    // Karena surat_jalan_item_sumber hanya untuk track FIFO batches
+                    if ($alokasi['batch_id'] !== null) {
+                        SuratJalanItemSumber::create([
+                            'surat_jalan_item_id' => $suratJalanItem->id,
+                            'stock_batch_id' => $alokasi['batch_id'],
+                            'qty_diambil' => $alokasi['qty_ambil'],
+                            'harga_modal' => $alokasi['harga_modal']
+                        ]);
+                    } else {
+                        // Log untuk audit trail ketika ambil dari global stock
+                        Log::info('Stock taken from global stock (not from batch):', [
+                            'surat_jalan_item_id' => $suratJalanItem->id,
+                            'kode_barang' => $item['kode_barang'],
+                            'qty_diambil' => $alokasi['qty_ambil'],
+                            'source' => $alokasi['source'] ?? 'global_stock'
+                        ]);
+                    }
 
                     Log::info('FIFO Allocation', [
                     'no_suratjalan' => $suratJalan->no_suratjalan,
@@ -194,27 +224,31 @@ class SuratJalanController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Surat Jalan berhasil disimpan dengan alokasi FIFO!', 
-                'id' => $suratJalan->id,
-                'no_suratjalan'=> $suratJalan->no_suratjalan,
-                'no_transaksi' => $suratJalan->no_transaksi,
-                'tanggal' => $suratJalan->tanggal,
-                'kode_customer' => $suratJalan->kode_customer,
-                'alamat_suratjalan' => $suratJalan->alamat_suratjalan,
-                'grand_total' => $request->grand_total ?? 0
+                'message' => 'Surat Jalan berhasil disimpan dengan alokasi FIFO!',
+                'data' => [
+                    'id' => $suratJalan->id,
+                    'no_suratjalan' => $suratJalan->no_suratjalan,
+                    'no_transaksi' => $suratJalan->no_transaksi,
+                    'tanggal' => $suratJalan->tanggal,
+                    'kode_customer' => $suratJalan->kode_customer,
+                    'customer_name' => $suratJalan->customer->nama ?? 'N/A',
+                    'alamat_suratjalan' => $suratJalan->alamat_suratjalan,
+                    'grand_total' => $request->grand_total ?? 0,
+                    'items_count' => count($request->items)
+                ]
             ]);
 
         } catch (Exception $e) {
             DB::rollBack();
             
             // Log detailed error information
-            Log::error('Surat Jalan Store Error:', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
-            ]);
+            // Log::error('Surat Jalan Store Error:', [
+            //     'message' => $e->getMessage(),
+            //     'file' => $e->getFile(),
+            //     'line' => $e->getLine(),
+            //     'trace' => $e->getTraceAsString(),
+            //     'request_data' => $request->all()
+            // ]);
             
             return response()->json([
                 'success' => false,
@@ -689,7 +723,7 @@ class SuratJalanController extends Controller
             'tanggal' => 'required|date',
             'pembayaran' => 'required|string',
             'cara_bayar' => 'required|string',
-            'sales' => 'required|exists:stok_owners,kode_stok_owner',
+            'sales' => 'nullable|exists:stok_owners,kode_stok_owner',
             'no_po' => 'required|string|max:50',
             'hari_tempo' => 'nullable|integer|min:0',
             'tanggal_jatuh_tempo' => 'nullable|date|after_or_equal:tanggal',
@@ -944,5 +978,77 @@ class SuratJalanController extends Controller
                 'surat_jalan_item_sumber_id' => $sumber->id // Keep reference to original
             ]);
         }
+    }
+
+    /**
+     * Print surat jalan standard
+     */
+    public function print($id)
+    {
+        $suratJalan = SuratJalan::with(['items', 'customer'])->findOrFail($id);
+        
+        // Load the print view for PDF generation
+        $pdf = Pdf::loadView('suratjalan.print', [
+            'suratJalan' => $suratJalan,
+        ]);
+
+        // Set PDF options
+        $pdf->setOptions([
+            'defaultPaperSize' => 'A4',
+            'defaultPaperOrientation' => 'portrait',
+            'dpi' => 300,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+        ]);
+
+        return $pdf->stream('surat_jalan.pdf');
+    }
+
+    /**
+     * Print surat jalan kecil
+     */
+    public function printKecil($id)
+    {
+        $suratJalan = SuratJalan::with(['items', 'customer'])->findOrFail($id);
+        
+        // Load the small print view for PDF generation
+        $pdf = Pdf::loadView('suratjalan.print_kecil', [
+            'suratJalan' => $suratJalan,
+        ]);
+
+        // Set PDF options for small format
+        $pdf->setOptions([
+            'defaultPaperSize' => 'custom',
+            'defaultPaperOrientation' => 'portrait',
+            'dpi' => 300,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+        ]);
+
+        return $pdf->stream('surat_jalan_kecil.pdf');
+    }
+
+    /**
+     * Print surat jalan besar
+     */
+    public function printBesar($id)
+    {
+        $suratJalan = SuratJalan::with(['items', 'customer'])->findOrFail($id);
+        
+        // Load the large print view for PDF generation
+        $pdf = Pdf::loadView('suratjalan.print_besar', [
+            'suratJalan' => $suratJalan,
+        ]);
+
+        // Set PDF options for large format
+        $pdf->setOptions([
+            'defaultPaperSize' => 'A4',
+            'defaultPaperOrientation' => 'landscape',
+            'dpi' => 300,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+        ]);
+
+        return $pdf->stream('surat_jalan_besar.pdf');
     }
 }

@@ -46,7 +46,7 @@
                             <th>Kode Barang</th>
                             <th>Nama Barang</th>
                             <th>Merek</th>
-                            <th>Ukuran</th>
+                            <th>Ukuran/Type</th>
                             <th>Grup</th>
                             <th>Satuan Kecil</th>
                             <th>Current Stock</th>

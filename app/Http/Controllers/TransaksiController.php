@@ -135,7 +135,7 @@ class TransaksiController extends Controller
         }
         
         // Debug: Log kodeBarangs count
-        \Log::info('KodeBarangs count: ' . $kodeBarangs->count());
+        // \Log::info('KodeBarangs count: ' . $kodeBarangs->count());
 
         // Cek apakah ada sales_order_id dari parameter
         $salesOrder = null;
@@ -176,7 +176,7 @@ class TransaksiController extends Controller
         $request->validate([
             'tanggal' => 'required|date',
             'kode_customer' => 'required|exists:customers,kode_customer',
-            'sales' => 'required|exists:stok_owners,kode_stok_owner', // Validasi sales
+            'sales' => 'nullable|exists:stok_owners,kode_stok_owner', // Validasi sales
             'no_po' => 'nullable|string|max:50',
             'subtotal' => 'required|numeric',
             'grand_total' => 'required|numeric',
@@ -336,8 +336,10 @@ class TransaksiController extends Controller
                     $transaksi->no_transaksi,
                     $customerName . ' (' . $request->kode_customer . ')',
                     $item['qty'],
-                    $request->sales,
-                    'LBR'
+                    'LBR',  // satuan (parameter 8)
+                    'Penjualan langsung tanpa surat jalan',  // keterangan (parameter 9)
+                    $creator,  // created_by (parameter 10)
+                    $request->sales ?? 'default'  // so (parameter 11) - default jika tidak ada sales
                 );
             }
 
@@ -434,7 +436,7 @@ class TransaksiController extends Controller
         $request->validate([
             'tanggal' => 'required|date',
             'kode_customer' => 'required|exists:customers,kode_customer',
-            'sales' => 'required|exists:stok_owners,kode_stok_owner',
+            'sales' => 'nullable|exists:stok_owners,kode_stok_owner',
             'subtotal' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'items' => 'required|array',
@@ -585,12 +587,12 @@ class TransaksiController extends Controller
                         throw new \Exception("Stok tidak mencukupi untuk {$item['namaBarang']}. Tersedia: {$stokTersediaBaru}, Dibutuhkan: {$item['qty']}");
                     }
                     $alokasiResultBaru = $fifoService->alokasiStok($kodeBarang->id, $item['qty'], $transaksiItem->id);
-                    Log::info('FIFO Alokasi (UPDATE) Result:', [
-                        'transaksi_item_id' => $transaksiItem->id,
-                        'kode_barang' => $item['kodeBarang'],
-                        'qty' => $item['qty'],
-                        'alokasi' => $alokasiResultBaru
-                    ]);
+                    // Log::info('FIFO Alokasi (UPDATE) Result:', [
+                    //     'transaksi_item_id' => $transaksiItem->id,
+                    //     'kode_barang' => $item['kodeBarang'],
+                    //     'qty' => $item['qty'],
+                    //     'alokasi' => $alokasiResultBaru
+                    // ]);
                 }
                 
                 // Record new sale in stock mutation
@@ -602,8 +604,10 @@ class TransaksiController extends Controller
                     $noTransaksi . ' (updated)',
                     $customerName . ' (' . $request->kode_customer . ')',
                     $item['qty'],
-                    $transaksi->sales,
-                    'LBR'
+                    'LBR',  // satuan (parameter 8)
+                    'Penjualan updated',  // keterangan (parameter 9)
+                    null,  // created_by (parameter 10) - will use Auth::user()
+                    $request->sales ?? 'default'  // so (parameter 11) - default jika tidak ada sales
                 );
                 
                 // Mark panels as unavailable
@@ -1231,7 +1235,65 @@ class TransaksiController extends Controller
         ]);
     }
 
-    public function nota($id)
+    public function notaKecil($id)
+    {
+        $transaction = Transaksi::with('items.kodeBarang', 'customer', 'salesOrder')->findOrFail($id);
+
+        // Ambil semua surat jalan yang direferensikan oleh faktur ini (jika ada)
+        $suratJalans = \App\Models\SuratJalan::where('no_transaksi', $transaction->no_transaksi)
+            ->orderBy('tanggal')
+            ->get();
+
+        // Split items into chunks of 8 per page untuk nota kecil
+        $itemsPerPage = 8;
+        $groupedItems = $transaction->items->chunk($itemsPerPage);
+
+        // Load the small receipt view for PDF generation
+        $pdf = Pdf::loadView('transaksi.nota_kecil', [
+            'transaction' => $transaction,
+            'groupedItems' => $groupedItems,
+            'suratJalans' => $suratJalans,
+        ]);
+
+        // Set PDF options for small receipt format
+        $pdf->setOptions([
+            'defaultPaperSize' => 'custom',
+            'defaultPaperOrientation' => 'portrait',
+            'dpi' => 300,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+        ]);
+
+        return $pdf->stream('nota_kecil.pdf');
+    }
+
+    public function notaBesar($id)
+    {
+        $transaction = Transaksi::with('items.kodeBarang', 'customer', 'salesOrder')->findOrFail($id);
+
+        // Ambil semua surat jalan yang direferensikan oleh faktur ini (jika ada)
+        $suratJalans = \App\Models\SuratJalan::where('no_transaksi', $transaction->no_transaksi)
+            ->orderBy('tanggal')
+            ->get();
+
+        // Load the large receipt view for PDF generation (single page, no chunking)
+        $pdf = Pdf::loadView('transaksi.nota_besar', [
+            'transaction' => $transaction,
+            'suratJalans' => $suratJalans,
+        ]);
+
+        // Set PDF options for large receipt format (portrait like the sample)
+        $pdf->setOptions([
+            'defaultPaperSize' => 'A4',
+            'defaultPaperOrientation' => 'landscape',
+            'dpi' => 300,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+        ]);
+
+        return $pdf->stream('nota_besar.pdf');
+    }
+    public function notaSementara($id)
     {
         $transaction = Transaksi::with('items', 'customer', 'salesOrder')->findOrFail($id);
 
@@ -1240,25 +1302,27 @@ class TransaksiController extends Controller
             ->orderBy('tanggal')
             ->get();
 
-        // Split items into chunks of 10 per page
+        // Split items into chunks of 10 per page untuk nota sementara
         $itemsPerPage = 10;
         $groupedItems = $transaction->items->chunk($itemsPerPage);
 
-        // Load the new print-specific view for PDF generation
-        $pdf = Pdf::loadView('transaksi.print_nota', [ // Changed from 'transaksi.nota' to 'transaksi.print_nota'
+        // Load the temporary receipt view for PDF generation
+        $pdf = Pdf::loadView('transaksi.nota_sementara', [
             'transaction' => $transaction,
             'groupedItems' => $groupedItems,
             'suratJalans' => $suratJalans,
         ]);
 
-        // Set PDF options for paper size, orientation, and DPI
+        // Set PDF options for temporary receipt format
         $pdf->setOptions([
-            'defaultPaperSize' => 'statement', // Sets paper size to Statement
-            'defaultPaperOrientation' => 'landscape', // Explicitly sets landscape orientation
-            'dpi' => 240 // Sets DPI to 240 for improved clarity
+            'defaultPaperSize' => 'A4',
+            'defaultPaperOrientation' => 'portrait',
+            'dpi' => 300,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
         ]);
 
-        return $pdf->stream('nota.pdf');
+        return $pdf->stream('nota_sementara.pdf');
     }
 
     public function listNota()
@@ -1328,7 +1392,7 @@ class TransaksiController extends Controller
             'no_transaksi' => 'nullable|string',
             'tanggal' => 'required|date',
             'kode_customer' => 'required|exists:customers,kode_customer',
-            'sales' => 'required|exists:stok_owners,kode_stok_owner',
+            'sales' => 'nullable|exists:stok_owners,kode_stok_owner',
             'no_po' => 'nullable|string|max:50',
             'hari_tempo' => 'nullable|integer|min:0',
             'tanggal_jatuh_tempo' => 'nullable|date',

@@ -112,7 +112,7 @@ class PurchaseOrderController extends Controller
             $request->validate([
                 'tanggal' => 'required|date',
                 'kode_customer' => 'required|exists:customers,kode_customer',
-                'sales' => 'required|exists:stok_owners,kode_stok_owner',
+                'sales' => 'nullable|exists:stok_owners,kode_stok_owner',
                 'subtotal' => 'required|numeric',
                 'grand_total' => 'required|numeric',
                 'items' => 'required|array|min:1',
@@ -188,7 +188,7 @@ class PurchaseOrderController extends Controller
             $request->validate([
                 'tanggal' => 'required|date',
                 'kode_customer' => 'required|exists:customers,kode_customer',
-                'sales' => 'required|exists:stok_owners,kode_stok_owner',
+                'sales' => 'nullable|exists:stok_owners,kode_stok_owner',
                 'subtotal' => 'required|numeric',
                 'grand_total' => 'required|numeric',
                 'items' => 'required|array|min:1',

@@ -66,7 +66,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="sales">Sales</label>
-                            <select class="form-control" id="sales" name="sales" required>
+                            <select class="form-control" id="sales" name="sales">
                                 <option value="">Pilih Sales</option>
                                 @isset($salesList)
                                     @foreach($salesList as $sales)

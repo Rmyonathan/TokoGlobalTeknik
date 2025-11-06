@@ -33,11 +33,30 @@
         .badge-warning {
             background-color: #ffc107;
             color: #212529;
-            font-weight: bold;
+            font-weight-bold;
         }
         .edit-info {
             font-size: 0.8rem;
             color: #6c757d;
+        }
+        
+        /* Styling untuk tombol aksi */
+        .action-buttons-container {
+            min-width: 220px;
+        }
+        
+        .btn-group-sm .btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        /* Spacing antar row button */
+        .d-flex.flex-column > .btn-group {
+            margin-bottom: 3px;
+        }
+        
+        .d-flex.flex-column > .btn-group:last-child {
+            margin-bottom: 0;
         }
     </style>
 
@@ -116,44 +135,60 @@
                         @endif
                     </td>
                     <td>
-                        <div class="btn-group">
-                            <a href="{{ route('transaksi.shownota', $transaction->id) }}" class="btn btn-info btn-sm" title="Lihat Nota">
-                                <i class="fas fa-eye"></i>
-                            </a>
+                        <div class="d-flex flex-column action-buttons-container">
+                            <!-- Print Nota Buttons Row -->
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ route('transaksi.nota-kecil', $transaction->id) }}" 
+                                   class="btn btn-primary btn-sm" 
+                                   target="_blank"
+                                   title="Print Nota Kecil (Simple: Nama, Qty, Total)">
+                                    <i class="fas fa-receipt mr-1"></i>Nota Kecil
+                                </a>
+                                <a href="{{ route('transaksi.nota-besar', $transaction->id) }}" 
+                                   class="btn btn-success btn-sm" 
+                                   target="_blank"
+                                   title="Print Nota Besar (Detail Lengkap)">
+                                    <i class="fas fa-file-invoice mr-1"></i>Nota Besar
+                                </a>
+                            </div>
 
-                            @if($transaction->status != 'canceled')
-                                <a href="{{ route('transaksi.edit', $transaction->id) }}" class="btn btn-warning btn-sm" title="Edit Transaksi">
-                                    <i class="fas fa-edit"></i>
+                            <!-- Action Buttons Row -->
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ route('transaksi.shownota', $transaction->id) }}" 
+                                   class="btn btn-info btn-sm" 
+                                   title="Lihat Nota">
+                                    <i class="fas fa-eye"></i>
                                 </a>
 
-                                <button type="button" class="btn btn-danger btn-sm cancel-btn"
-                                        data-toggle="modal"
-                                        data-target="#cancelModal"
-                                        data-id="{{ $transaction->id }}"
-                                        data-notransaksi="{{ $transaction->no_transaksi }}"
-                                        title="Batalkan Transaksi">
-                                    <i class="fas fa-ban"></i>
-                                </button>
-                            @endif
+                                @if($transaction->status != 'canceled')
+                                    <a href="{{ route('transaksi.edit', $transaction->id) }}" 
+                                       class="btn btn-warning btn-sm" 
+                                       title="Edit Transaksi">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
 
-                            @if($transaction->is_edited)
-                                <button type="button" class="btn btn-info btn-sm edit-history-btn"
-                                        data-toggle="modal"
-                                        data-target="#editHistoryModal"
-                                        data-notransaksi="{{ $transaction->no_transaksi }}"
-                                        data-editor="{{ $transaction->edited_by }}"
-                                        data-date="{{ date('d/m/Y H:i', strtotime($transaction->edited_at)) }}"
-                                        data-reason="{{ $transaction->edit_reason }}">
-                                    <i class="fas fa-history"></i>
-                                </button>
-                            @endif
+                                    <button type="button" class="btn btn-danger btn-sm cancel-btn"
+                                            data-toggle="modal"
+                                            data-target="#cancelModal"
+                                            data-id="{{ $transaction->id }}"
+                                            data-notransaksi="{{ $transaction->no_transaksi }}"
+                                            title="Batalkan Transaksi">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                @endif
 
-                            <a href="{{ route('transaksi.nota', $transaction->id) }}?auto_print=1"
-                                class="btn btn-primary btn-sm print-nota-btn"
-                                target="_blank"
-                                title="Cetak Nota">
-                                <i class="fas fa-print"></i>
-                            </a>
+                                @if($transaction->is_edited)
+                                    <button type="button" class="btn btn-secondary btn-sm edit-history-btn"
+                                            data-toggle="modal"
+                                            data-target="#editHistoryModal"
+                                            data-notransaksi="{{ $transaction->no_transaksi }}"
+                                            data-editor="{{ $transaction->edited_by }}"
+                                            data-date="{{ date('d/m/Y H:i', strtotime($transaction->edited_at)) }}"
+                                            data-reason="{{ $transaction->edit_reason }}">
+                                        <i class="fas fa-history"></i>
+                                    </button>
+                                @endif
+                            </div>
                         </div>
                     </td>
                 </tr>

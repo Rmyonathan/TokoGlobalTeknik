@@ -45,7 +45,7 @@
 							<div class="col-md-6">
 								<div class="form-group">
 									<label for="salesman_id">Salesman</label>
-									<select class="form-control" id="salesman_id" name="salesman_id" required>
+									<select class="form-control" id="salesman_id" name="salesman_id">
 										@foreach($salesmen as $salesman)
 											<option value="{{ $salesman->id }}" {{ $salesOrder->salesman_id == $salesman->id ? 'selected' : '' }}>{{ $salesman->keterangan }}</option>
 										@endforeach

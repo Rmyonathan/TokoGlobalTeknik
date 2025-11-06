@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Atap Management System</title>
+    <title>Global Teknik</title>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <!-- Popper.js -->
@@ -622,6 +622,9 @@
                             @endcan
                             <li class="nav-item">
                                 <a class="nav-link" href="<?php echo e(route('code.view-code')); ?>"><i class="fas fa-barcode"></i> Kode Barang</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('penawaran.index') }}"><i class="fas fa-file-invoice-dollar"></i> Penawaran Harga</a>
                             </li>
                             <li class="nav-item">
                                 @if(Route::has('wilayah.index'))
