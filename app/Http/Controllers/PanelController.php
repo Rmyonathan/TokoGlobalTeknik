@@ -380,6 +380,7 @@ class PanelController extends Controller
             'min_stock' => 'nullable|integer|min:0',
             'keterangan' => 'nullable|string|max:500',
             'input_by' => 'nullable|string|max:100',
+            'cost' => 'required|numeric|min:0',
         ], [
             'group_id.required' => 'Item code is required',
             'group_id.string' => 'Item code must be a valid string',
@@ -396,7 +397,6 @@ class PanelController extends Controller
 
         $name = $validated['name'];
         $group_id = $validated['group_id'];
-        $cost = 0; // Set default cost, harga beli hanya diinput dari pembelian
         $quantity = $validated['quantity'];
         $status = $validated['status'];
 
@@ -406,6 +406,7 @@ class PanelController extends Controller
         // Update master barang (KodeBarang)
         $kode = KodeBarang::where('kode_barang', $group_id)->first();
         if ($kode) {
+            $cost = $validated['cost'] ?? $kode->cost ?? 0;
             $kode->name = $name;
             $kode->cost = $cost;
             $kode->status = $status;
@@ -436,7 +437,7 @@ class PanelController extends Controller
         }
 
         // Rebuild panels in inventory (price=0 karena sudah dihapus)
-        $result = $this->addPanelsToInventory($name, $cost, $group_id, $quantity);
+        $result = $this->addPanelsToInventory($name, $cost ?? 0, $group_id, $quantity);
 
         return redirect()->route('master.barang')
             ->with('success', $result['message']);

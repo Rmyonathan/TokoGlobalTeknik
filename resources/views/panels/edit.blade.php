@@ -86,6 +86,15 @@
                             <small class="form-text text-muted">Pilih grup barang yang sesuai.</small>
                         </div>
 
+                        <div class="form-group">
+                            <label for="cost"><i class="fas fa-dollar-sign mr-1"></i> Harga Beli per Satuan Dasar</label>
+                            <input type="number" step="0.01" class="form-control @error('cost') is-invalid @enderror" id="cost" name="cost" value="{{ old('cost', $panel->cost ?? 0) }}">
+                            @error('cost')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="form-text text-muted">Sesuaikan jika ada perubahan harga beli. Nilai awal mengikuti data terakhir di database.</small>
+                        </div>
+
                         <!-- Field price sudah dihapus -->
 
                         <!-- Field length sudah dihapus -->
