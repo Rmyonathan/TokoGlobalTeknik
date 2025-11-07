@@ -64,10 +64,26 @@ class PenawaranHargaController extends Controller
                 return back()->with('error', 'Pilih minimal 1 barang untuk di-export');
             }
 
+            // Get custom prices
+            $customPricesJson = $request->input('custom_prices', '{}');
+            $customPrices = json_decode($customPricesJson, true) ?? [];
+
             // Get selected items
             $barangs = KodeBarang::whereIn('id', $selectedIds)
                 ->orderBy('kode_barang', 'asc')
                 ->get();
+
+            // Apply custom prices to barangs
+            $barangs = $barangs->map(function($barang) use ($customPrices) {
+                // If custom price exists for this item, use it
+                if (isset($customPrices[$barang->id])) {
+                    $barang->harga_export = $customPrices[$barang->id];
+                } else {
+                    // Otherwise use original price
+                    $barang->harga_export = $barang->harga_jual;
+                }
+                return $barang;
+            });
 
             // Get company info
             $perusahaan = Perusahaan::first();
@@ -120,10 +136,26 @@ class PenawaranHargaController extends Controller
                 return back()->with('error', 'Pilih minimal 1 barang untuk di-export');
             }
 
+            // Get custom prices
+            $customPricesJson = $request->input('custom_prices', '{}');
+            $customPrices = json_decode($customPricesJson, true) ?? [];
+
             // Get selected items
             $barangs = KodeBarang::whereIn('id', $selectedIds)
                 ->orderBy('kode_barang', 'asc')
                 ->get();
+
+            // Apply custom prices to barangs
+            $barangs = $barangs->map(function($barang) use ($customPrices) {
+                // If custom price exists for this item, use it
+                if (isset($customPrices[$barang->id])) {
+                    $barang->harga_export = $customPrices[$barang->id];
+                } else {
+                    // Otherwise use original price
+                    $barang->harga_export = $barang->harga_jual;
+                }
+                return $barang;
+            });
 
             // Get company info
             $perusahaan = Perusahaan::first();

@@ -18,6 +18,7 @@ use App\Services\UnitConversionService;
 use App\Services\PoNumberGeneratorService;
 use Illuminate\Support\Facades\DB;
 use Exception;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -1050,5 +1051,111 @@ class SuratJalanController extends Controller
         ]);
 
         return $pdf->stream('surat_jalan_besar.pdf');
+    }
+
+    /**
+     * Print nota preview from Surat Jalan (even if no invoice yet)
+     * This creates a temporary transaction object for visualization only
+     */
+    public function printNotaPreview($id)
+    {
+        $suratJalan = SuratJalan::with(['items', 'customer'])->findOrFail($id);
+        
+        // Create a temporary transaction object for visualization
+        $transaction = new \stdClass();
+        $transaction->id = 'PREVIEW-' . $suratJalan->id;
+        $transaction->no_transaksi = $suratJalan->no_transaksi ?? 'PREVIEW-' . $suratJalan->no_suratjalan;
+        $transaction->no_suratjalan = $suratJalan->no_suratjalan;
+        $transaction->tanggal = $suratJalan->tanggal;
+        $transaction->kode_customer = $suratJalan->kode_customer;
+        $transaction->customer = $suratJalan->customer;
+        $transaction->cara_bayar = $suratJalan->cara_bayar ?? 'Cash';
+        $transaction->metode_pembayaran = $suratJalan->metode_pembayaran ?? 'cash';
+        $transaction->hari_tempo = $suratJalan->hari_tempo ?? 0;
+        $transaction->tanggal_jatuh_tempo = $suratJalan->tanggal_jatuh_tempo;
+        $transaction->status = 'unpaid';
+        $transaction->ppn = 0;
+        
+        // Convert surat jalan items to transaction items format
+        $items = collect();
+        $totalBelanja = 0;
+        $totalOngkos = 0;
+        $totalDiskon = 0;
+        
+        foreach ($suratJalan->items as $sjItem) {
+            $item = new \stdClass();
+            $item->kode_barang = $sjItem->kode_barang;
+            $item->nama_barang = $sjItem->nama_barang;
+            $item->qty = $sjItem->qty;
+            $item->satuan = $sjItem->satuan;
+            $item->satuan_besar = $sjItem->satuan_besar;
+            
+            // Get harga from KodeBarang
+            $kodeBarang = KodeBarang::where('kode_barang', $sjItem->kode_barang)->first();
+            $item->harga = $kodeBarang ? $kodeBarang->harga_jual : 0;
+            $item->merek = $kodeBarang ? $kodeBarang->merek : '';
+            $item->ukuran = $kodeBarang ? $kodeBarang->ukuran : '';
+            $item->keterangan = $sjItem->keterangan ?? '';
+            
+            // Calculate totals
+            $item->ongkos = $sjItem->ongkos ?? 0;
+            $item->diskon = $sjItem->diskon ?? 0;
+            $subtotal = ($item->harga * $item->qty);
+            $item->total = $subtotal + $item->ongkos - $item->diskon;
+            
+            $totalBelanja += $subtotal;
+            $totalOngkos += $item->ongkos;
+            $totalDiskon += $item->diskon;
+            
+            $items->push($item);
+        }
+        
+        $transaction->items = $items;
+        $transaction->total_belanja = $totalBelanja;
+        $transaction->total_ongkos = $totalOngkos;
+        $transaction->total_diskon = $totalDiskon;
+        $transaction->subtotal = $totalBelanja; // Subtotal sebelum ongkos/diskon
+        $transaction->discount = $totalDiskon; // Property name used in view
+        $transaction->ppn = 0;
+        $transaction->ppn_amount = 0;
+        $transaction->grand_total = $totalBelanja + $totalOngkos - $totalDiskon;
+        $transaction->sudah_bayar = 0;
+        $transaction->dp = 0; // Down payment
+        $transaction->belum_bayar = $transaction->grand_total;
+        $transaction->potongan = 0;
+        $transaction->keterangan = 'Preview dari Surat Jalan ' . $suratJalan->no_suratjalan;
+        
+        // Edit/Cancel info
+        $transaction->is_edited = false;
+        $transaction->edited_by = null;
+        $transaction->edited_at = null;
+        $transaction->edit_reason = null;
+        $transaction->canceled_by = null;
+        $transaction->canceled_at = null;
+        $transaction->cancel_reason = null;
+        
+        // Salesman info
+        $transaction->salesman = (object)['keterangan' => 'PREVIEW'];
+        $transaction->salesOrder = null;
+
+        // Get surat jalans (just this one)
+        $suratJalans = collect([$suratJalan]);
+
+        // Load the nota sementara view
+        $pdf = Pdf::loadView('transaksi.nota_sementara', [
+            'transaction' => $transaction,
+            'suratJalans' => $suratJalans,
+        ]);
+
+        // Set PDF options
+        $pdf->setOptions([
+            'defaultPaperSize' => 'A4',
+            'defaultPaperOrientation' => 'portrait',
+            'dpi' => 300,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+        ]);
+
+        return $pdf->stream('nota_preview_' . $suratJalan->no_suratjalan . '.pdf');
     }
 }

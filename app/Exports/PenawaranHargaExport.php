@@ -45,7 +45,7 @@ class PenawaranHargaExport implements FromCollection, WithHeadings, WithStyles, 
                 $barang->merek ?? '-',
                 $barang->ukuran ?? '-',
                 $barang->unit_dasar ?? '-',
-                $barang->harga_jual,
+                $barang->harga_export ?? $barang->harga_jual, // Use custom price if available
             ];
 
             if ($this->showStock) {

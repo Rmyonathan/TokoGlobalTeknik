@@ -35,36 +35,83 @@
     <table class="table table-bordered table-striped">
         <thead class="thead-dark">
             <tr>
-                <th>No</th>
+                <th width="50">No</th>
                 <th>No Surat Jalan</th>
                 <th>Tanggal</th>
                 <th>Customer</th>
                 <th>Alamat</th>
+                <th>Total Item</th>
+                <th>Status</th>
                 <th>No Faktur</th>
-                <th>Aksi</th>
+                <th width="250">Aksi</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($suratJalan as $index => $sj)
+                @php
+                    $itemCount = $sj->items->count();
+                    $hasFaktur = !empty($sj->no_transaksi);
+                    $statusBadge = $hasFaktur 
+                        ? '<span class="badge badge-success"><i class="fas fa-check"></i> Terfaktur</span>' 
+                        : '<span class="badge badge-warning"><i class="fas fa-clock"></i> Belum Faktur</span>';
+                @endphp
                 <tr>
-                    <td>{{ $suratJalan->firstItem() + $index }}</td>
-                    <td>{{ $sj->no_suratjalan }}</td>
-                    <td>{{ $sj->tanggal }}</td>
+                    <td class="text-center">{{ $suratJalan->firstItem() + $index }}</td>
+                    <td><strong>{{ $sj->no_suratjalan }}</strong></td>
+                    <td>{{ date('d/m/Y', strtotime($sj->tanggal)) }}</td>
                     <td>{{ $sj->customer->nama }}</td>
                     <td>{{ $sj->alamat_suratjalan }}</td>
-                    <td>{{ $sj->no_transaksi }}</td>
+                    <td class="text-center">
+                        <span class="badge badge-info">{{ $itemCount }} item</span>
+                    </td>
+                    <td>{!! $statusBadge !!}</td>
                     <td>
-                        <a href="{{ route('suratjalan.detail', $sj->id) }}" class="btn btn-info btn-sm">
-                            <i class="fas fa-eye"></i> Detail
-                        </a>
-                        <a href="{{ route('suratjalan.detail', $sj->id) }}?auto_print=1" 
-                        class="btn btn-primary btn-sm" 
-                        target="_blank">
-                            <i class="fas fa-print"></i> Print
-                        </a>
-                        <a href="{{ route('transaksi.penjualan', ['no_suratjalan' => $sj->no_suratjalan]) }}" class="btn btn-success btn-sm">
-                            <i class="fas fa-file-invoice"></i> Buat Faktur
-                        </a>
+                        @if($hasFaktur)
+                            <strong>{{ $sj->no_transaksi }}</strong>
+                        @else
+                            <span class="text-muted">-</span>
+                        @endif
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{{ route('suratjalan.detail', $sj->id) }}" 
+                               class="btn btn-info" 
+                               title="Lihat Detail">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ route('suratjalan.detail', $sj->id) }}?auto_print=1" 
+                               class="btn btn-primary" 
+                               target="_blank"
+                               title="Print Surat Jalan">
+                                <i class="fas fa-print"></i> SJ
+                            </a>
+                            @if($hasFaktur)
+                                <a href="{{ route('transaksi.notasementara', $sj->no_transaksi) }}" 
+                                   class="btn btn-warning" 
+                                   target="_blank"
+                                   title="Print Nota Sementara">
+                                    <i class="fas fa-receipt"></i> Nota
+                                </a>
+                            @else
+                                <a href="{{ route('suratjalan.print-nota-preview', $sj->id) }}" 
+                                   class="btn btn-warning" 
+                                   target="_blank"
+                                   title="Preview Nota Sementara">
+                                    <i class="fas fa-receipt"></i> Nota
+                                </a>
+                            @endif
+                        </div>
+                        @if(!$hasFaktur)
+                            <a href="{{ route('transaksi.penjualan', ['no_suratjalan' => $sj->no_suratjalan]) }}" 
+                               class="btn btn-success btn-sm ml-1"
+                               title="Buat Faktur dari Surat Jalan ini">
+                                <i class="fas fa-file-invoice"></i> Buat Faktur
+                            </a>
+                        @else
+                            <span class="badge badge-secondary ml-1" title="Sudah terfaktur">
+                                <i class="fas fa-check"></i> Done
+                            </span>
+                        @endif
                     </td>
                 </tr>
             @endforeach
