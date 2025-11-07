@@ -596,6 +596,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/print/{id}', [SuratJalanController::class, 'print'])->name('suratjalan.print');
         Route::get('/print-kecil/{id}', [SuratJalanController::class, 'printKecil'])->name('suratjalan.print-kecil');
         Route::get('/print-besar/{id}', [SuratJalanController::class, 'printBesar'])->name('suratjalan.print-besar');
+        Route::get('/print-nota-preview/{id}', [SuratJalanController::class, 'printNotaPreview'])->name('suratjalan.print-nota-preview');
         
         // Multiple Surat Jalan to Invoice routes
         Route::get('/create-faktur', [SuratJalanController::class, 'createMultipleFaktur'])->name('suratjalan.create-faktur');
