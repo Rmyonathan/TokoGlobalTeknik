@@ -119,9 +119,26 @@ class Pembelian extends Model
 
         static::creating(function ($pembelian) {
             // Set default values untuk pembelian baru
-            $pembelian->total_dibayar = $pembelian->total_dibayar ?: 0;
-            $pembelian->sisa_utang = $pembelian->grand_total - $pembelian->total_dibayar;
-            $pembelian->status_utang = $pembelian->status_utang ?: 'belum_dibayar';
+            // Hanya pembelian KREDIT (tempo/ngutang) yang masuk ke utang supplier.
+            // Tunai / Non Tunai via bank (transfer, EDC, QRIS, dll) diperlakukan seperti cash: langsung lunas.
+            $caraBayarText = strtolower((string)($pembelian->cara_bayar ?? ''));
+            $pembayaranText = strtolower((string)($pembelian->pembayaran ?? ''));
+            $isCreditPurchase = in_array($caraBayarText, ['tempo','kredit','utang'])
+                || in_array($pembayaranText, ['tempo','kredit','utang']);
+
+            if ($isCreditPurchase) {
+                // Pembelian kredit: sisa_utang = grand_total - total_dibayar (biasanya 0 saat create)
+                $pembelian->total_dibayar = $pembelian->total_dibayar ?: 0;
+                $pembelian->sisa_utang = $pembelian->grand_total - $pembelian->total_dibayar;
+                $pembelian->status_utang = $pembelian->status_utang ?: 'belum_dibayar';
+            } else {
+                // Pembelian tunai / non tunai via bank: treat as fully paid (no AP)
+                if (is_null($pembelian->total_dibayar)) {
+                    $pembelian->total_dibayar = $pembelian->grand_total;
+                }
+                $pembelian->sisa_utang = max(0, $pembelian->grand_total - $pembelian->total_dibayar);
+                $pembelian->status_utang = $pembelian->sisa_utang <= 0 ? 'lunas' : 'sebagian';
+            }
         });
 
         static::updating(function ($pembelian) {

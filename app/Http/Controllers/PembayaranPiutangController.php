@@ -583,6 +583,17 @@ class PembayaranPiutangController extends Controller
     
         $query = Transaksi::with(['customer'])
             ->byDateRange($startDate, $endDate);
+
+        // Hanya tampilkan transaksi yang benar-benar penjualan kredit.
+        // Transaksi tunai / non tunai via bank (EDC/QRIS/Giro) diperlakukan seperti cash
+        // dan TIDAK muncul di laporan pembayaran piutang.
+        $query->where(function ($q) {
+            $q->whereIn('status_piutang', ['belum_dibayar', 'sebagian'])
+              ->orWhere(function ($qq) {
+                  $qq->whereIn(DB::raw('LOWER(cara_bayar)'), ['kredit','credit','tempo','utang'])
+                     ->orWhereIn(DB::raw('LOWER(pembayaran)'), ['kredit','credit','tempo','utang']);
+              });
+        });
     
         // Filter berdasarkan kode_customer
         if ($kodeCustomer) {

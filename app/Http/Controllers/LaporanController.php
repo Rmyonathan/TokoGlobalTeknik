@@ -1090,7 +1090,14 @@ class LaporanController extends Controller
         try {
             $query = Transaksi::with(['customer', 'pembayaranDetails'])
                 ->where('status', '!=', 'canceled')
-                ->whereBetween('tanggal', [$startDate, $endDate]);
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                // Hanya transaksi penjualan KREDIT (tempo/ngutang) yang dianggap piutang pelanggan.
+                // Transaksi tunai / non tunai via bank (EDC/QRIS/Giro) diperlakukan seperti cash
+                // dan tidak ikut laporan piutang pelanggan.
+                ->where(function ($q) {
+                    $q->whereRaw('LOWER(cara_bayar) IN (?, ?, ?, ?)', ['kredit','credit','tempo','utang'])
+                      ->orWhereRaw('LOWER(pembayaran) IN (?, ?, ?, ?)', ['kredit','credit','tempo','utang']);
+                });
 
             if ($customerId) {
                 $query->where('kode_customer', $customerId);
@@ -1264,13 +1271,20 @@ class LaporanController extends Controller
         try {
             $query = \App\Models\Pembelian::with(['supplier'])
                 ->where('status', '!=', 'canceled')
-                ->whereIn('status_utang', ['belum_dibayar', 'sebagian'])
-                ->whereBetween('tanggal', [$startDate, $endDate]);
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                // Hanya transaksi pembelian KREDIT (tempo/ngutang) yang muncul di laporan utang supplier.
+                // Pembelian tunai / non tunai via bank (EDC/QRIS/Giro) diperlakukan seperti cash dan tidak ikut.
+                ->where(function ($q) {
+                    $q->whereRaw('LOWER(cara_bayar) IN (?, ?, ?, ?)', ['kredit','credit','tempo','utang'])
+                      ->orWhereRaw('LOWER(pembayaran) IN (?, ?, ?, ?)', ['kredit','credit','tempo','utang']);
+                });
 
             if ($supplierId) {
                 $query->where('kode_supplier', $supplierId);
             }
 
+            // Filter status utang bila dipilih. Jika "-- Semua --", tampilkan semua status utang
+            // (lunas, sebagian, belum_dibayar) untuk transaksi kredit tersebut.
             if ($statusUtang) {
                 $query->where('status_utang', $statusUtang);
             }
@@ -1610,7 +1624,7 @@ class LaporanController extends Controller
                 try {
                     // Fallback MASUK dari stock_batches
                     $batches = \App\Models\StockBatch::where('kode_barang_id', $barang->id)
-                        ->whereBetween(\DB::raw('DATE(tanggal_masuk)'), [$startDate, $endDate])
+                        ->whereBetween('tanggal_masuk', [$startDate, $endDate])
                         ->orderBy('tanggal_masuk', 'desc')
                         ->get();
                     foreach ($batches as $b) {

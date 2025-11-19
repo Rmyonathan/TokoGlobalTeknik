@@ -14,6 +14,16 @@ return new class extends Migration
     public function up(): void
     {
         // Get Asset account type ID
+        // Cek apakah AccountType ada (untuk menghindari error saat fresh migrate)
+        $assetType = AccountType::where('code', 'A')->first();
+        
+        // Jika tidak ada tipe akun atau tidak ada akun bank induk, skip saja (karena akan di-handle Seeder)
+        if (!$assetType || ChartOfAccount::where('code', 'like', '1104%')->count() == 0) {
+            return;
+        }
+
+        $assetTypeId = $assetType->id;
+        
         $assetTypeId = AccountType::where('code', 'A')->value('id');
         
         if (!$assetTypeId) {

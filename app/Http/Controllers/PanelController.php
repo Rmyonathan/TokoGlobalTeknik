@@ -39,6 +39,7 @@ class PanelController extends Controller
         $search = $request->input('search', '');
         $statusFilter = $request->input('status_filter', '');
         $perPage = 10; // Number of items per page
+        $showMissingCostOnly = (bool) $request->input('missing_cost', false);
 
         // Build the query for KodeBarang
         $query = KodeBarang::with(['grupBarang']);
@@ -62,6 +63,15 @@ class PanelController extends Controller
         // Apply status filter if provided
         if (!empty($statusFilter)) {
             $query->where('status', $statusFilter);
+        }
+
+        // Jika user ingin melihat hanya barang tanpa harga beli,
+        // filter langsung di query KodeBarang (cost null atau <= 0)
+        if ($showMissingCostOnly) {
+            $query->where(function($q) {
+                $q->whereNull('cost')
+                  ->orWhere('cost', '<=', 0);
+            });
         }
 
         // Paginate the results
@@ -152,7 +162,20 @@ class PanelController extends Controller
             'paginator' => $panelsPaginator // Pass the paginator object for use in the view
         ];
 
-        return view('master.barang', compact('inventory', 'search', 'searchBy', 'statusFilter'));
+        // Hitung jumlah barang yang belum punya harga beli (cost <= 0 atau null) di seluruh master barang
+        $missingCostCount = KodeBarang::where(function($q) {
+                $q->whereNull('cost')
+                  ->orWhere('cost', '<=', 0);
+            })->count();
+
+        return view('master.barang', [
+            'inventory' => $inventory,
+            'search' => $search,
+            'searchBy' => $searchBy,
+            'statusFilter' => $statusFilter,
+            'missingCostCount' => $missingCostCount,
+            'showMissingCostOnly' => $showMissingCostOnly,
+        ]);
     }
 
 
@@ -480,7 +503,7 @@ class PanelController extends Controller
                 ->with('success', "Barang berhasil dihapus");
                 
         } catch (\Exception $e) {
-            \Log::error('Error deleting inventory: ' . $e->getMessage());
+            Log::error('Error deleting inventory: ' . $e->getMessage());
             return redirect()->route('master.barang')
                 ->with('error', 'Gagal menghapus barang: ' . $e->getMessage());
         }
@@ -1110,10 +1133,13 @@ class PanelController extends Controller
         // Get the data from the paginator
         $panels = $panelsPaginator->items();
 
-        // Manually group the panels
+        // Manually group the panels dan ambil current stock dari tabel stocks
         $groupedPanels = [];
         foreach ($panels as $panel) {
             $key = $panel->name . '-' . $panel->price . '-' . $panel->kode_barang;
+
+            // Ambil current stock dari tabel Stock (menggunakan database yang sedang aktif)
+            $currentStock = \App\Models\Stock::where('kode_barang', $panel->kode_barang)->value('good_stock') ?? 0;
 
             if (!isset($groupedPanels[$key])) {
                 $groupedPanels[$key] = [
@@ -1128,10 +1154,11 @@ class PanelController extends Controller
                     'group' => $panel->attribute,
                     'unit_dasar' => $panel->unit_dasar,
                     'status' => $panel->status,
-                    'quantity' => Panel::where('group_id', $panel->kode_barang)->where('available', True)->count()
+                    'quantity' => $currentStock,
                 ];
             } else {
-                $groupedPanels[$key]['quantity']++;
+                // Jika ada duplikasi key (harusnya jarang), tambahkan quantity-nya
+                $groupedPanels[$key]['quantity'] += $currentStock;
             }
         }
 

@@ -24,9 +24,10 @@ class CustomerCreditService
         }
 
         // Ambil semua transaksi kredit yang belum lunas
+        // Gunakan status_piutang agar hanya transaksi kredit (ngutang) yang masih outstanding yang dihitung
         $transaksiKredit = Transaksi::where('kode_customer', $customer->kode_customer)
-            ->where('cara_bayar', '!=', 'Tunai')
             ->where('status', '!=', 'canceled')
+            ->whereIn('status_piutang', ['belum_dibayar', 'sebagian'])
             ->get();
 
         $totalPiutang = 0;

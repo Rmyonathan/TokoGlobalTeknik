@@ -77,6 +77,11 @@ class ReturPenjualanController extends Controller
             // Get transaction data
             $transaksi = Transaksi::with(['customer', 'items'])->findOrFail($request->transaksi_id);
 
+            // Validasi: jika transaksi kredit sudah lunas, tidak bisa retur
+            if (strtolower($transaksi->pembayaran ?? '') === 'kredit' && $transaksi->status_piutang === 'lunas') {
+                throw new \Exception('Tidak dapat melakukan retur untuk transaksi kredit yang sudah lunas. Silakan hubungi administrator.');
+            }
+
             // Create retur penjualan
             $returPenjualan = ReturPenjualan::create([
                 'no_retur' => $noRetur,

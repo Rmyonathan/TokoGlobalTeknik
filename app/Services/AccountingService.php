@@ -339,18 +339,94 @@ class AccountingService
         }
         $dpp = max(0.0, $amountGrand - $ppnAmount);
 
-        // Decide whether refund reduces AR or cash received
-        $creditAccount = $piutang ?: $kasOrBank;
+        // Determine jenis retur berdasarkan transaksi asal
+        // Retur Kredit: jika transaksi asal benar‑benar penjualan kredit (ngutang) → potong Piutang Usaha
+        // Retur Tunai/Non Tunai: jika transaksi asal dibayar langsung (cash / transfer) → refund ke Kas/Bank
+        $transaksi = $retur->transaksi;
+        $isReturKredit = false;
+        $creditAccount = null;
+        $creditMemo = 'Koreksi karena retur penjualan';
+        
+        if ($transaksi) {
+            // Deteksi penjualan kredit harus SAMA dengan logika di createJournalFromSale,
+            // supaya jurnal retur selalu konsisten dengan jurnal penjualannya.
+            $caraBayarText = strtolower((string)($transaksi->cara_bayar ?? ''));
+            $pembayaranText = strtolower((string)($transaksi->pembayaran ?? ''));
+
+            $isCashSale = in_array($caraBayarText, ['tunai','cash']) || in_array($pembayaranText, ['tunai','cash']);
+            $isCreditSale = in_array($caraBayarText, ['kredit','credit','tempo','utang']) 
+                || in_array($pembayaranText, ['kredit','credit','tempo','utang']);
+
+            if ($isCreditSale && !$isCashSale) {
+                // Retur Kredit: potong Piutang Usaha
+                // Tapi cek dulu apakah piutang sudah lunas
+                if ($transaksi->status_piutang === 'lunas') {
+                    Log::warning('Cannot create return for fully paid credit transaction', [
+                        'transaksi_id' => $transaksi->id,
+                        'no_retur' => $reference
+                    ]);
+                    return null; // Tidak bisa retur jika sudah lunas
+                }
+                
+                $isReturKredit = true;
+                $creditAccount = $piutang;
+                $creditMemo = 'Koreksi piutang karena retur penjualan';
+            } else {
+                // Retur Tunai/Non Tunai: refund ke Kas/Bank sesuai cara_bayar transaksi asal
+                // Gunakan COA yang sama dengan transaksi asal
+                $caraBayarText = $transaksi->cara_bayar ?? '';
+                
+                // Cari CaraBayar berdasarkan nama cara_bayar dari transaksi
+                $caraBayar = \App\Models\CaraBayar::where('nama', $caraBayarText)->first();
+                
+                if ($caraBayar && $caraBayar->hasCoaAccount()) {
+                    // Gunakan COA yang terhubung dengan cara_bayar
+                    $creditAccount = $caraBayar->coaAccount;
+                    $creditMemo = 'Refund untuk retur penjualan';
+                } else {
+                    // Fallback: cari COA berdasarkan teks cara_bayar
+                    $pembayaranText = $transaksi->pembayaran ?? '';
+                    
+                    // Jika tunai, gunakan Kas Besar/Kas Kecil
+                    if (stripos($caraBayarText, 'tunai') !== false || stripos($pembayaranText, 'tunai') !== false) {
+                        $creditAccount = $this->resolveKasAccountByText($caraBayarText, $pembayaranText);
+                        if (!$creditAccount) {
+                            // Fallback ke Kas Kecil atau Kas Besar
+                            $creditAccount = $this->findAccountAny(['Kas Kecil', 'Kas Besar', 'Kas']);
+                        }
+                        $creditMemo = 'Refund uang cash untuk retur penjualan';
+                    } else {
+                        // Non tunai: gunakan Bank sesuai cara_bayar
+                        $creditAccount = $this->resolveBankAccountByText($caraBayarText, $pembayaranText);
+                        if (!$creditAccount) {
+                            // Fallback ke Bank umum
+                            $creditAccount = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4']);
+                        }
+                        $creditMemo = 'Refund ke bank untuk retur penjualan';
+                    }
+                }
+            }
+        }
+        
+        // Fallback jika tidak ada transaksi atau tidak ditemukan akun
+        if (!$creditAccount) {
+            if ($isReturKredit) {
+                $creditAccount = $piutang;
+            } else {
+                $creditAccount = $kasOrBank;
+            }
+        }
+        
         $lines = [
             // Dr Retur Penjualan (= DPP)
             ['account_id'=>$returPenjualan->id,'debit'=>$dpp,'credit'=>0,'memo'=>'Retur penjualan (DPP)'],
         ];
-        // Dr PPN Keluaran (= PPN) [DB2]
+        // Dr PPN Keluaran (= PPN) - Pastikan PPN juga di-retur
         if ($ppnAmount > 0 && $ppnKeluaran) {
             $lines[] = ['account_id'=>$ppnKeluaran->id,'debit'=>$ppnAmount,'credit'=>0,'memo'=>'Pembalikan PPN Keluaran'];
         }
-        // Cr Piutang Usaha / Kas/Bank (= grand total)
-        $lines[] = ['account_id'=>$creditAccount->id,'debit'=>0,'credit'=>$amountGrand,'memo'=>'Koreksi piutang/kas'];
+        // Cr Piutang Usaha (retur kredit) atau Kas/Bank (retur tunai) (= grand total)
+        $lines[] = ['account_id'=>$creditAccount->id,'debit'=>0,'credit'=>$amountGrand,'memo'=>$creditMemo];
 
         // Jika barang kembali: Dr Persediaan; Cr HPP (= nilai FIFO kembali)
         if ($hpp && $persediaan) {
@@ -415,12 +491,77 @@ class AccountingService
         }
         $dpp = max(0.0, $amountGrand - $ppnAmount);
 
-        // Assume increases supplier receivable (reduce AP) by grand total
-        $debitAccount = $utang ?: $kasOrBank;
+        // Determine jenis retur berdasarkan pembelian asal
+        // Retur Kredit: jika pembelian asal pembayaran = 'Kredit' (potong Utang Usaha)
+        // Retur Tunai: jika pembelian asal pembayaran = 'Tunai' atau cara_bayar = tunai/non tunai (refund dari Kas/Bank)
+        $pembelian = $retur->pembelian;
+        $isReturKredit = false;
+        $debitAccount = null;
+        $debitMemo = 'Koreksi karena retur pembelian';
+        
+        if ($pembelian) {
+            // Deteksi pembelian kredit harus sama dengan logika di createJournalFromPurchase
+            $caraBayarText = strtolower((string)($pembelian->cara_bayar ?? ''));
+            $pembayaranText = strtolower((string)($pembelian->pembayaran ?? ''));
+            $isCreditPurchase = in_array($caraBayarText, ['tempo','kredit','utang'])
+                || in_array($pembayaranText, ['tempo','kredit','utang']);
+
+            if ($isCreditPurchase) {
+                // Retur Kredit: potong Utang Usaha
+                $isReturKredit = true;
+                $debitAccount = $utang;
+                $debitMemo = 'Koreksi utang karena retur pembelian';
+            } else {
+                // Retur Tunai/Non Tunai: refund dari Kas/Bank sesuai cara_bayar pembelian asal
+                // Gunakan COA yang sama dengan pembelian asal
+                $caraBayarText = $pembelian->cara_bayar ?? '';
+                
+                // Cari CaraBayar berdasarkan nama cara_bayar dari pembelian
+                $caraBayar = \App\Models\CaraBayar::where('nama', $caraBayarText)->first();
+                
+                if ($caraBayar && $caraBayar->hasCoaAccount()) {
+                    // Gunakan COA yang terhubung dengan cara_bayar
+                    $debitAccount = $caraBayar->coaAccount;
+                    $debitMemo = 'Refund untuk retur pembelian';
+                } else {
+                    // Fallback: cari COA berdasarkan teks cara_bayar
+                    $pembayaranText = $pembelian->pembayaran ?? '';
+                    
+                    // Jika tunai, gunakan Kas Besar/Kas Kecil
+                    if (stripos($caraBayarText, 'tunai') !== false || stripos($pembayaranText, 'tunai') !== false) {
+                        $debitAccount = $this->resolveKasAccountByText($caraBayarText, $pembayaranText);
+                        if (!$debitAccount) {
+                            // Fallback ke Kas Kecil atau Kas Besar
+                            $debitAccount = $this->findAccountAny(['Kas Kecil', 'Kas Besar', 'Kas']);
+                        }
+                        $debitMemo = 'Refund uang cash untuk retur pembelian';
+                    } else {
+                        // Non tunai: gunakan Bank sesuai cara_bayar
+                        $debitAccount = $this->resolveBankAccountByText($caraBayarText, $pembayaranText);
+                        if (!$debitAccount) {
+                            // Fallback ke Bank umum
+                            $debitAccount = $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4']);
+                        }
+                        $debitMemo = 'Refund dari bank untuk retur pembelian';
+                    }
+                }
+            }
+        }
+        
+        // Fallback jika tidak ada pembelian atau tidak ditemukan akun
+        if (!$debitAccount) {
+            if ($isReturKredit) {
+                $debitAccount = $utang;
+            } else {
+                $debitAccount = $kasOrBank;
+            }
+        }
+        
         $lines = [
-            ['account_id'=>$debitAccount->id,'debit'=>$amountGrand,'credit'=>0,'memo'=>'Koreksi utang/kas karena retur pembelian'],
+            ['account_id'=>$debitAccount->id,'debit'=>$amountGrand,'credit'=>0,'memo'=>$debitMemo],
             ['account_id'=>$returPembelianAcc->id,'debit'=>0,'credit'=>$dpp,'memo'=>'Retur pembelian (DPP)'],
         ];
+        // Cr PPN Masukan (= PPN) - Pastikan PPN juga di-retur
         if ($ppnAmount > 0 && $ppnMasukan) {
             $lines[] = ['account_id'=>$ppnMasukan->id,'debit'=>0,'credit'=>$ppnAmount,'memo'=>'Pembalikan PPN Masukan'];
         }
@@ -688,7 +829,7 @@ class AccountingService
     /**
      * Find bank child account by payment method
      */
-    public function findBankChildAccountByPaymentMethod(string $paymentMethod, string $bankCode = null): ?ChartOfAccount
+    public function findBankChildAccountByPaymentMethod(string $paymentMethod, ?string $bankCode = null): ?ChartOfAccount
     {
         $query = ChartOfAccount::where('is_active', true);
         
@@ -742,7 +883,7 @@ class AccountingService
         $assetTypeId = \App\Models\AccountType::where('code', 'A')->value('id');
         
         if (!$assetTypeId) {
-            \Log::error('Asset account type not found when creating COA for CaraBayar', [
+            Log::error('Asset account type not found when creating COA for CaraBayar', [
                 'cara_bayar_id' => $caraBayar->id,
                 'expected_code' => $expectedCoaCode
             ]);
@@ -762,7 +903,7 @@ class AccountingService
                 'balance' => 0,
             ]);
 
-            \Log::info('Created new COA account for CaraBayar', [
+            Log::info('Created new COA account for CaraBayar', [
                 'cara_bayar_id' => $caraBayar->id,
                 'coa_account_id' => $coaAccount->id,
                 'code' => $expectedCoaCode,
@@ -771,7 +912,7 @@ class AccountingService
 
             return $coaAccount;
         } catch (\Exception $e) {
-            \Log::error('Failed to create COA account for CaraBayar', [
+            Log::error('Failed to create COA account for CaraBayar', [
                 'cara_bayar_id' => $caraBayar->id,
                 'expected_code' => $expectedCoaCode,
                 'error' => $e->getMessage()

@@ -76,32 +76,23 @@ class StockAdjustmentController extends Controller
      */
     public function adjust($kodeBarang)
     {
-        // Get the KodeBarang model by kode_barang
+        // Get the KodeBarang master record
         $kodeBarang = KodeBarang::where('kode_barang', $kodeBarang)->firstOrFail();
-        
-        // Get current panel count for accurate stock value
-        $currentPanelCount = Panel::where('group_id', $kodeBarang->kode_barang)
-                                 ->where('available', true)
-                                 ->count();
-        
-        // Get the stock record (or create it if it doesn't exist)
+
+        // Get current stock from Stock table (menggunakan database yang sedang aktif)
         $stock = Stock::where('kode_barang', $kodeBarang->kode_barang)->first();
-        
+
         if (!$stock) {
-            // If stock record doesn't exist, create one
+            // Jika belum ada record stok, anggap stok awal 0
             $stock = new Stock();
             $stock->kode_barang = $kodeBarang->kode_barang;
             $stock->nama_barang = $kodeBarang->name;
-            $stock->good_stock = $currentPanelCount;
+            $stock->good_stock = 0;
+            $stock->bad_stock = 0;
+            $stock->satuan = $kodeBarang->unit_dasar ?? 'PCS';
             $stock->save();
-        } else {
-            // Update stock to match actual panel count
-            if ($stock->good_stock != $currentPanelCount) {
-                $stock->good_stock = $currentPanelCount;
-                $stock->save();
-            }
         }
-        
+
         return view('stock.adjustment.adjust', compact('stock', 'kodeBarang'));
     }
 
@@ -133,7 +124,11 @@ class StockAdjustmentController extends Controller
             $validated['quantity_before'] = $currentPanelCount;
         }
         
-        $diff = $validated['quantity_after'] - $validated['quantity_before'];
+        // Interpret input sebagai jumlah penyesuaian (+/-), bukan stok akhir.
+        // quantity_before = stok saat ini, quantity_after (dari form) = perubahan yang diinginkan.
+        $change = (int) $validated['quantity_after'];
+        $diff = $change;
+        $quantityAfter = $validated['quantity_before'] + $change;
         
         DB::beginTransaction();
         try {
@@ -150,12 +145,12 @@ class StockAdjustmentController extends Controller
                 $transactionNo = 'ADJ-' . $date . '-' . $adjustmentId . '-' . uniqid();
             }
             
-            // Create stock adjustment record
+            // Create stock adjustment record (simpan stok akhir yang baru)
             $adjustment = StockAdjustment::create([
                 'stock_id' => $stock->id,
                 'kode_barang' => $stock->kode_barang,
                 'quantity_before' => $validated['quantity_before'],
-                'quantity_after' => $validated['quantity_after'],
+                'quantity_after' => $quantityAfter,
                 'difference' => $diff,
                 'keterangan' => $validated['keterangan'],
                 'user_id' => Auth::id(),
@@ -196,7 +191,7 @@ class StockAdjustmentController extends Controller
             } else {
                 // No change in quantity, still need to update the original stock
                 // This keeps the UI consistent when an adjustment with no change happens
-                $stock->good_stock = $validated['quantity_after'];
+                $stock->good_stock = $quantityAfter;
                 $stock->save();
             }
             

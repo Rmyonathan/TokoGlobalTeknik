@@ -39,8 +39,12 @@
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label><strong>Harga:</strong></label>
-                                <p>Rp {{ number_format($kodeBarang->price, 0, ',', '.') }}</p>
+                                <label><strong>Harga Beli:</strong></label>
+                                @php
+                                    // Prioritaskan harga beli (cost) jika ada, lalu harga_jual, terakhir kolom price lama
+                                    $hargaDisplay = $kodeBarang->cost ?? $kodeBarang->harga_jual ?? $kodeBarang->price ?? 0;
+                                @endphp
+                                <p>Rp {{ number_format($hargaDisplay, 0, ',', '.') }}</p>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -57,12 +61,12 @@
                         <input type="hidden" name="quantity_before" value="{{ $stock->good_stock }}">
 
                         <div class="form-group">
-                            <label for="quantity_after">Kuantitas Setelah Adjustment:</label>
+                            <label for="quantity_after">Kuantitas Penyesuaian (+/-):</label>
                             <input type="number" 
                                    class="form-control @error('quantity_after') is-invalid @enderror" 
                                    id="quantity_after" 
                                    name="quantity_after"
-                                   value="{{ old('quantity_after', $stock->good_stock) }}" 
+                                   value="{{ old('quantity_after', 0) }}" 
                                    required>
                             @error('quantity_after')
                                 <span class="invalid-feedback" role="alert">
@@ -122,13 +126,14 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
-        // Initial stock value
+        // Initial stock value (stok sebelum adjustment)
         const initialStock = {{ $stock->good_stock }};
         
         // Update adjustment preview on input change
         $('#quantity_after').on('input', function() {
-            const afterValue = parseInt($(this).val()) || 0;
-            const diff = afterValue - initialStock;
+            const change = parseInt($(this).val()) || 0; // qty penyesuaian (+ tambah, - kurang)
+            const afterValue = initialStock + change;
+            const diff = change;
             
             $('#after-value').text(afterValue);
             $('#diff-value').text(diff > 0 ? '+' + diff : diff);

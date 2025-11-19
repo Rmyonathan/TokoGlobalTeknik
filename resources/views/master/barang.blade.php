@@ -54,6 +54,29 @@
             </form>
 
             <div class="card-body">
+                {{-- Pemberitahuan jika ada barang yang belum memiliki harga beli (cost) --}}
+                @if(isset($missingCostCount) && $missingCostCount > 0)
+                    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            Ada <strong>{{ number_format($missingCostCount) }}</strong> barang yang belum memiliki <strong>Harga Beli</strong>.
+                            Klik tombol di kanan untuk melihat dan mengedit barang-barang tersebut.
+                        </div>
+                        <div>
+                            @if(!empty($showMissingCostOnly))
+                                <a href="{{ route('master.barang', array_merge(request()->except(['page','missing_cost']), [])) }}"
+                                   class="btn btn-sm btn-secondary">
+                                    Tampilkan Semua Barang
+                                </a>
+                            @else
+                                <a href="{{ route('master.barang', array_merge(request()->except('page'), ['missing_cost' => 1])) }}"
+                                   class="btn btn-sm btn-danger">
+                                    Lihat Barang Tanpa Harga Beli
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
                 @if(isset($inventory) && count($inventory['inventory_by_length']) > 0)
                     <div class="table-responsive">
                         <table class="table table-striped table-bordered">
@@ -83,13 +106,25 @@
                                     @php
                                         $minStock = $item['min_stock'] ?? null;
                                         $isLow = $minStock !== null && (int)($item['quantity'] ?? 0) <= (int)$minStock;
+                                        $isMissingCost = !isset($item['cost']) || $item['cost'] <= 0;
                                     @endphp
-                                    <tr @if($isLow) style="background-color:#fff3cd" @endif>
+                                    <tr @if($isLow) style="background-color:#fff3cd" @endif @if($isMissingCost) class="table-danger" @endif>
                                         <td>{{ $loop->iteration + (($inventory['paginator']->currentPage() - 1) * $inventory['paginator']->perPage()) }}</td>
                                         <td>{{ $item['group_id'] }}</td>
-                                        <td>{{ $item['name'] }}</td>
+                                        <td>
+                                            {{ $item['name'] }}
+                                            @if($isMissingCost)
+                                                <span class="badge bg-danger ms-1">Belum ada Harga Beli</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $item['merek'] }}</td>
-                                        <td>Rp. {{ number_format($item['cost']) }}</td>
+                                        <td>
+                                            @if($isMissingCost)
+                                                <span class="text-danger font-weight-bold">Belum diisi</span>
+                                            @else
+                                                Rp. {{ number_format($item['cost']) }}
+                                            @endif
+                                        </td>
                                         <td>
                                             <strong>Rp. {{ number_format($item['harga_per_satuan_dasar'] ?? $item['price']) }}</strong>
                                             <br>

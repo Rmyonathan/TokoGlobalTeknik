@@ -197,8 +197,9 @@ class TransaksiController extends Controller
             $sisaPiutang = $customer->sisa_piutang ?? 0;
             $batasKredit = $customer->limit_kredit ?? 0;
             // dd($customer);
+            /** @var User|null $user */
             $user = Auth::user();
-            $isOwner = $user->hasRole('admin');
+            $isOwner = $user && $user->hasRole('admin');
             // dd($isOwner);
 
              // Jika user bukan owner dan melebihi kredit → stop
@@ -343,9 +344,15 @@ class TransaksiController extends Controller
                 );
             }
 
-            // Update status piutang transaksi & total piutang customer bila transaksi non-tunai/kredit
-            if (($request->cara_bayar === 'Kredit') || ($request->pembayaran === 'Non Tunai')) {
-                // Set status piutang untuk transaksi baru ini
+            // Update status piutang transaksi & total piutang customer HANYA untuk transaksi kredit
+            // Kredit didefinisikan sama dengan AccountingService::createJournalFromSale
+            $caraBayarText = strtolower((string)($transaksi->cara_bayar ?? ''));
+            $pembayaranText = strtolower((string)($transaksi->pembayaran ?? ''));
+            $isCreditSale = in_array($caraBayarText, ['kredit','credit','tempo','utang'])
+                || in_array($pembayaranText, ['kredit','credit','tempo','utang']);
+
+            if ($isCreditSale) {
+                // Transaksi kredit: piutang muncul
                 $transaksi->status_piutang = 'belum_dibayar';
                 $transaksi->total_dibayar = 0;
                 $transaksi->sisa_piutang = $ppnCalculation['grand_total'];
@@ -362,6 +369,16 @@ class TransaksiController extends Controller
 
                 // Logging & perhitungan info limit (opsional)
                 $this->updateCustomerCreditLimit($request->kode_customer, $request->grand_total);
+            } else {
+                // Bukan kredit (tunai / non-tunai via bank, EDC, QRIS, dll): dianggap langsung lunas
+                // Abaikan hari tempo & tanggal jatuh tempo jika user mengisi saat Non Tunai.
+                $transaksi->hari_tempo = 0;
+                $transaksi->tanggal_jatuh_tempo = null;
+                $transaksi->status_piutang = 'lunas';
+                $transaksi->total_dibayar = $ppnCalculation['grand_total'];
+                $transaksi->sisa_piutang = 0;
+                $transaksi->tanggal_pelunasan = now();
+                $transaksi->save();
             }
 
             // Simpan harga jual spesifik untuk customer
