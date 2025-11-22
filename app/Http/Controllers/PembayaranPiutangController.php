@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Pembayaran;
 use App\Models\PembayaranDetail;
 use App\Models\PembayaranPiutangNotaKredit;
@@ -294,8 +295,8 @@ class PembayaranPiutangController extends Controller
                 'no_referensi' => $request->no_referensi,
                 'keterangan' => $request->keterangan,
                 'status' => 'confirmed', // Auto confirm for now
-                'created_by' => auth()->id(),
-                'confirmed_by' => auth()->id(),
+                'created_by' => Auth::id(),
+                'confirmed_by' => Auth::id(),
                 'confirmed_at' => now()
             ]);
 
@@ -304,18 +305,26 @@ class PembayaranPiutangController extends Controller
                 $transaksi = Transaksi::find($detail['transaksi_id']);
                 $sudahDibayar = $transaksi->total_dibayar ?? 0;
                 $jumlahDilunasi = $detail['jumlah_dilunasi'];
-                
+
                 // Hitung total nota kredit yang digunakan untuk transaksi ini dalam pembayaran ini
+                // (jika form mengirimkan alokasi per nota kredit)
                 $notaKreditDigunakanTransaksiIni = 0;
                 if ($request->nota_kredit_details) {
-                    $notaKreditDigunakanTransaksiIni = collect($request->nota_kredit_details)->sum('jumlah_digunakan');
+                    $notaKreditDigunakanTransaksiIni = collect($request->nota_kredit_details)
+                        ->where('transaksi_id', $detail['transaksi_id'] ?? null)
+                        ->sum('jumlah_digunakan');
                 }
-                
-                // Sisa tagihan = (grand_total - nota_kredit_digunakan) - sudah_dibayar - jumlah_dilunasi
-                // Nota kredit mengurangi tagihan, bukan menambah pembayaran
-                $tagihanSetelahNotaKredit = $transaksi->grand_total - $notaKreditDigunakanTransaksiIni;
-                $sisaTagihan = $tagihanSetelahNotaKredit - $sudahDibayar - $jumlahDilunasi;
-                
+
+                // Hitung total retur penjualan yang sudah approved/processed untuk transaksi ini
+                $totalReturApproved = \App\Models\ReturPenjualan::where('transaksi_id', $transaksi->id)
+                    ->whereIn('status', ['approved', 'processed'])
+                    ->sum('total_retur');
+
+                // Sisa tagihan = (grand_total - nota_kredit - retur) - sudah_dibayar - jumlah_dilunasi
+                // Nota kredit & retur mengurangi tagihan, bukan menambah pembayaran
+                $tagihanSetelahPotongan = $transaksi->grand_total - $notaKreditDigunakanTransaksiIni - $totalReturApproved;
+                $sisaTagihan = $tagihanSetelahPotongan - $sudahDibayar - $jumlahDilunasi;
+
                 // Jika sisa tagihan negatif, berarti ada kelebihan pembayaran
                 // Ini bisa terjadi jika ada retur setelah faktur lunas
                 if ($sisaTagihan < 0) {
@@ -526,7 +535,7 @@ class PembayaranPiutangController extends Controller
     public function confirm(Pembayaran $pembayaran): JsonResponse
     {
         try {
-            $pembayaran->confirm(auth()->id());
+            $pembayaran->confirm(Auth::id());
 
             return response()->json([
                 'success' => true,
@@ -549,7 +558,7 @@ class PembayaranPiutangController extends Controller
     public function cancel(Pembayaran $pembayaran): JsonResponse
     {
         try {
-            $pembayaran->cancel(auth()->id());
+            $pembayaran->cancel(Auth::id());
 
             // Restore transaksi piutang status
             foreach ($pembayaran->details as $detail) {
@@ -606,12 +615,40 @@ class PembayaranPiutangController extends Controller
         }
     
         $transaksi = $query->orderBy('tanggal', 'desc')->get();
+
+        // Enrich transaksi dengan informasi retur & sisa piutang terbaru
+        $transaksi = $transaksi->map(function ($t) {
+            // Hitung total retur penjualan yang sudah approved/processed untuk transaksi ini
+            $totalReturApproved = \App\Models\ReturPenjualan::where('transaksi_id', $t->id)
+                ->whereIn('status', ['approved', 'processed'])
+                ->sum('total_retur');
+
+            // Sisa piutang setelah dikurangi retur:
+            // (grand_total - total_retur) - total_dibayar
+            $sisaPiutangSetelahRetur = ($t->grand_total - $totalReturApproved) - ($t->total_dibayar ?? 0);
+            if ($sisaPiutangSetelahRetur < 0) {
+                $sisaPiutangSetelahRetur = 0;
+            }
+
+            // Tentukan status piutang untuk tampilan di laporan pembayaran piutang
+            $statusPiutangDisplay = $sisaPiutangSetelahRetur <= 0
+                ? 'lunas'
+                : (($t->total_dibayar ?? 0) > 0 ? 'sebagian' : 'belum_dibayar');
+
+            // Tambahkan properti dinamis untuk dipakai di Blade
+            $t->total_retur = $totalReturApproved;
+            $t->sisa_piutang_after_retur = $sisaPiutangSetelahRetur;
+            $t->status_piutang_display = $statusPiutangDisplay;
+
+            return $t;
+        });
     
         $summary = [
             'total_faktur' => $transaksi->count(),
             'total_nilai_faktur' => $transaksi->sum('grand_total'),
             'total_sudah_dibayar' => $transaksi->sum('total_dibayar'),
-            'total_sisa_piutang' => $transaksi->sum('sisa_piutang'),
+            'total_retur' => $transaksi->sum('total_retur'),
+            'total_sisa_piutang' => $transaksi->sum('sisa_piutang_after_retur'),
             'total_lunas' => $transaksi->where('status_piutang', 'lunas')->count(),
             'total_sebagian' => $transaksi->where('status_piutang', 'sebagian')->count(),
             'total_belum_dibayar' => $transaksi->where('status_piutang', 'belum_dibayar')->count(),

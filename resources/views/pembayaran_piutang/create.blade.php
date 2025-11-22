@@ -63,6 +63,13 @@
 				<button type="button" id="btnKlikLunas" class="btn btn-sm btn-success">Klik Lunas</button>
 			</div>
 
+			<div class="mb-2">
+				<strong>Total Nilai Faktur:</strong> Rp <span id="summary_total_faktur">0</span> |
+				<strong>Total Sudah Dibayar:</strong> Rp <span id="summary_total_dibayar">0</span> |
+				<strong>Total Jumlah Retur:</strong> Rp <span id="summary_total_retur">0</span> |
+				<strong>Total Sisa Piutang:</strong> Rp <span id="summary_total_sisa">0</span>
+			</div>
+
 			<div class="table-responsive">
 				<table class="table table-bordered table-sm" id="tabelFaktur">
 					<thead>
@@ -72,6 +79,7 @@
 							<th>Tanggal</th>
 							<th>Total</th>
 							<th>Sudah Dibayar</th>
+							<th>Jumlah Retur</th>
 							<th>Sisa</th>
 							<th>Bayar</th>
 						</tr>
@@ -109,7 +117,23 @@
                 const tbody = document.querySelector('#tabelFaktur tbody');
                 tbody.innerHTML = '';
                 if(!res.success){ alert(res.message||'Gagal memuat faktur'); return; }
+
+                let totalFaktur = 0;
+                let totalDibayar = 0;
+                let totalRetur = 0;
+                let totalSisa = 0;
+
                 (res.invoices||[]).forEach(inv=>{
+                    const totalF = parseFloat(inv.total_faktur||0);
+                    const sudah = parseFloat(inv.sudah_dibayar||0);
+                    const retur = parseFloat(inv.total_retur||0);
+                    const sisa = parseFloat(inv.sisa_tagihan||0);
+
+                    totalFaktur += totalF;
+                    totalDibayar += sudah;
+                    totalRetur += retur;
+                    totalSisa += sisa;
+
                     const tr = document.createElement('tr');
                     tr.dataset.id = inv.id;
                     tr.innerHTML = `
@@ -118,11 +142,18 @@
                         <td>${inv.tanggal}</td>
                         <td class="text-right">${formatNumber(inv.total_faktur)}</td>
                         <td class="text-right">${formatNumber(inv.sudah_dibayar)}</td>
+                        <td class="text-right">${formatNumber(inv.total_retur)}</td>
                         <td class="text-right sisa">${formatNumber(inv.sisa_tagihan)}</td>
                         <td><input type=\"number\" class=\"form-control form-control-sm input-bayar\" min=\"0\" step=\"100\" value=\"0\"></td>
                     `;
                     tbody.appendChild(tr);
                 });
+
+                // Update summary totals
+                document.getElementById('summary_total_faktur').textContent = formatNumber(totalFaktur);
+                document.getElementById('summary_total_dibayar').textContent = formatNumber(totalDibayar);
+                document.getElementById('summary_total_retur').textContent = formatNumber(totalRetur);
+                document.getElementById('summary_total_sisa').textContent = formatNumber(totalSisa);
             })
             .catch(()=>alert('Gagal memuat faktur'));
     }

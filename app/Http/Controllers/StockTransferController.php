@@ -14,6 +14,7 @@ use App\Services\AccountingService;
 use App\Services\StockTransferService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Exception;
 
 class StockTransferController extends Controller
@@ -162,7 +163,7 @@ class StockTransferController extends Controller
             $fromDb = $this->normalizeDatabaseKey($stockTransfer->from_database);
             $toDb   = $this->normalizeDatabaseKey($stockTransfer->to_database);
 
-            \Log::info('Approving stock transfer', [
+            Log::info('Approving stock transfer', [
                 'transfer_id' => $stockTransfer->id,
                 'no_transfer' => $stockTransfer->no_transfer,
                 'from' => $stockTransfer->from_database,
@@ -171,7 +172,7 @@ class StockTransferController extends Controller
 
             // Process stock transfer for each item
             foreach ($stockTransfer->items as $item) {
-                \Log::info('Processing transfer item', [
+                Log::info('Processing transfer item', [
                     'kode_barang' => $item->kode_barang,
                     'qty' => $item->qty_transfer,
                     'from' => $fromDb,
@@ -183,7 +184,7 @@ class StockTransferController extends Controller
 
                 // Create accounting entries
                 $this->createAccountingEntries($stockTransfer, $item);
-                \Log::info('Transfer item processed');
+                Log::info('Transfer item processed');
             }
 
             // Mark as completed
@@ -195,7 +196,7 @@ class StockTransferController extends Controller
 
         } catch (Exception $e) {
             DB::rollback();
-            \Log::error('Approve transfer failed', [
+            Log::error('Approve transfer failed', [
                 'transfer_id' => $stockTransfer->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -379,7 +380,7 @@ class StockTransferController extends Controller
                 'total_value' => $result['qty'] * $result['avg_cost']
             ]);
 
-            \Log::info('FIFO transfer completed', [
+            Log::info('FIFO transfer completed', [
                 'kode_barang' => $item->kode_barang,
                 'qty_transferred' => $result['qty'],
                 'avg_cost' => $result['avg_cost'],
@@ -389,7 +390,7 @@ class StockTransferController extends Controller
             return $result;
 
         } catch (\Exception $e) {
-            \Log::error('FIFO transfer failed', [
+            Log::error('FIFO transfer failed', [
                 'kode_barang' => $item->kode_barang,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

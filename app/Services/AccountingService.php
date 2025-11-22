@@ -191,19 +191,31 @@ class AccountingService
                 return null;
             }
         } else {
-            // Pembelian Tunai/Transfer: Cr Bank (spesifik jika ada)
-            $preferredBank = $this->resolveBankAccountByText($pembelian->cara_bayar ?? null, $pembelian->pembayaran ?? null);
-            $bankAccount = $preferredBank ?: $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4']);
-            if ($bankAccount) {
-                $lines[] = ['account_id'=>$bankAccount->id,'debit'=>0,'credit'=>$grand,'memo'=>'Pembayaran pembelian tunai/transfer'];
+            // Pembelian tunai / non-kredit.
+            // PRIORITAS:
+            // 1) Jika cara_bayar/pembayaran mengandung "kas kecil"/"kas besar" => gunakan akun Kas sesuai teks.
+            // 2) Selain itu, gunakan akun Bank (spesifik jika bisa di-resolve dari teks).
+            $kasAccount = $this->resolveKasAccountByText($pembelian->cara_bayar ?? null, $pembelian->pembayaran ?? null);
+
+            if ($kasAccount) {
+                // Tunai via Kas (Kas Kecil / Kas Besar)
+                $lines[] = ['account_id'=>$kasAccount->id,'debit'=>0,'credit'=>$grand,'memo'=>'Pembayaran pembelian tunai (kas)'];
             } else {
-                // Fallback to Kas jika tidak ada akun bank
-                $kasAccount = $this->resolveKasAccountByText($pembelian->cara_bayar ?? null, $pembelian->pembayaran ?? null) ?: $this->findAccountAny(['Kas Besar', 'Kas Kecil', 'Kas']);
-                if ($kasAccount) {
-                    $lines[] = ['account_id'=>$kasAccount->id,'debit'=>0,'credit'=>$grand,'memo'=>'Pembayaran pembelian tunai'];
+                // Tunai/Transfer via Bank
+                $preferredBank = $this->resolveBankAccountByText($pembelian->cara_bayar ?? null, $pembelian->pembayaran ?? null);
+                $bankAccount = $preferredBank ?: $this->findAccountAny(['Bank', '1104-1', '1104-2', '1104-3', '1104-4']);
+
+                if ($bankAccount) {
+                    $lines[] = ['account_id'=>$bankAccount->id,'debit'=>0,'credit'=>$grand,'memo'=>'Pembayaran pembelian tunai/transfer (bank)'];
                 } else {
-                    Log::warning('COA Bank/Kas not found for cash purchase');
-                    return null;
+                    // Fallback terakhir: cari akun Kas umum jika tidak ada akun bank spesifik
+                    $fallbackKas = $this->findAccountAny(['Kas Besar', 'Kas Kecil', 'Kas']);
+                    if ($fallbackKas) {
+                        $lines[] = ['account_id'=>$fallbackKas->id,'debit'=>0,'credit'=>$grand,'memo'=>'Pembayaran pembelian tunai (kas)'];
+                    } else {
+                        Log::warning('COA Bank/Kas not found for cash purchase');
+                        return null;
+                    }
                 }
             }
         }

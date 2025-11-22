@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\KodeBarang;
+use App\Models\StockBatch;
+use App\Models\StockMutation;
 use App\Http\Requests\StoreKodeBarangRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\UpdateKodeBarangRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class KodeBarangController extends Controller
 {
@@ -138,6 +141,11 @@ class KodeBarangController extends Controller
         }
 
         $created = 0; $updated = 0; $errors = [];
+        
+        // Array untuk mengumpulkan items yang akan dibuat StockBatch dan StockMutation
+        // Group berdasarkan (tanggal, harga_beli)
+        $itemsForBatch = []; // Key: "tanggal|harga_beli", Value: array of items
+        
         $parseNumber = function($value) {
             if ($value === null || $value === '') return 0;
             
@@ -329,25 +337,143 @@ class KodeBarangController extends Controller
                 }
 
                 // Handle stock quantity if provided
+                // Note: Stock akan diupdate setelah semua items diproses untuk menghindari replace
+                // Untuk sekarang, kita hanya kumpulkan data untuk diproses nanti
                 if ($quantity > 0) {
-                    try {
-                        // Update or create stock record
-                        \App\Models\Stock::updateOrCreate(
-                            [ 'kode_barang' => $kode ],
-                            [
-                                'nama_barang' => $name,
-                                'good_stock' => $quantity,
-                                'bad_stock' => 0,
-                                'so' => 0,
-                                'satuan' => $payload['unit_dasar']
-                            ]
-                        );
-                    } catch (\Exception $e) {
-                        $errors[] = 'Baris ' . ($index + 2) . ': Gagal menyimpan stock - ' . $e->getMessage();
+                    // Kumpulkan item untuk dibuat StockBatch dan StockMutation
+                    // Group berdasarkan tanggal dan harga_beli yang sama
+                    if ($hargaBeli > 0) {
+                        // Gunakan tanggal sekarang untuk semua import (atau bisa dari CSV jika ada)
+                        $tanggalMasuk = now()->format('Y-m-d');
+                        
+                        // Key untuk grouping: tanggal + harga_beli
+                        $groupKey = $tanggalMasuk . '|' . $hargaBeli;
+                        
+                        if (!isset($itemsForBatch[$groupKey])) {
+                            $itemsForBatch[$groupKey] = [];
+                        }
+                        
+                        $itemsForBatch[$groupKey][] = [
+                            'kode_barang' => $kode,
+                            'nama_barang' => $name,
+                            'kode_barang_id' => $existing->id,
+                            'quantity' => $quantity,
+                            'harga_beli' => $hargaBeli,
+                            'tanggal_masuk' => $tanggalMasuk,
+                            'unit_dasar' => $payload['unit_dasar'],
+                            'input_by' => $data['input_by'] ?? null,
+                            'row_index' => $index + 2
+                        ];
                     }
                 }
             } catch (\Throwable $e) {
                 $errors[] = 'Baris ' . ($index + 2) . ': ' . $e->getMessage();
+            }
+        }
+
+        // Proses StockBatch dan StockMutation per group (tanggal + harga_beli yang sama)
+        $batchGroupNumber = 1;
+        $createdBy = Auth::check() ? Auth::user()->name : 'SYSTEM';
+        
+        foreach ($itemsForBatch as $groupKey => $items) {
+            try {
+                // Parse group key untuk mendapatkan tanggal dan harga_beli
+                list($tanggalMasuk, $hargaBeli) = explode('|', $groupKey);
+                $tanggalMasukDate = \Carbon\Carbon::parse($tanggalMasuk);
+                
+                // Generate batch number yang sama untuk semua item dalam group ini
+                $batchNumber = 'IMPORT-' . $tanggalMasukDate->format('Ymd') . '-BATCH-' . str_pad($batchGroupNumber, 3, '0', STR_PAD_LEFT);
+                
+                // Generate no_transaksi untuk StockMutation
+                $noTransaksi = 'IMPORT-' . $tanggalMasukDate->format('Ymd') . '-BATCH-' . $batchGroupNumber;
+                
+                // Buat StockBatch untuk setiap kode_barang dalam group
+                // Tapi jika ada beberapa baris dengan kode_barang yang sama, gabungkan quantity-nya
+                $itemsByKodeBarang = [];
+                foreach ($items as $item) {
+                    $kodeBarangId = $item['kode_barang_id'];
+                    if (!isset($itemsByKodeBarang[$kodeBarangId])) {
+                        $itemsByKodeBarang[$kodeBarangId] = [
+                            'kode_barang' => $item['kode_barang'],
+                            'nama_barang' => $item['nama_barang'],
+                            'kode_barang_id' => $kodeBarangId,
+                            'quantity' => 0,
+                            'harga_beli' => $item['harga_beli'],
+                            'tanggal_masuk' => $tanggalMasukDate,
+                            'unit_dasar' => $item['unit_dasar'],
+                            'input_by' => $item['input_by'],
+                            'items' => []
+                        ];
+                    }
+                    $itemsByKodeBarang[$kodeBarangId]['quantity'] += $item['quantity'];
+                    $itemsByKodeBarang[$kodeBarangId]['items'][] = $item; // Simpan untuk StockMutation
+                }
+                
+                // Buat StockBatch untuk setiap kode_barang (dengan batch_number yang sama)
+                foreach ($itemsByKodeBarang as $kodeBarangId => $itemData) {
+                    try {
+                        // Update stock (accumulate jika sudah ada, atau create jika baru)
+                        $existingStock = \App\Models\Stock::where('kode_barang', $itemData['kode_barang'])->first();
+                        if ($existingStock) {
+                            $existingStock->good_stock += $itemData['quantity'];
+                            $existingStock->save();
+                            $totalStock = $existingStock->good_stock;
+                        } else {
+                            $newStock = \App\Models\Stock::create([
+                                'kode_barang' => $itemData['kode_barang'],
+                                'nama_barang' => $itemData['nama_barang'],
+                                'good_stock' => $itemData['quantity'],
+                                'bad_stock' => 0,
+                                'so' => 0,
+                                'satuan' => $itemData['unit_dasar']
+                            ]);
+                            $totalStock = $newStock->good_stock;
+                        }
+                        
+                        // Buat StockBatch setelah stock diupdate
+                        StockBatch::create([
+                            'kode_barang_id' => $kodeBarangId,
+                            'pembelian_item_id' => null, // Import tidak melalui pembelian
+                            'qty_masuk' => $itemData['quantity'],
+                            'qty_sisa' => $itemData['quantity'],
+                            'harga_beli' => $itemData['harga_beli'],
+                            'tanggal_masuk' => $itemData['tanggal_masuk'],
+                            'batch_number' => $batchNumber,
+                            'keterangan' => 'Import dari CSV' . ($itemData['input_by'] ? ' - ' . $itemData['input_by'] : ''),
+                            'tipe_batch' => 'IMPORT'
+                        ]);
+                        
+                        // Record StockMutation untuk setiap item dalam group (sebagai transaksi masuk)
+                        // Record per item untuk tracking detail, dengan total stock yang benar
+                        $runningTotal = $totalStock;
+                        foreach (array_reverse($itemData['items']) as $detailItem) {
+                            // Hitung total stock untuk item ini (dikurangi quantity item berikutnya)
+                            $runningTotal -= $detailItem['quantity'];
+                            
+                            StockMutation::create([
+                                'kode_barang' => $detailItem['kode_barang'],
+                                'nama_barang' => $detailItem['nama_barang'],
+                                'no_transaksi' => $noTransaksi,
+                                'tanggal' => $itemData['tanggal_masuk']->format('Y-m-d H:i:s'),
+                                'no_nota' => $noTransaksi,
+                                'supplier_customer' => 'Import CSV',
+                                'plus' => $detailItem['quantity'],
+                                'minus' => 0,
+                                'total' => $runningTotal + $detailItem['quantity'], // Total setelah item ini ditambahkan
+                                'so' => 'default',
+                                'satuan' => $detailItem['unit_dasar'],
+                                'keterangan' => 'Import dari CSV - Batch ' . $batchGroupNumber . ($itemData['input_by'] ? ' (' . $itemData['input_by'] . ')' : ''),
+                                'created_by' => $createdBy
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        $errors[] = 'Gagal membuat StockBatch/StockMutation untuk ' . $itemData['kode_barang'] . ' - ' . $e->getMessage();
+                    }
+                }
+                
+                $batchGroupNumber++;
+            } catch (\Exception $e) {
+                $errors[] = 'Gagal memproses group batch - ' . $e->getMessage();
             }
         }
 

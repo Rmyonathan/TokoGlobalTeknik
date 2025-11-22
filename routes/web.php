@@ -612,12 +612,6 @@ Route::middleware(['web', 'auth'])->group(function () {
         // Route::post('/update/{id}', [SuratJalanController::class, 'update'])->name('suratjalan.update');
     });
     
-    // Stock Transfer routes
-    Route::group(['middleware' => ['permission:manage stok'], 'prefix' => 'stock-transfer'], function () {
-        Route::get('/create', [StockTransferController::class, 'create'])->name('stock-transfer.create');
-        Route::post('/store', [StockTransferController::class, 'store'])->name('stock-transfer.store');
-    });
-
     // Finance - Bank Loan
     Route::group(['middleware' => ['permission:manage bank loan'], 'prefix' => 'finance'], function () {
         Route::get('/utang-bank', [BankLoanController::class, 'index'])->name('finance.bank-loan.index');
@@ -662,7 +656,10 @@ Route::middleware(['web', 'auth'])->group(function () {
     });
 
     // Stock Transfer routes
-    Route::group(['middleware' => ['permission:manage stock transfer'], 'prefix' => 'stock-transfer'], function () {
+    // NOTE:
+    // - Primary permission: "manage stock transfer"
+    // - Fallback: users with "manage stock" (inventory admins) are also allowed
+    Route::group(['middleware' => ['permission:manage stock transfer|manage stock'], 'prefix' => 'stock-transfer'], function () {
         Route::get('/', [App\Http\Controllers\StockTransferController::class, 'index'])->name('stock-transfer.index');
         Route::get('/create', [App\Http\Controllers\StockTransferController::class, 'create'])->name('stock-transfer.create');
         Route::post('/store', [App\Http\Controllers\StockTransferController::class, 'store'])->name('stock-transfer.store');

@@ -147,10 +147,15 @@ class PembayaranDetail extends Model
             });
         })->sum('jumlah_digunakan');
 
-        // Sisa piutang = (grand_total - total_nota_kredit_digunakan) - total_dibayar
-        // Nota kredit mengurangi tagihan, bukan menambah pembayaran
-        $tagihanSetelahNotaKredit = $transaksi->grand_total - $totalNotaKreditDigunakan;
-        $sisaPiutang = $tagihanSetelahNotaKredit - $totalDibayar;
+        // Hitung total retur penjualan yang sudah approved/processed untuk transaksi ini
+        $totalReturApproved = \App\Models\ReturPenjualan::where('transaksi_id', $transaksiId)
+            ->whereIn('status', ['approved', 'processed'])
+            ->sum('total_retur');
+
+        // Sisa piutang = (grand_total - nota_kredit - retur) - total_dibayar
+        // - Nota kredit & retur mengurangi tagihan, bukan menambah pembayaran
+        $tagihanSetelahPotongan = $transaksi->grand_total - $totalNotaKreditDigunakan - $totalReturApproved;
+        $sisaPiutang = $tagihanSetelahPotongan - $totalDibayar;
         
         // Jika sisa piutang negatif, berarti ada kelebihan pembayaran
         if ($sisaPiutang < 0) {

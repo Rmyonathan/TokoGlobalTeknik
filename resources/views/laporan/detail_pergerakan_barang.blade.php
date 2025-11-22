@@ -146,6 +146,7 @@
 						<th class="text-right">Qty Masuk</th>
 						<th class="text-right">Qty Keluar</th>
 						<th>Satuan</th>
+						<th>Batch FIFO</th>
 						<th class="text-right">Harga</th>
 						<th>Tipe Harga</th>
 						<th>Keterangan</th>
@@ -182,6 +183,13 @@
 								@endif
 							</td>
 							<td>{{ $row['satuan'] ?? '-' }}</td>
+							<td>
+								@if(!empty($row['batch_info']))
+									<small>{{ $row['batch_info'] }}</small>
+								@else
+									-
+								@endif
+							</td>
 							<td class="text-right">
 								@if(isset($row['harga']) && $row['harga'] !== null)
 									{{ number_format($row['harga'], 0, ',', '.') }}

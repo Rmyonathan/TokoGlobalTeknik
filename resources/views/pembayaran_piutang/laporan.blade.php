@@ -9,6 +9,7 @@
 			<strong>Total Faktur:</strong> {{ number_format($summary['total_faktur'] ?? 0) }} |
 			<strong>Total Nilai Faktur:</strong> Rp {{ number_format($summary['total_nilai_faktur'] ?? 0, 0, ',', '.') }} |
 			<strong>Total Sudah Dibayar:</strong> Rp {{ number_format($summary['total_sudah_dibayar'] ?? 0, 0, ',', '.') }} |
+			<strong>Total Retur:</strong> Rp {{ number_format($summary['total_retur'] ?? 0, 0, ',', '.') }} |
 			<strong>Total Sisa Piutang:</strong> Rp {{ number_format($summary['total_sisa_piutang'] ?? 0, 0, ',', '.') }}
 		</div>
 		@endif
@@ -61,6 +62,7 @@
 						<th>Customer</th>
 						<th>Total</th>
 						<th>Sudah Dibayar</th>
+						<th>Jumlah Retur</th>
 						<th>Sisa</th>
 						<th>Status</th>
 					</tr>
@@ -73,8 +75,9 @@
 						<td>{{ optional($t->customer)->nama ?? '-' }}</td>
 						<td class="text-right">{{ number_format($t->grand_total, 0, ',', '.') }}</td>
 						<td class="text-right">{{ number_format($t->total_dibayar, 0, ',', '.') }}</td>
-						<td class="text-right">{{ number_format($t->sisa_piutang, 0, ',', '.') }}</td>
-						<td>{{ $t->status_piutang }}</td>
+						<td class="text-right">{{ number_format($t->total_retur ?? 0, 0, ',', '.') }}</td>
+						<td class="text-right">{{ number_format($t->sisa_piutang_after_retur ?? $t->sisa_piutang, 0, ',', '.') }}</td>
+						<td>{{ $t->status_piutang_display ?? $t->status_piutang }}</td>
 					</tr>
 					@empty
 					<tr><td colspan="7" class="text-center">Tidak ada data</td></tr>
